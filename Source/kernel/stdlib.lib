@@ -1,0 +1,44 @@
+db 'MJL', 0
+dd end_of_file
+dw end_of_header
+dw 0
+dw section_table
+dw end_of_section_table - section_table
+entry_point   dd 0
+checksum      dd 0
+
+virtual
+  align 16
+  a = $ - $$
+end virtual
+db a dup 0
+end_of_header:
+
+section_table:
+db 'code', 1, 0, 0, 0
+dd standard_lib
+dd end_of_standard_lib - standard_lib
+
+db 'exp', 0, 6, 0, 0, 0
+dd export_table
+dd end_of_export_table - export_table
+end_of_section_table:
+
+standard_lib:
+include 'stdlib.asm'
+end_of_standard_lib:
+virtual
+  align 16
+  a = $ - $$
+end virtual
+db a dup 0
+
+export_table:
+db 'dos_print_dts', 0
+dd dos_print_dts - standard_lib
+db 'dos_wait_key', 0
+dd dos_wait_key - standard_lib
+db 0
+end_of_export_table:
+
+end_of_file:

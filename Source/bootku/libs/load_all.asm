@@ -1,8 +1,0 @@
-include 'system.asm'
-;include 'mem.asm'
-include 'convert.asm'
-include 'string.asm'
-include 'screen.asm'
-include 'keyboard.asm'
-include 'disk.asm'
-include 'sys_init.asm'

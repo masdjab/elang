@@ -1,1 +1,0 @@
-[:send, nil, :puts, [:str, "Hello world..."]]

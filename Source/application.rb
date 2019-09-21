@@ -1,11 +1,13 @@
 module Elang
   class EApplication
-    attr_accessor :name
+    attr_reader :name, :classes, :functions, :variables, :constants
     
     def initialize
       @name = ""
       @classes = []
-      @i_vars = []
+      @functions = []
+      @variables = []
+      @constants = []
     end
   end
 end

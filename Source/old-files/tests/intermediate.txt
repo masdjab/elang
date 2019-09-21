@@ -1,0 +1,21 @@
+data "Hello world..."
+data "Press any key to exit"
+
+var str message
+var int umur
+
+proc void waitkey
+end
+
+def void 
+
+
+private class Programmer : Person
+  getter :name
+  accessor :lang
+  
+  private void initialize(str name, str lang)
+    str name = name
+    str lang = lang
+  end
+end

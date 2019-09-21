@@ -1,9 +1,14 @@
 module Elang
   class EFunction
-    attr_reader   :name
+    attr_reader   :function_id, :scope, :name
     attr_accessor :arguments, :variables, :code
     
-    def initialize(name)
+    @@function_id = 0
+    
+    def initialize(name, scope = nil)
+      @@function_id += 1
+      @function_id = @@function_id
+      @scope = nil
       @name = name
       @arguments = []
       @variables = []

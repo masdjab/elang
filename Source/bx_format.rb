@@ -5,7 +5,7 @@ module Elang
       :section_table_size, :main_entry_point, :checksum, :sections
     
     def initialize
-      @signature = ""
+      @signature = "BX"
       @file_size = 0
       @header_size = 0
       @section_table_offset = 0

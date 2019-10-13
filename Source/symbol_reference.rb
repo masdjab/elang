@@ -1,14 +1,11 @@
 module Elang
   class SymbolReference
-    SIZE_BYTE = 1
-    SIZE_WORD = 2
-    SIZE_DWORD = 3
+    attr_accessor :context, :identifier, :ref_type, :location, :origin
     
-    attr_accessor :context, :identifier, :byte_size, :location, :origin
-    def initialize(context, identifier, byte_size, location, origin = 0)
+    def initialize(context, identifier, ref_type, location, origin = 0)
       @context = context
       @identifier = identifier
-      @byte_size = byte_size
+      @ref_type = ref_type
       @location = location
       @origin = origin
     end

@@ -9,11 +9,11 @@ module Elang
     APP_INFO = 7
     
     attr_accessor :name, :flag, :offset, :size, :body
-    def initialize
+    def initialize(name, flag = 0, body = "", offset = 0)
       @name = name
       @flag = flag
       @offset = offset
-      @size = size
+      @size = body.length
       @body = body
     end
   end

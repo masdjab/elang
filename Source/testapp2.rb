@@ -1,5 +1,5 @@
 require './application'
-require './bx_format'
+require './com_format'
 require './image_builder'
 require './utils/converter'
 
@@ -35,7 +35,7 @@ app.main.code << "end"
 
 relocator = Elang::RelocationInitializer.new.init(app)
 
-format = Elang::ImageBuilder.new.build(app, Elang::BXFormat.new)
-file = File.new("test.bx", "wb")
-file.write format.raw_image
+com_format = Elang::ImageBuilder.new.build(app, Elang::ComFormat.new)
+file = File.new("test.com", "wb")
+file.write com_format.raw_image
 file.close

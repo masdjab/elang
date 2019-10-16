@@ -1,10 +1,10 @@
-require './code_container'
-require './constant'
-require './variable'
-require './relocation_item'
-require './relocation_initializer'
-require './symbol_reference'
-require './function'
+require './application/code_container'
+require './application/constant'
+require './application/variable'
+require './application/relocation_item'
+require './application/relocation_initializer'
+require './application/symbol_reference'
+require './application/function'
 #require './main_code'
 
 module Elang

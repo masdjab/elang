@@ -1,6 +1,6 @@
-require './application'
-require './com_format'
-require './image_builder'
+require './application/application'
+require './application/com_format'
+require './application/image_builder'
 require './utils/converter'
 
 app = Elang::EApplication.new("test")

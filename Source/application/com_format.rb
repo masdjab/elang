@@ -1,5 +1,5 @@
 require './utils/converter'
-require './app_section'
+require './application/app_section'
 
 module Elang
   class ComFormat

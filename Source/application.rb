@@ -5,7 +5,7 @@ require './relocation_item'
 require './relocation_initializer'
 require './symbol_reference'
 require './function'
-require './main_code'
+#require './main_code'
 
 module Elang
   class EApplication

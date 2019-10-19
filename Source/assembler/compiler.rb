@@ -1,12 +1,12 @@
-require_relative 'library/converter'
-require_relative 'library/app_section'
-require_relative 'library/app_image'
-require_relative 'library/export_table_reader'
-require_relative 'compiler/identifier'
-require_relative 'compiler/scope'
-require_relative 'compiler/token'
-require_relative 'compiler/symbol_reference'
-require_relative 'compiler/code_image'
+require './utils/converter'
+require './application/app_section'
+require './assembler/app_image'
+require './assembler/export_table_reader'
+require './assembler/identifier'
+require './assembler/scope'
+require './assembler/token'
+require './assembler/symbol_reference'
+require './assembler/code_image'
 
 module Elang
   module Assembler
@@ -42,7 +42,7 @@ module Elang
         end
       end
       def write_code_bytes(*bytes)
-        write_code_str Library::Converter.bytes_to_str(*bytes)
+        write_code_str Elang::Utils::Converter.bytes_to_str(*bytes)
       end
       def find_symbol(scope, name)
         @identifiers.find{|x|(x.scope == scope) && (x.name == name)}
@@ -62,7 +62,7 @@ module Elang
         @identifiers.find{|x|(x.type == :str) && (x.value == text)}
       end
       def define_str(text)
-        @code_image.sections[:text].write "#{Library::Converter.int_to_word(text.length)}#{text}"
+        @code_image.sections[:text].write "#{Elang::Utils::Converter.int_to_word(text.length)}#{text}"
         @identifiers << identifier = Identifier.new(nil, nil, Identifier::STRING_RES, text)
         identifier
       end
@@ -244,8 +244,8 @@ module Elang
       def import_lib(filename)
         @libraries << lib = Library::AppImage.load(filename)
         
-        lib_code_sec = lib.sections.find{|x|x.flag == Library::AppSection::CODE}
-        lib_export_sec = lib.sections.find{|x|x.flag == Library::AppSection::EXPORT}
+        lib_code_sec = lib.sections.find{|x|x.flag == AppSection::CODE}
+        lib_export_sec = lib.sections.find{|x|x.flag == AppSection::EXPORT}
         
         if lib_code_sec
           @code_image.sections[:libs].write lib_code_sec.body
@@ -293,8 +293,8 @@ module Elang
             #    idt.value ? idt.value.inspect : ""
             #  ]
             #info_str = raw_info.select{|x|!x.empty?}.join(", ")
-            #puts "#{Library::Converter.int_to_whex(ref.location)} #{info_str}"
-            puts "#{Library::Converter.int_to_whex(ref.location)} #{idt.to_s}"
+            #puts "#{Elang::Utils::Converter.int_to_whex(ref.location)} #{info_str}"
+            puts "#{Elang::Utils::Converter.int_to_whex(ref.location)} #{idt.to_s}"
           else
             puts ref.inspect
           end

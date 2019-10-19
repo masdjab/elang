@@ -12,7 +12,7 @@ module Elang
           if app_section.body[rp] != 0.chr
             if !(zp = app_section.body.index(0.chr, rp)).nil?
               fn = app_section.body[rp...zp]
-              oo = Converter.dword_to_int(app_section.body[(zp + 1), 4])
+              oo = Elang::Utils::Converter.dword_to_int(app_section.body[(zp + 1), 4])
               rp = zp + 5
               ff[fn.to_sym] = oo
             else

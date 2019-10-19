@@ -1,6 +1,6 @@
 # elang assembler
 
-require_relative 'compiler'
+require_relative './assembler/compiler'
 
 src_file = ARGV[0]
 compiler = Elang::Assembler::Compiler.new

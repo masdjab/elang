@@ -1,7 +1,7 @@
 # elang linker
 
-require './identifier'
-require './scope'
+require './compiler/identifier'
+require './compiler/scope'
 
 module Assembly
   class Token
@@ -422,7 +422,7 @@ end
 
 src_file = ARGV[0]
 parser = Assembly::Parser.new
-parser.load_lib "stdlib.bin"
+parser.load_lib "compiler/stdlib.bin"
 result = parser.parse File.read(src_file)
 puts
 puts result[:list]

@@ -1,5 +1,3 @@
-# 345678901234567890123456789012345678901234567890123456789012345678901234567890
-
 require './application/code_container'
 require './application/constant'
 require './application/variable'

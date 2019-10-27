@@ -10,6 +10,16 @@ module Elang
   end
   
   
+  class LibraryInfo
+    attr_reader :functions, :code
+    
+    def initialize(functions, code)
+      @functions = functions
+      @code = code
+    end
+  end
+  
+  
   class LibraryFileLoader
     def load(libfile)
       file = File.new(libfile, "rb")
@@ -21,9 +31,7 @@ module Elang
       
       functions = []
       current_entry = 4
-      puts "header_size: #{header_size}"
       while (4...header_size).include?(current_entry) do
-        puts "current_entry: #{current_entry}"
         zero_pos = text.index(0.chr, current_entry)
         name = text[current_entry...zero_pos]
         offset = Elang::Utils::Converter.dword_to_int(text[(zero_pos + 1), 4])
@@ -31,7 +39,7 @@ module Elang
         current_entry = zero_pos + 5
       end
       
-      functions
+      LibraryInfo.new(functions, library_code)
     end
   end
 end

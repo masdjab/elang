@@ -11,8 +11,9 @@ module Assembly
       @symbol_requests = []
       @code_image = {libs: "", procs: "", main: ""}
       @code_description = ""
-      @object_file = ObjectFile::ObjectFile.new
+      #@object_file = ObjectFile::ObjectFile.new
       @libraries = []
+      @application = Elang::EApplication.new("test")
     end
     def get_current_scope
       @scope_stack.last
@@ -25,11 +26,11 @@ module Assembly
       end
     end
     def write_code(*bytes)
-      if (scope = get_current_scope).nil?
-        @object_file.sections[:main].write Converter.bytes_to_str(*bytes)
-      else
-        @object_file.sections[:procs].write Converter.bytes_to_str(*bytes)
-      end
+      #if (scope = get_current_scope).nil?
+      #  @object_file.sections[:main].write Converter.bytes_to_str(*bytes)
+      #else
+      #  @object_file.sections[:procs].write Converter.bytes_to_str(*bytes)
+      #end
     end
     def find_symbol(scope, name)
       @identifiers.find{|x|(x.scope == scope) && (x.name == name)}
@@ -49,9 +50,9 @@ module Assembly
       @identifiers.find{|x|(x.type == :str) && (x.value == text)}
     end
     def define_str(text)
-      @object_file.sections[:text].write "#{Converter.int_to_word(text.length)}#{text}"
-      @identifiers << identifier = Identifier.new(nil, nil, :str, text)
-      identifier
+      #@object_file.sections[:text].write "#{Converter.int_to_word(text.length)}#{text}"
+      #@identifiers << identifier = Identifier.new(nil, nil, :str, text)
+      #identifier
     end
     def eol?
       !(0...@current_line.length).include?(@char_pos)
@@ -215,7 +216,7 @@ module Assembly
       "#{cmd}#{arx}"
     end
     def load_lib(filename)
-      @libraries << AppImage.load(filename)
+      @libraries << Elang::LibraryFileLoader.new.load(filename)
     end
     def parse(code)
       @line_num = 0
@@ -234,8 +235,7 @@ module Assembly
       
       write_code 0xcd, 0x20
       
-      # {image: @code_image, description: @code_description}
-      {object: @object_file, list: @code_description}
+      @application
     end
   end
 end

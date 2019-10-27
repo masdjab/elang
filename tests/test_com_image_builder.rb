@@ -32,8 +32,8 @@ class TestImageBuilder < Test::Unit::TestCase
   end
   def test_non_zero_entry_point
     app = Elang::EApplication.new
-    fn1 = Elang::EFunction.new(nil, "test1", 0)
-    app.functions << Elang::EFunction.new(nil, "test1", 0)
+    fn1 = Elang::EFunction.new(nil, "test1")
+    app.functions << Elang::EFunction.new(nil, "test1")
     app.subs.code << "abc|"
     app.main.code << "def"
     output = Elang::ImageBuilder.new.build(app, Elang::ComFormat.new)

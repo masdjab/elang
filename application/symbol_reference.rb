@@ -1,5 +1,7 @@
 module Elang
   class SymbolReference
+    REF_FUNCTION = 1
+    
     attr_accessor :context, :identifier, :ref_type, :location
     
     def initialize(context, identifier, ref_type, location)

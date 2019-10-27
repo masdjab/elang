@@ -1,11 +1,10 @@
 module Elang
   class EFunction
-    attr_accessor :context, :name, :offset, :arguments
+    attr_accessor :context, :name, :arguments
     
-    def initialize(context, name, options = {})
+    def initialize(context, name, arguments = [])
       @context = context
       @name = name
-      @offset = offset
       @arguments = arguments
     end
   end

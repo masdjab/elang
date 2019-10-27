@@ -21,7 +21,7 @@ class TestImageBuilder < Test::Unit::TestCase
   end
   def test_zero_entry_point
     app = Elang::EApplication.new
-    app.main.code = "abc"
+    app.main = "abc"
     output = Elang::ImageBuilder.new.build(app, Elang::BXFormat.new)
     
     assert_equal 0, output.main_entry_point
@@ -32,10 +32,8 @@ class TestImageBuilder < Test::Unit::TestCase
   end
   def test_non_zero_entry_point
     app = Elang::EApplication.new
-    fn1 = Elang::EFunction.new(nil, "test1")
-    app.functions << Elang::EFunction.new(nil, "test1")
-    app.subs.code << "abc|"
-    app.main.code << "def"
+    app.functions << Elang::EFunction.new(nil, "test1", body: "abc|")
+    app.main << "def"
     output = Elang::ImageBuilder.new.build(app, Elang::BXFormat.new)
     
     assert_equal 4, output.main_entry_point

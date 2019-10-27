@@ -1,10 +1,14 @@
 module Elang
   class EConstant
-    attr_reader :scope, :name, :value
+    CONST_GENERAL = 1
+    CONST_CLASS_NAME = 2
     
-    def initialize(value, name = nil, scope = nil)
-      @scope = scope
-      @name = name
+    attr_reader :scope, :name, :type, :value
+    
+    def initialize(value, options = {})
+      @scope = options[:scope]
+      @name = options[:name]
+      @type = options.fetch(:type, nil)
       @value = value
     end
   end

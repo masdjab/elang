@@ -5,8 +5,7 @@ module Elang
     def build(app, format)
       sections = []
       
-      raw_codes = [app.subs.code, app.main.code]
-      app_code = raw_codes.join
+      app_code = (app.functions.map{|x|x.body} + [app.main]).join
       
       if !app_code.empty?
         sections << AppSection.new('CODE', AppSection::CODE, app_code)
@@ -17,7 +16,7 @@ module Elang
         sections << AppSection.new('DATA', AppSection::DATA, data)
       end
       
-      format.build sections, app_code.length - app.main.code.length
+      format.build sections, app_code.length - app.main.length
       
       format
     end

@@ -1,5 +1,27 @@
 module Assembly
   class Parser
+    # class responsibility:
+    # - build Application from code string
+    
+    # syntax to be supported:
+    # high priority:
+    # - constant
+    # - expression
+    # - if condition then expression
+    # - if block (with elsif, else and end)
+    # - single assignment
+    # - def function_name(arguments)
+    # - end (function, class)
+    # - class
+    # medium priority:
+    # - require
+    # - import module_name
+    # - from module_name import symbol1, symbol2, ...
+    # low priority:
+    # - expression if condition
+    # - expression unless condition
+    # - single/multi assignment
+    
     attr_reader :libraries
     
     def initialize

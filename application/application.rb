@@ -7,14 +7,13 @@ require './application/function'
 
 module Elang
   class EApplication
-    attr_accessor :origin, :functions, :main, :subs, :variables, :constants
+    attr_accessor :origin, :functions, :main, :variables, :constants
     
     def initialize
       @origin = 0
       @classes = []
       @functions = []
-      @main = ICodeContainer.new
-      @subs = ICodeContainer.new
+      @main = ""
       @variables = []
       @constants = []
       @references = []

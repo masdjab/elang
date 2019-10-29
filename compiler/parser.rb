@@ -1,7 +1,12 @@
-module Assembly
+module Elang
   class Parser
+    # lexer
     # class responsibility:
-    # - build Application from code string
+    # convert from tokens into ast nodes
+    
+    # compiler
+    # class responsibility:
+    # - build EApplication from code string
     
     # syntax to be supported:
     # high priority:
@@ -22,6 +27,7 @@ module Assembly
     # - expression unless condition
     # - single/multi assignment
     
+=begin
     attr_reader :libraries
     
     def initialize
@@ -259,5 +265,6 @@ module Assembly
       
       @application
     end
+=end
   end
 end

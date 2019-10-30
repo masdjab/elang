@@ -28,6 +28,15 @@ module Elang
     def fetch(&block)
       @fetcher.fetch(&block)
     end
+    def fetch_line
+      @fetcher.fetch_line
+    end
+    def parse_whitespace
+      raw_token char_pos, fetch{|px, cx|" \t".index(cx)}
+    end
+    def parse_comment
+      raw_token char_pos, fetch_line
+    end
     def parse_number
       raw_token char_pos, fetch{|px, cx|NUMBER.index(cx)}
     end
@@ -85,7 +94,11 @@ module Elang
         while @fetcher.has_more?
           current_char = current
           
-          if NUMBER.index(current_char)
+          if " \t".index(current_char)
+            token = parse_whitespace
+          elsif current_char == "#"
+            token = parse_comment
+          elsif NUMBER.index(current_char)
             token = parse_number
           elsif '\'"'.index(current_char)
             token = parse_string

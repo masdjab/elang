@@ -42,5 +42,16 @@ module Elang
         text
       end
     end
+    def fetch_line
+      if cp = @code.index("\r\n", @char_pos)
+        tx = @code[@char_pos..(cp + 1)]
+        @char_pos = cp + 2
+        tx
+      else
+        tx = @code[@char_pos..-1]
+        @char_pos = @code_len + 1
+        tx
+      end
+    end
   end
 end

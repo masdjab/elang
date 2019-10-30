@@ -10,7 +10,7 @@ class TestTokenizer < Test::Unit::TestCase
     
     tokenizer = Elang::Tokenizer.new
     tokens = tokenizer.parse(cx)
-    expected = "text| |=| |'|Hello| |\\|'|world|\\|'|.|.|.|'|\r|\n|puts| |text|\r|\n|a| |=| |0|x|31| |+| |0|.|2815|\r|\n"
+    expected = "text| |=| |'Hello \\'world\\'...'|\r|\n|puts| |text|\r|\n|a| |=| |0|x|31| |+| |0|.|2815|\r|\n"
     actual = tokens.map{|x|x.text}.join("|")
     assert_equal expected, actual
   end
@@ -22,7 +22,7 @@ class TestTokenizer < Test::Unit::TestCase
     
     tokenizer = Elang::Tokenizer.new
     tokens = tokenizer.parse(cx)
-    expected = "puts| |\"|Name|:| |\#|{|x|.|first|}| |\#|{|x|.|last|}|\"|\r|\n"
+    expected = "puts| |\"Name: \#{x.first} \#{x.last}\"|\r|\n"
     actual = tokens.map{|x|x.text}.join("|")
     assert_equal expected, actual
   end

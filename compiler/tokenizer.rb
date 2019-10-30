@@ -13,8 +13,17 @@ module Elang
     def raw_token(pos, text)
       {pos: pos, text: text}
     end
+    def code
+      @fetcher.code
+    end
+    def code_len
+      @fetcher.code_len
+    end
     def char_pos
       @fetcher.char_pos
+    end
+    def current
+      @fetcher.current
     end
     def fetch(&block)
       @fetcher.fetch(&block)
@@ -22,20 +31,21 @@ module Elang
     def parse_number
       raw_token char_pos, fetch{|px, cx|NUMBER.index(cx)}
     end
-    #def parse_string(code, pos)
-    #  quote = fetch(code, pos){|px, cx|'\'"'.index(cx)}
+    def parse_string
+      pos = char_pos
+      quote = fetch
       
-    #  text = 
-    #    fetch(code, pos) do |px, cx|
-    #      if (code[px - 1] == quote) && ((px - 1) > pos) && (code[px - 2] != "\\")
-    #        false
-    #      else
-    #        true
-    #      end
-    #    end
+      text = 
+        fetch do |px, cx|
+          if (code[px - 1] == quote) && ((px - 1) > pos) && (code[px - 2] != "\\")
+            false
+          else
+            true
+          end
+        end
       
-    #  raw_token(pos, text)
-    #end
+      raw_token pos, quote + text
+    end
     def parse_identifier
       raw_token char_pos, fetch{|px, cx|IDENTIFIER.index(cx.downcase)}
     end
@@ -71,16 +81,14 @@ module Elang
       
       if !code.empty?
         raw_tokens = []
-        code_len = code.length
-        char_pos = 0
         
-        while (0...code_len).include?(char_pos)
-          current_char = code[char_pos]
+        while @fetcher.has_more?
+          current_char = current
           
           if NUMBER.index(current_char)
             token = parse_number
-          #elsif '\'"'.index(current_char)
-          #  token = parse_string(code, char_pos)
+          elsif '\'"'.index(current_char)
+            token = parse_string
           elsif IDENTIFIER.index(current_char.downcase)
             token = parse_identifier
           else
@@ -88,7 +96,6 @@ module Elang
           end
           
           raw_tokens << token
-          char_pos += token[:text].length
         end
         
         set_line_numbers raw_tokens, detect_lines(code)

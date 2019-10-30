@@ -1,6 +1,6 @@
 require './compiler/tokenizer'
 
-cx = "text = 'Hello \\'world\\'...'\r\nputs text\r\na = b + c\r\n"
+cx = "text = 'Hello \\'world\\'...'\r\nputs text\r\na = 0x31 + 0.2815\r\n"
 puts (0...cx.length).map{|x|x % 10}.join
 puts cx.gsub("\r", '*').gsub("\n", '*')
 puts

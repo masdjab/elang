@@ -19,27 +19,34 @@ module Elang
     def current
       @code[@char_pos]
     end
+    def next(offset = 1)
+      if (@char_pos + offset) < @code_len
+        @code[@char_pos + offset]
+      end
+    end
     def has_more?
       @code.is_a?(String) && (@char_pos <= (@code.length - 1))
     end
     def fetch(&block)
-      if !block_given?
-        char = @code[@char_pos]
-        @char_pos += 1
-        char
-      elsif (0...@code_len).include?(@char_pos)
-        text = ""
-        
-        while @char_pos < @code_len
-          if yield(@char_pos, char = @code[@char_pos])
-            text << char
-            @char_pos += 1
-          else
-            break
+      if (0...@code_len).include?(@char_pos)
+        if !block_given?
+          char = @code[@char_pos]
+          @char_pos += 1
+          char
+        else
+          text = ""
+          
+          while @char_pos < @code_len
+            if yield(@char_pos, char = @code[@char_pos])
+              text << char
+              @char_pos += 1
+            else
+              break
+            end
           end
+          
+          text
         end
-        
-        text
       end
     end
     def fetch_line

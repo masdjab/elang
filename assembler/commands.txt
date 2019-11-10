@@ -1,0 +1,45 @@
+- nop           01
+- put           02 ww
+- get           03
+- store         04 ww     # copy from accumulator to global memory
+- load          05 ww     # copy from global memory to accumulator
+- peek          06 nn     # copy from accumulator to local storage by index
+- poke          07 nn     # copy from local storage to accumulator by index
+- read          08 ss     # read from address stored in stack, in ss (1, 2, 4) byte
+- write         09 ss     # write to address stored in stack, in ss (1, 2, 4) byte
+- enter         0a nn
+- leave         0b nn
+- invoke        0c        # call address on stack
+- call          0d rr     # relative call
+- rjmp          0e rr     # relative jump
+- ajmp          0f ww     # absolute jump
+- is_null       10
+- is_eq         11
+- is_gt         12
+- is_lt         13
+- is_ge         14
+- is_le         15
+- is_ne         16
+- is_not        17
+- is_and        18
+- is_or         19
+- is_xor        1a
+- if_true       1b
+- if_false      1c
+- end_if        1d
+- inc           1e ww
+- dec           1f ww
+- iadd          20
+- isub          21
+- imul          22
+- idiv          23
+- shr           24 ww
+- shl           25 ww
+- rol           26 ww
+- ror           27 ww
+- not           28
+- and           29
+- or            2a
+- xor           2b
+- in            2c
+- out           2d

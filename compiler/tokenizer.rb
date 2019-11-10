@@ -8,10 +8,11 @@ module Elang
     
     IDENTIFIER = 'abcdefghijklmnopqrstuvwxyz_'
     NUMBER = '0123456789'
+    ALPHANUMERIC = IDENTIFIER + NUMBER
     
     private
-    def raw_token(pos, text)
-      {pos: pos, text: text}
+    def raw_token(pos, type, text)
+      {pos: pos, type: type, text: text}
     end
     def code
       @fetcher.code
@@ -32,13 +33,16 @@ module Elang
       @fetcher.fetch_line
     end
     def parse_whitespace
-      raw_token char_pos, fetch{|px, cx|" \t".index(cx)}
+      raw_token char_pos, :space, fetch{|px, cx|" \t".index(cx)}
     end
     def parse_comment
-      raw_token char_pos, fetch_line
+      raw_token char_pos, :comment, fetch_line
     end
     def parse_number
-      raw_token char_pos, fetch{|px, cx|NUMBER.index(cx)}
+      raw_token char_pos, :number, fetch{|px, cx|ALPHANUMERIC.index(cx)}
+    end
+    def parse_identifier
+      raw_token char_pos, :ident, fetch{|px, cx|ALPHANUMERIC.index(cx.downcase)}
     end
     def parse_string
       pos = char_pos
@@ -53,13 +57,10 @@ module Elang
           end
         end
       
-      raw_token pos, quote + text
-    end
-    def parse_identifier
-      raw_token char_pos, fetch{|px, cx|IDENTIFIER.index(cx.downcase)}
+      raw_token pos, :text, quote + text
     end
     def parse_punctuation
-      raw_token char_pos, fetch
+      raw_token char_pos, :punct, fetch
     end
     def detect_lines(code)
       pos = 0
@@ -104,15 +105,36 @@ module Elang
             token = parse_string
           elsif IDENTIFIER.index(current_char.downcase)
             token = parse_identifier
+          elsif current_char == '.'
+            is_prev_digit = (raw_tokens.count > 0) && NUMBER.index(raw_tokens.last[:text])
+            is_next_digit = !NUMBER.index(@fetcher.next).nil?
+            
+            if is_prev_digit && is_next_digit
+              token1 = parse_punctuation
+              token2 = parse_number
+              raw_tokens.last[:text] << token1[:text] << token2[:text]
+              token = nil
+            else
+              token = parse_punctuation
+            end
+          elsif current_char == "\n"
+            if raw_tokens.last[:text] == "\r"
+              newline = parse_punctuation
+              raw_tokens.last[:text] << current_char
+              token = nil
+            else
+              token = parse_punctuation
+            end
           else
             token = parse_punctuation
           end
           
-          raw_tokens << token
+          raw_tokens << token if token
         end
         
         set_line_numbers raw_tokens, detect_lines(code)
-        tokens = raw_tokens.map{|x|Token.new(x[:row], x[:col], x[:text])}
+        raw_tokens.select!{|x|x[:type] != :space}
+        tokens = raw_tokens.map{|x|Token.new(x[:row], x[:col], x[:type], x[:text])}
       end
       
       tokens

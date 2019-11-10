@@ -134,6 +134,17 @@ module Elang
         
         set_line_numbers raw_tokens, detect_lines(code)
         raw_tokens.select!{|x|x[:type] != :space}
+        
+        raw_tokens.each do |x|
+          if x[:text] == "\r"
+            x[:type] = :cr
+          elsif x[:text] == "\r\n"
+            x[:type] = :crlf
+          elsif x[:text] == "\n"
+            x[:type] = :lf
+          end
+        end
+        
         tokens = raw_tokens.map{|x|Token.new(x[:row], x[:col], x[:type], x[:text])}
       end
       

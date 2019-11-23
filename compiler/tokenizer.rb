@@ -133,7 +133,7 @@ module Elang
         end
         
         set_line_numbers raw_tokens, detect_lines(code)
-        raw_tokens.select!{|x|x[:type] != :space}
+        raw_tokens.select!{|x|![:space, :comment].include?(x[:type])}
         
         raw_tokens.each do |x|
           if x[:text] == "\r"

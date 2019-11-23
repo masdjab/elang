@@ -22,8 +22,12 @@ module Elang
         bytes = value.bytes
         (1 << 24) * bytes[3] + (1 << 16) * bytes[2] + (1 << 8) * bytes[1] + bytes[0]
       end
+      def self.int_to_bhex(value)
+        t = "0#{value.to_s(16).upcase}"[-2..-1]
+        "0" * (2 - t.length) + t
+      end
       def self.int_to_whex(value)
-        t = value.to_s(16).upcase
+        t = "000#{value.to_s(16).upcase}"[-4..-1]
         "0" * (4 - t.length) + t
       end
     end

@@ -24,22 +24,21 @@
 - is_and        18
 - is_or         19
 - is_xor        1a
-- if_true       1b
-- if_false      1c
-- end_if        1d
-- inc           1e ww
-- dec           1f ww
-- iadd          20
-- isub          21
-- imul          22
-- idiv          23
-- shr           24 ww
-- shl           25 ww
-- rol           26 ww
-- ror           27 ww
-- not           28
-- and           29
-- or            2a
-- xor           2b
-- in            2c
-- out           2d
+- jit           1b rr     # jump if true
+- jif           1c rr     # jump if false
+- inc           1d ww
+- dec           1e ww
+- iadd          2f
+- isub          20
+- imul          21
+- idiv          22
+- shr           23 ww
+- shl           24 ww
+- rol           25 ww
+- ror           26 ww
+- not           27
+- and           28
+- or            29
+- xor           2a
+- in            2b
+- out           2c

@@ -7,13 +7,16 @@ module Assembler
       Elang::Utils::Converter.int_to_byte(v)
     end
     def as_word(v)
+      Elang::Utils::Converter.int_to_word(v)
+    end
+    def as_dword(v)
       Elang::Utils::Converter.int_to_dword(v)
     end
     def as_obj(v)
-      as_word(v)
+      as_dword(v)
     end
     def as_adr(v)
-      as_word(v)
+      as_dword(v)
     end
     def as_index(v)
       as_byte(v)
@@ -57,10 +60,10 @@ module Assembler
       0x0c.chr
     end
     def cmd_call(rel)
-      0x0d.chr + as_word(rel)
+      0x0d.chr + as_dword(rel)
     end
     def cmd_rjmp(rel)
-      0x0e.chr + as_word(rel)
+      0x0e.chr + as_dword(rel)
     end
     def cmd_ajmp(adr)
       0x0f.chr + as_adr(adr)
@@ -99,11 +102,10 @@ module Assembler
       0x1a.chr
     end
     def cmd_jit(rel)
-      0x1b.chr + as_word(rel)
+      0x1b.chr + as_dword(rel)
     end
     def cmd_jif(rel)
-puts "cmd_jif => rel: #{rel}"
-      0x1c.chr + as_word(rel)
+      0x1c.chr + as_dword(rel)
     end
     def cmd_inc(obj)
       0x1e.chr + as_obj(obj)

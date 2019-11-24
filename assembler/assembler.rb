@@ -99,7 +99,6 @@ module Assembler
       @translator.cmd_jit(get_int(args[0]))
     end
     def cmd_jif(*args)
-puts "cmd_jif => args: #{args.inspect}"
       @translator.cmd_jif(get_int(args[0]))
     end
     def cmd_inc(*args)

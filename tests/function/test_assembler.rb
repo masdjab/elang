@@ -1,4 +1,4 @@
-require './assembler/assembler'
+require './assembler/parser'
 require './assembler/translator/base'
 require './assembler/translator/i386'
 
@@ -11,7 +11,7 @@ EOS
 
 tx1 = Assembler::BaseTranslator.new
 tx2 = Assembler::I386Translator.new
-asm = Assembler::Assembler.new(tx2)
+asm = Assembler::Parser.new(tx2)
 cmd = asm.parse(cmd.gsub("\n", "\r\n"))
 cmd.each do |cx|
   puts cx.bytes.map{|x|Elang::Utils::Converter.int_to_bhex(x)}.join

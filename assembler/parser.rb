@@ -2,7 +2,7 @@ require './compiler/tokenizer'
 require './utils/converter'
 
 module Assembler
-  class Assembler
+  class Parser
     def initialize(translator)
       @translator = translator
     end

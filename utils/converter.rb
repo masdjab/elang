@@ -4,6 +4,9 @@ module Elang
       def self.bytes_to_str(*bytes)
         bytes.map{|x|x.chr}.join
       end
+      def self.int_to_byte(value)
+        (value & 0xff).chr
+      end
       def self.int_to_word(value)
         hi = (value & 0xff00) >> 8
         lo = value & 0xff

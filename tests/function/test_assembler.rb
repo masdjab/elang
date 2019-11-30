@@ -4,9 +4,9 @@ require './assembler/translator/i386'
 
 cmd = <<EOS
   # parsing test
-  put 0x200
+  putarg 0x200
   # comment
-  get
+  getarg 0
 EOS
 
 tx1 = Assembler::BaseTranslator.new

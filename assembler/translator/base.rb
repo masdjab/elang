@@ -26,38 +26,35 @@ module Assembler
     def cmd_nop
       0x01.chr
     end
-    def cmd_put(obj)
+    def cmd_putarg(obj)
       0x02.chr + as_obj(obj)
     end
-    def cmd_get
-      0x03.chr
+    def cmd_getarg(nn)
+      0x03.chr + as_byte(nn)
     end
-    def cmd_store(obj)
-      0x04.chr
+    def cmd_putb(adr)
+      0x04.chr + as_adr(adr)
     end
-    def cmd_load(adr)
+    def cmd_getb(adr)
       0x05.chr + as_adr(adr)
     end
-    def cmd_peek(index)
-      0x06.chr + as_index(index)
+    def cmd_putw(adr)
+      0x06.chr + as_adr(adr)
     end
-    def cmd_poke(index)
-      0x07.chr + as_index(index)
+    def cmd_getw(adr)
+      0x07.chr + as_adr(adr)
     end
-    def cmd_read(ss)
-      0x08.chr + as_byte(ss)
+    def cmd_lput(index)
+      0x08.chr + as_index(index)
     end
-    def cmd_write(ss)
-      0x09.chr + as_byte(ss)
+    def cmd_lget(index)
+      0x09.chr + as_index(index)
     end
     def cmd_enter(nn)
       0x0a.chr + as_byte(nn)
     end
     def cmd_leave(nn)
       0x0b.chr + as_byte(nn)
-    end
-    def cmd_invoke
-      0x0c.chr
     end
     def cmd_call(rel)
       0x0d.chr + as_dword(rel)

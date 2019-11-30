@@ -20,35 +20,35 @@ module Assembler
     def cmd_nop(*args)
       @translator.cmd_nop
     end
-    def cmd_put(*args)
-      @translator.cmd_put(get_int(args[0]))
+    def cmd_putarg(*args)
+      @translator.cmd_putarg(get_int(args[0]))
     end
-    def cmd_get(*args)
-      @translator.cmd_get
+    def cmd_getarg(*args)
+      @translator.cmd_getarg(get_int(args[0]))
     end
-    def cmd_store(*args)
-      @translator.cmd_store
+    def cmd_putb(*args)
+      @translator.cmd_putb(get_int(args[0]))
     end
-    def cmd_load(*args)
-      @translator.cmd_load(get_int(args[0]))
+    def cmd_getb(*args)
+      @translator.cmd_getb(get_int(args[0]))
     end
-    def cmd_peek(*args)
-      @translator.cmd_peek(get_int(args[0]))
+    def cmd_putw(*args)
+      @translator.cmd_putw(get_int(args[0]))
     end
-    def cmd_poke(*args)
-      @translator.cmd_poke(get_int(args[0]))
+    def cmd_getw(*args)
+      @translator.cmd_getw(get_int(args[0]))
     end
-    def cmd_read(*args)
-      @translator.cmd_read(get_int(args[0]))
+    def cmd_lput(*args)
+      @translator.cmd_lput(get_int(args[0]))
     end
-    def cmd_write(*args)
-      @translator.cmd_write(get_int(args[0]))
+    def cmd_lget(*args)
+      @translator.cmd_lget(get_int(args[0]))
     end
     def cmd_enter(*args)
       @translator.cmd_enter(get_int(args[0]))
     end
-    def cmd_leave(*args)
-      @translator.cmd_leave(get_int(args[0]))
+    def cmd_leave
+      @translator.cmd_leave
     end
     def cmd_invoke(*args)
       @translator.cmd_invoke

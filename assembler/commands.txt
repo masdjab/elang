@@ -1,15 +1,14 @@
 - nop           01
-- put           02 ww
-- get           03
-- store         04 ww     # copy from accumulator to global memory
-- load          05 ww     # copy from global memory to accumulator
-- peek          06 nn     # copy from accumulator to local storage by index
-- poke          07 nn     # copy from local storage to accumulator by index
-- read          08 ss     # read from address stored in stack, in ss (1, 2, 4) byte
-- write         09 ss     # write to address stored in stack, in ss (1, 2, 4) byte
+- putarg        02 ww
+- getarg        03 nn
+- putb          04 ww     # copy byte from accumulator to memory
+- getb          05 ww     # copy byte from memory to accumulator
+- putw          06 ww     # copy word from accumulator to memory
+- getw          07 ww     # copy word from memory to accumulator
+- lput          08 nn     # copy from local storage to accumulator by index
+- lget          09 nn     # copy from accumulator to local storage by index
 - enter         0a nn
 - leave         0b nn
-- invoke        0c        # call address on stack
 - call          0d rr     # relative call
 - rjmp          0e rr     # relative jump
 - ajmp          0f ww     # absolute jump

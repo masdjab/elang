@@ -12,56 +12,49 @@ module Assembler
     def cmd_nop
       0x90.chr
     end
-    def cmd_put(obj)
+    def cmd_putarg(obj)
       # push obj
       0x68.chr + as_obj(obj)
     end
-    def cmd_get
-      # pop ax
-      0x58.chr
+    def cmd_getarg(nn)
+      # mov ax, [bp + (4 + nn * 2)]
+      0x8b.chr + 0x46.chr + (4 + nn * 2).chr
     end
-    def cmd_store(obj)
-      # copy from accumulator to global memory
+    def cmd_putb(adr)
+      # copy byte from accumulator to memory
+      # mov [addr], al
+      0xa2.chr + as_adr(obj)
+    end
+    def cmd_getb(adr)
+      # copy byte from memory to accumulator
+      # mov al, [addr]
+      0xa0.chr + as_adr(adr)
+    end
+    def cmd_putw(adr)
+      # copy word from accumulator to memory
       # mov [addr], ax
       0xa3.chr + as_adr(obj)
     end
-    def cmd_load(adr)
-      # copy from global memory to accumulator
+    def cmd_getw(adr)
+      # copy word from memory to accumulator
       # mov ax, [addr]
       0xa1.chr + as_adr(adr)
     end
-    def cmd_peek(index)
-      # copy from accumulator to local storage by index
-      # 0x06.chr + as_index(index)
-      raise "Command 'peek' not implemented."
+    def cmd_lput(index)
+      # mov [bp - (2 + (index * 2))], ax
+      0x89.chr + 0x46.chr + as_byte(2 + (index * 2))
     end
-    def cmd_poke(index)
-      # copy from local storage to accumulator by index
-      # 0x07.chr + as_index(index)
-      raise "Command 'poke' not implemented."
-    end
-    def cmd_read(ss)
-      # read from address stored in stack, in ss (1, 2, 4) byte
-      # 0x08.chr + as_byte(ss)
-      raise "Command 'read' not implemented."
-    end
-    def cmd_write(ss)
-      # write to address stored in stack, in ss (1, 2, 4) byte
-      # 0x09.chr + as_byte(ss)
-      raise "Command 'write' not implemented."
+    def cmd_lget(index)
+      # mov ax, [bp - (2 + (index * 2))]
+      0x8b.chr + 0x46.chr + as_byte(2 + (index * 2))
     end
     def cmd_enter(nn)
-      # 0x0a.chr + as_byte(nn)
-      raise "Command 'enter' not implemented."
+      # enter (2 * nn), 0
+      0xc8.chr + as_word(2 * nn) + 0x00.chr
     end
     def cmd_leave(nn)
-      # 0x0b.chr + as_byte(nn)
-      raise "Command 'leave' not implemented."
-    end
-    def cmd_invoke
-      # call address on stack
-      # 0x0c.chr
-      raise "Command 'invoke' not implemented."
+      # leave
+      0xc9.chr
     end
     def cmd_call(rel)
       # relative call

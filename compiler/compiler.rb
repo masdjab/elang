@@ -1,3 +1,7 @@
+# compiler
+# class responsibility:
+# - build EApplication from code string
+
 # elang linker
 
 require './utils/converter'

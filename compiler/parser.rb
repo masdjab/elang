@@ -1,13 +1,8 @@
+require './compiler/fetcher_v2'
+require './compiler/token'
+
 module Elang
   class Parser
-    # lexer
-    # class responsibility:
-    # convert from tokens into ast nodes
-    
-    # compiler
-    # class responsibility:
-    # - build EApplication from code string
-    
     # syntax to be supported:
     # high priority:
     # - constant
@@ -81,107 +76,6 @@ module Elang
       #@object_file.sections[:text].write "#{Converter.int_to_word(text.length)}#{text}"
       #@identifiers << identifier = Identifier.new(nil, nil, :str, text)
       #identifier
-    end
-    def eol?
-      !(0...@current_line.length).include?(@char_pos)
-    end
-    def fetch_while(&block)
-      text = ""
-      
-      while !eol?
-        chr = @current_line[@char_pos]
-        if yield(chr, text)
-          text += chr
-          @char_pos += 1
-        else
-          break
-        end
-      end
-      
-      text
-    end
-    def fetch_string
-      cp = @char_pos
-      f_escape = false
-      
-      text = 
-        fetch_while do |c,t|
-          if c == "\""
-            if !f_escape
-              f_escape = false
-              (t.length == 1) || (t[-1] != "\"")
-            else
-              f_escape = false
-              true
-            end
-          elsif c == "\\"
-            f_escape = true
-            true
-          else
-            f_escape = false
-            true
-          end
-        end
-      
-      Token.new(cp, text)
-    end
-    def fetch_number
-      Token.new(@char_pos, fetch_while{|c,t|!"0123456789".index(c).nil?})
-    end
-    def fetch_word
-      Token.new(@char_pos, fetch_while{|c,t|!":abcdefghijklmnopqrstuvwxyz_".index(c.downcase).nil?})
-    end
-    def fetch_symbol
-      cp = @char_pos
-      
-      text = 
-        fetch_while do |c,t|
-          ((c == ":") && t.empty?) || !"abcdefghijklmnopqrstuvwxyz_".index(c.downcase).nil?
-        end
-      
-      Token.new(cp, text)
-    end
-    def parse_line(line)
-      @current_line = line
-      @char_pos = 0
-      
-      tokens = []
-      
-      append_token = 
-        lambda do |x|
-          if tokens.empty?
-            tokens << x
-            tokens << []
-          else
-            tokens.last << x
-          end
-        end
-      
-      while !eol?
-        chr = @current_line[@char_pos]
-        
-        if " \t".include?(chr)
-          @char_pos += 1
-        elsif ";#".index(chr)
-          @char_pos = @current_line.length
-        elsif chr == ","
-          tokens << []
-          @char_pos += 1
-        elsif chr == "\""
-          append_token.call fetch_string
-        elsif "0123456789".index(chr)
-          append_token.call fetch_number
-        elsif ":abcdefghijklmnopqrstuvwxyz_".index(chr.downcase)
-          append_token.call fetch_word
-        elsif "+-*:".index(chr)
-          append_token.call Token.new(@char_pos, chr)
-          @char_pos += 1
-        else
-          raise "Unexpected '#{chr}' at line #{@line_num} col #{@char_pos + 1} in '#{line.inspect}'"
-        end
-      end
-      
-      tokens
     end
     def handle_loadstr(tokens)
       text = tokens[1][0].text
@@ -266,5 +160,237 @@ module Elang
       @application
     end
 =end
+    
+    NUMBERS = "0123456789"
+    LETTERS = "abcdefghijklmnopqrstuvwxyz"
+    IDENTIFIER = "#{LETTERS}#{NUMBERS}_"
+    
+    def _raw_token(pos, type, text)
+      {pos: pos, type: type, text: text}
+    end
+    def _parse_whitespace
+      cpos = @fetcher.pos
+      text = ""
+      
+      while char = @fetcher.char
+        if " \t".index(char)
+          text << @fetcher.fetch
+        else
+          break
+        end
+      end
+      
+      _raw_token cpos, :whitespace, text
+    end
+    def _parse_linefeed
+      lnfd = 13.chr + 10.chr
+      type = nil
+      cpos = @fetcher.pos
+      char = @fetcher.char
+      text = ""
+      
+      if char == lnfd[0]
+        text << @fetcher.fetch
+        
+        if @fetcher.char == lnfd[1]
+          text << @fetcher.fetch
+          type = :crlf
+        else
+          type = :cr
+        end
+      elsif char == lnfd[1]
+        text << @fetcher.fetch
+        type = :lf
+      end
+      
+      _raw_token cpos, type, text
+    end
+    def _parse_comment
+      cpos = @fetcher.pos
+      text = @fetcher.fetch
+      
+      while char = @fetcher.char
+        if (13.chr + 10.chr).index(char)
+          break
+        else
+          text << @fetcher.fetch
+        end
+      end
+      
+      _raw_token cpos, :comment, text
+    end
+    def _parse_identifier
+      cpos = @fetcher.pos
+      text = ""
+      
+      while char = @fetcher.char
+        if IDENTIFIER.index(char.downcase)
+          text << @fetcher.fetch
+        else
+          break
+        end
+      end
+      
+      _raw_token cpos, :identifier, text
+    end
+    def _parse_string
+      text = ""
+      cpos = @fetcher.pos
+      quote = @fetcher.char
+      
+      while char = @fetcher.fetch
+        if (char == quote) && !text.empty?
+          text << char
+          break
+        else
+          text << char
+        end
+      end
+      
+      _raw_token cpos, :string, text
+    end
+    def _parse_number
+      text = ""
+      cpos = @fetcher.pos
+      
+      while char = @fetcher.char
+        if NUMBERS.index(char)
+          text << @fetcher.fetch
+        elsif char == "."
+          if (text.length >= 2) && (text[0..1] == "0x")
+            raise "Invalid char '#{char}' at #{@fetcher.pos}: #{@fetcher.text[cpos, 10]}..."
+          elsif text.index(".").nil?
+            num = nil
+            
+            if nc = @fetcher.next
+              if NUMBERS.index(nc)
+                text << @fetcher.fetch
+              else
+                break
+              end
+            else
+              raise "Unexpected end of file at #{@fetcher.pos}: #{@fetcher.text[cpos, 10]}..."
+            end
+          end
+        elsif char == "x"
+          if text == "0"
+            text << @fetcher.fetch
+          else
+            raise "Invalid char '#{char}' at #{@fetcher.pos}: #{@fetcher.text[cpos, 10]}..."
+          end
+        elsif "abcdef".index(char)
+          if (text.length >= 2) && (text[0..1].downcase == "0x")
+            text << @fetcher.fetch
+          else
+            raise "Invalid char '#{char}' at #{@fetcher.pos}: #{@fetcher.text[cpos, 10]}..."
+          end
+        elsif IDENTIFIER.index(char.downcase)
+          raise "Invalid char '#{char}' at #{@fetcher.pos}: #{@fetcher.text[cpos, 10]}..."
+        else
+          break
+        end
+      end
+      
+      _raw_token cpos, :number, text
+    end
+    def _parse_equal
+      cpos = @fetcher.pos
+      text = @fetcher.fetch
+      type = :assign
+      
+      if @fetcher.char == "="
+        text << @fetcher.fetch
+        type = :equal
+      end
+      
+      _raw_token cpos, type, text
+    end
+    def _parse_less_than
+      cpos = @fetcher.pos
+      text = @fetcher.fetch
+      type = :lt
+      
+      if @fetcher.char == "="
+        text << @fetcher.fetch
+        type = :le
+      end
+      
+      _raw_token cpos, type, text
+    end
+    def _parse_greater_than
+      cpos = @fetcher.pos
+      text = @fetcher.fetch
+      type = :gt
+      
+      if @fetcher.char == "="
+        text << @fetcher.fetch
+        type = :ge
+      end
+      
+      _raw_token cpos, type, text
+    end
+    def _parse_logical
+      cpos = @fetcher.pos
+      tmap = {"&" => :and, "|" => :or}
+      text = @fetcher.fetch
+      
+      if @fetcher.char == text
+        text << @fetcher.fetch
+      end
+      
+      _raw_token cpos, tmap[text[0]], text
+    end
+    def _detect_lines(code)
+      pos = 0
+      row = 1
+      lines = []
+      
+      code.lines.each do |line|
+        lines << {row: row, min: pos, max: pos + line.length - 1}
+        row += 1
+        pos += line.length
+      end
+      
+      lines
+    end
+    def _set_line_numbers(tokens, lines)
+      tokens.each do |token|
+        line = lines.find{|x|(x[:min]..x[:max]).include?(token[:pos])}
+        token.merge!(row: line[:row], col: token[:pos] - line[:min] + 1)
+      end
+    end
+    def parse(code)
+      @fetcher = FetcherV2.new(code)
+      raw_tokens = []
+      
+      while char = @fetcher.char
+        if " \t".index(char)
+          raw_tokens << _parse_whitespace
+        elsif [13.chr, 10.chr].include?(char)
+          raw_tokens << _parse_linefeed
+        elsif char == "#"
+          raw_tokens << _parse_comment
+        elsif "#{LETTERS}_".index(char.downcase)
+          raw_tokens << _parse_identifier
+        elsif "'\"".index(char)
+          raw_tokens << _parse_string
+        elsif NUMBERS.index(char)
+          raw_tokens << _parse_number
+        elsif char == "="
+          raw_tokens << _parse_equal
+        elsif char == "<"
+          raw_tokens << _parse_less_than
+        elsif char == ">"
+          raw_tokens << _parse_greater_than
+        elsif "&|".index(char)
+          raw_tokens << _parse_logical
+        else
+          raw_tokens << _raw_token(@fetcher.pos, :punct, @fetcher.fetch)
+        end
+      end
+      
+      _set_line_numbers raw_tokens, _detect_lines(code)
+      raw_tokens.map{|x|Token.new(x[:row], x[:col], x[:type], x[:text])}
+    end
   end
 end

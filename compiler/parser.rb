@@ -2,6 +2,16 @@ require './compiler/fetcher_v2'
 require './compiler/token'
 
 module Elang
+  class ParseError < Exception
+    attr_reader :row, :col
+    def initialize(row, col, message)
+      @row = row
+      @col = col
+      super(message)
+    end
+  end
+  
+  
   class Parser
     # syntax to be supported:
     # high priority:
@@ -162,9 +172,64 @@ module Elang
 =end
     
     NUMBERS = "0123456789"
+    HEX_NUMS = "#{NUMBERS}abcdef"
     LETTERS = "abcdefghijklmnopqrstuvwxyz"
     IDENTIFIER = "#{LETTERS}#{NUMBERS}_"
     
+    def initialize
+      @fetcher    = FetcherV2.new("")
+      @code_lines = []
+    end
+    def _pos_to_row_col(pos)
+      if line = @code_lines.find{|x|(x[:min]..x[:max]).include?(pos)}
+        {row: line[:row], col: pos - line[:min] + 1}
+      else
+        {row: 0, col: 0}
+      end
+    end
+    def _detect_lines(code)
+      pos = 0
+      row = 1
+      lines = []
+      
+      code.lines.each do |line|
+        lines << {row: row, min: pos, max: pos + line.length - 1}
+        row += 1
+        pos += line.length
+      end
+      
+      lines
+    end
+    def _set_line_numbers(tokens)
+      tokens.each do |token|
+        if line = _pos_to_row_col(token[:pos])
+          token.merge!(row: line[:row], col: line[:col])
+        end
+      end
+    end
+    def _code_snapshot(pos, anchor, ellipsis = true)
+      "#{@fetcher.text[anchor, 10]}#{ellipsis ? "..." : ""}"
+    end
+    def _pos_info(pos)
+      pos = _pos_to_row_col(pos) if pos.is_a?(Integer)
+      "#{pos[:row]}:#{pos[:col]}"
+    end
+    def _create_parse_error(rowcol, message)
+      ParseError.new(rowcol[:row], rowcol[:col], message)
+    end
+    def _throw_parse_error(pos, message)
+      rowcol = _pos_to_row_col(pos)
+      raise _create_parse_error(rowcol, "#{message} at #{_pos_info(rowcol)}.")
+    end
+    def _throw_invalid_char(pos, anchor, char)
+      rowcol = _pos_to_row_col(pos)
+      e_info = "Invalid char '#{char}' at #{_pos_info(rowcol)} #{_code_snapshot(pos, anchor)}"
+      raise _create_parse_error(rowcol, e_info)
+    end
+    def _throw_unexpected_end_of_file(pos, anchor)
+      e_info = "Unexpected end of file at #{_pos_info(pos)}: #{_code_snapshot(pos, anchor)}"
+      _throw_parse_error pos, e_info
+    end
     def _raw_token(pos, type, text)
       {pos: pos, type: type, text: text}
     end
@@ -258,7 +323,7 @@ module Elang
           text << @fetcher.fetch
         elsif char == "."
           if (text.length >= 2) && (text[0..1] == "0x")
-            raise "Invalid char '#{char}' at #{@fetcher.pos}: #{@fetcher.text[cpos, 10]}..."
+            _throw_invalid_char @fetcher.pos, cpos, char
           elsif text.index(".").nil?
             num = nil
             
@@ -269,23 +334,31 @@ module Elang
                 break
               end
             else
-              raise "Unexpected end of file at #{@fetcher.pos}: #{@fetcher.text[cpos, 10]}..."
+              _throw_unexpected_end_of_file @fetcher.pos, cpos
             end
+          else
+            _throw_invalid_char @fetcher.pos, cpos, char
           end
         elsif char == "x"
           if text == "0"
-            text << @fetcher.fetch
+            if (nc = @fetcher.next).nil?
+              _throw_unexpected_end_of_file @fetcher.pos, cpos
+            elsif HEX_NUMS.index(nc.downcase).nil?
+              _throw_invalid_char @fetcher.pos, cpos, char
+            else
+              text << @fetcher.fetch
+            end
           else
-            raise "Invalid char '#{char}' at #{@fetcher.pos}: #{@fetcher.text[cpos, 10]}..."
+            _throw_invalid_char @fetcher.pos, cpos, char
           end
-        elsif "abcdef".index(char)
+        elsif "abcdef".index(char.downcase)
           if (text.length >= 2) && (text[0..1].downcase == "0x")
             text << @fetcher.fetch
           else
-            raise "Invalid char '#{char}' at #{@fetcher.pos}: #{@fetcher.text[cpos, 10]}..."
+            _throw_invalid_char @fetcher.pos, cpos, char
           end
         elsif IDENTIFIER.index(char.downcase)
-          raise "Invalid char '#{char}' at #{@fetcher.pos}: #{@fetcher.text[cpos, 10]}..."
+          _throw_invalid_char @fetcher.pos, cpos, char
         else
           break
         end
@@ -340,27 +413,9 @@ module Elang
       
       _raw_token cpos, tmap[text[0]], text
     end
-    def _detect_lines(code)
-      pos = 0
-      row = 1
-      lines = []
-      
-      code.lines.each do |line|
-        lines << {row: row, min: pos, max: pos + line.length - 1}
-        row += 1
-        pos += line.length
-      end
-      
-      lines
-    end
-    def _set_line_numbers(tokens, lines)
-      tokens.each do |token|
-        line = lines.find{|x|(x[:min]..x[:max]).include?(token[:pos])}
-        token.merge!(row: line[:row], col: token[:pos] - line[:min] + 1)
-      end
-    end
     def parse(code)
       @fetcher = FetcherV2.new(code)
+      @code_lines = _detect_lines(code)
       raw_tokens = []
       
       while char = @fetcher.char
@@ -389,7 +444,7 @@ module Elang
         end
       end
       
-      _set_line_numbers raw_tokens, _detect_lines(code)
+      _set_line_numbers raw_tokens
       raw_tokens.map{|x|Token.new(x[:row], x[:col], x[:type], x[:text])}
     end
   end

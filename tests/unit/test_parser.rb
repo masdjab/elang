@@ -1,4 +1,5 @@
 require 'test-unit'
+require 'mocha/test_unit'
 require './compiler/parser'
 
 class TestParser < Test::Unit::TestCase
@@ -82,8 +83,21 @@ class TestParser < Test::Unit::TestCase
     assert_equal [1, 6, 7], tokens.map{|x|x.col}
     assert_equal ["12345", ".", "to_s"], tokens.map{|x|x.text}
     
-    #todo: must fail
-    #0a, 0_, 0., 0x, 0xm, 0x_, 0.0.0, 0x1.2
+    assert_raise(Elang::ParseError){_parse("0x2e.4")}
+    assert_raise(Elang::ParseError){_parse("0.")}
+    assert_raise(Elang::ParseError){_parse("123.")}
+    assert_raise(Elang::ParseError){_parse("00x33")}
+    assert_raise(Elang::ParseError){_parse("1x22")}
+    assert_raise(Elang::ParseError){_parse("12345x22")}
+    assert_raise(Elang::ParseError){_parse("0a")}
+    assert_raise(Elang::ParseError){_parse("0_")}
+    assert_raise(Elang::ParseError){_parse("0x")}
+    assert_raise(Elang::ParseError){_parse("0xm")}
+    assert_raise(Elang::ParseError){_parse("0x_")}
+    assert_raise(Elang::ParseError){_parse("0x.")}
+    assert_raise(Elang::ParseError){_parse("0x(")}
+    assert_raise(Elang::ParseError){_parse("0x1.2")}
+    assert_raise(Elang::ParseError){_parse("0.0.0")}
   end
   def test_parse_string
     tokens = _parse("x='I said \"hello...\", right?'")

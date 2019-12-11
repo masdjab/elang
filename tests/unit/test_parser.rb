@@ -79,7 +79,7 @@ class TestParser < Test::Unit::TestCase
     
     tokens = _parse("12345.to_s")
     assert_equal 3, tokens.count
-    assert_equal [:number, :punct, :identifier], tokens.map{|x|x.type}
+    assert_equal [:number, :dot, :identifier], tokens.map{|x|x.type}
     assert_equal [1, 6, 7], tokens.map{|x|x.col}
     assert_equal ["12345", ".", "to_s"], tokens.map{|x|x.text}
     
@@ -186,5 +186,17 @@ class TestParser < Test::Unit::TestCase
     assert_equal 4, tokens.count
     assert_equal "||", tokens[1].text
     assert_equal "|", tokens[2].text
+  end
+  def test_punctuations
+    assert_punct = lambda{|seq, tt|assert_equal tt, _parse(seq).map{|x|x.type}}
+    tests = 
+      [
+        [".,:;()", [:dot, :comma, :colon, :semicolon, :lbrk, :rbrk]], 
+        ["[]{}+-*", [:lsbrk, :rsbrk, :lcbrk, :rcbrk, :plus, :minus, :star]], 
+        ["/\\?!@~", [:slash, :bslash, :question, :excl, :at, :tilde]], 
+        ["`$%^|||&&&", [:bquote, :dollar, :percent, :up, :or, :or, :and, :and]]
+      ]
+      
+    tests.each{|t|assert_equal t[1], _parse(t[0]).map{|x|x.type}}
   end
 end

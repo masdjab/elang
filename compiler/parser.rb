@@ -325,8 +325,6 @@ module Elang
           if (text.length >= 2) && (text[0..1] == "0x")
             _throw_invalid_char @fetcher.pos, cpos, char
           elsif text.index(".").nil?
-            num = nil
-            
             if nc = @fetcher.next
               if NUMBERS.index(nc)
                 text << @fetcher.fetch
@@ -413,6 +411,38 @@ module Elang
       
       _raw_token cpos, tmap[text[0]], text
     end
+    def _parse_punctuation
+      punct_types = 
+        {
+          "."   => :dot, 
+          ","   => :comma, 
+          ":"   => :colon, 
+          ";"   => :semicolon, 
+          "("   => :lbrk, 
+          ")"   => :rbrk, 
+          "["   => :lsbrk, 
+          "]"   => :rsbrk, 
+          "{"   => :lcbrk, 
+          "}"   => :rcbrk, 
+          "+"   => :plus, 
+          "-"   => :minus, 
+          "*"   => :star, 
+          "/"   => :slash, 
+          "\\"  => :bslash, 
+          "?"   => :question, 
+          "!"   => :excl, 
+          "@"   => :at, 
+          "~"   => :tilde, 
+          "`"   => :bquote, 
+          "$"   => :dollar, 
+          "%"   => :percent, 
+          "^"   => :up
+        }
+      
+      cpos = @fetcher.pos
+      char = @fetcher.fetch
+      _raw_token(cpos, punct_types.fetch(char, :punct), char)
+    end
     def parse(code)
       @fetcher = FetcherV2.new(code)
       @code_lines = _detect_lines(code)
@@ -440,7 +470,7 @@ module Elang
         elsif "&|".index(char)
           raw_tokens << _parse_logical
         else
-          raw_tokens << _raw_token(@fetcher.pos, :punct, @fetcher.fetch)
+          raw_tokens << _parse_punctuation
         end
       end
       

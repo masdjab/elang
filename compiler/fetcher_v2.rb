@@ -22,12 +22,6 @@ module Elang
     def prev
       !empty? && (@pos > 0) ? @text[@pos - 1] : nil
     end
-    def forward
-      @pos += 1
-    end
-    def back
-      @pos -= 1
-    end
     def fetch
       temp = char
       @pos += 1

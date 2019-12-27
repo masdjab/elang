@@ -1,26 +1,33 @@
 module Elang
   class FetcherV2
-    attr_reader :text, :len, :pos
-    def initialize(text)
-      @text = text
+    attr_reader :items, :len, :pos
+    def initialize(items)
+      @items = items
       @pos  = 0
-      @len  = text.length
+      @len  = items.length
     end
     def empty?
-      @text.empty?
+      @items.empty?
     end
     def eob?
       @pos == @len - 1
     end
-    def char(at = nil)
+    def element(at = nil)
       cpos = at ? at : @pos
-      !empty? && (0...@len).include?(cpos) ? @text[cpos] : nil
+      !empty? && (0...@len).include?(cpos) ? @items[cpos] : nil
+    end
+    def char(at = nil)
+      # deprecated
+      element(at)
     end
     def next
-      !empty? && !eob? ? @text[@pos + 1] : nil
+      !empty? && !eob? ? @items[@pos + 1] : nil
     end
     def prev
-      !empty? && (@pos > 0) ? @text[@pos - 1] : nil
+      !empty? && (@pos > 0) ? @items[@pos - 1] : nil
+    end
+    def last
+      !empty? ? @items.last : nil
     end
     def fetch
       temp = char

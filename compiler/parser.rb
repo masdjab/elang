@@ -402,14 +402,14 @@ module Elang
     end
     def _parse_logical
       cpos = @fetcher.pos
-      tmap = {"&" => :and, "|" => :or}
+      tmap = {"&" => :and, "&&" => :dbland, "|" => :or, "||" => :dblor}
       text = @fetcher.fetch
       
       if @fetcher.char == text
         text << @fetcher.fetch
       end
       
-      _raw_token cpos, tmap[text[0]], text
+      _raw_token cpos, tmap[text], text
     end
     def _parse_punctuation
       punct_types = 

@@ -12,7 +12,7 @@ module Elang
       @symbols = []
     end
     def find_exact(context, name)
-      @symbols.find{|x|(x.scope == x.context) && (x.name == name)}
+      @symbols.find{|x|(x.scope == context) && (x.name == name)}
     end
     def find_nearest(context, name)
       alt1 = nil

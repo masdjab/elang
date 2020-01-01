@@ -7,23 +7,47 @@ class TestCodeGenerator < Test::Unit::TestCase
   def setup
     @code_generator = Elang::CodeGenerator.new
   end
+  def nd(type, value)
+    Elang::AstNode.new(0, 0, type, value)
+  end
   def pun(x)
-    Elang::AstNode.new(0, 0, :punc, x)
+    nd(:punc, x)
+  end
+  def asn
+    nd(:assign, "=")
+  end
+  def plus
+    nd(:plus, "+")
+  end
+  def minus
+    nd(:minus, "-")
+  end
+  def star
+    nd(:star, "*")
+  end
+  def slash
+    nd(:slash, "/")
+  end
+  def pand
+    nd(:and, "&")
+  end
+  def por
+    nd(:or, "|")
   end
   def idt(x)
-    Elang::AstNode.new(0, 0, :identifier, x)
+    nd(:identifier, x)
   end
   def num(x)
-    Elang::AstNode.new(0, 0, :number, x)
+    nd(:number, x)
   end
   def str(x)
-    Elang::AstNode.new(0, 0, :string, x)
+    nd(:string, x)
   end
   def fnp(*args)
     args.map{|x|Elang::AstNode.new(0, 0, :identifier, x)}
   end
   def lfd
-    Elang::AstNode.new(0, 0, :linefeed, "\r\n")
+    nd(:linefeed, "\r\n")
   end
   def bin(h)
     Elang::Utils::Converter.hex_to_bin(h)
@@ -31,61 +55,69 @@ class TestCodeGenerator < Test::Unit::TestCase
   def symbols
     @code_generator.symbols
   end
-  def check_code_result(nodes, expected)
+  def check_code_result(nodes, exp_main, exp_subs)
     codeset = @code_generator.generate_code(nodes)
-    assert_equal expected, codeset.binary_code
+    assert_equal exp_main, codeset.main_code
     codeset
   end
   def test_simple_assignment
     codeset = 
       check_code_result(
-        [[pun("="), idt("a"), num("2")]], \
+        [[asn, idt("a"), num("2")]], \
         # mov ax, 02h; mov a, ax"
-        bin("B80200A20000")
+        bin("B80200A20000"), 
+        ""
       )
     assert_equal 1, codeset.symbols.count
   end
   def test_simple_numeric_operation
     # mov ax, 01h; mov cx, 02h; add ax, cx; mov mynum, ax
     check_code_result \
-      [[pun("="),idt("mynum"),[pun("+"),num("1"),num("2")]]], \
-      bin("B80100B9020001C8A20000")
+      [[asn,idt("mynum"),[plus,num("1"),num("2")]]], \
+      bin("B80100B9020001C8A20000"), 
+      ""
       
     # mov ax, 01h; mov cx, 02h; sub ax, cx; mov mynum, ax
     check_code_result \
-      [[pun("="),idt("mynum"),[pun("-"),num("1"),num("2")]]], \
-      bin("B80100B9020029C8A20000")
+      [[asn,idt("mynum"),[minus,num("1"),num("2")]]], \
+      bin("B80100B9020029C8A20000"), 
+      ""
     
     # mov ax, 01h; mov cx, 02h; mul ax, cx; mov mynum, ax
     check_code_result \
-      [[pun("="),idt("mynum"),[pun("*"),num("1"),num("2")]]], \
-      bin("B80100B90200F7E9A20000")
+      [[asn,idt("mynum"),[star,num("1"),num("2")]]], \
+      bin("B80100B90200F7E9A20000"), 
+      ""
     
     # mov ax, 01h; mov cx, 02h; div ax, cx; mov mynum, ax
     check_code_result \
-      [[pun("="),idt("mynum"),[pun("/"),num("1"),num("2")]]], \
-      bin("B80100B90200F7F9A20000")
+      [[asn,idt("mynum"),[slash,num("1"),num("2")]]], \
+      bin("B80100B90200F7F9A20000"), 
+      ""
     
     # mov ax, 01h; mov cx, 02h; and ax, cx; mov mynum, ax
     check_code_result \
-      [[pun("="),idt("mynum"),[pun("&"),num("1"),num("2")]]], \
-      bin("B80100B9020021C8A20000")
+      [[asn,idt("mynum"),[pand,num("1"),num("2")]]], \
+      bin("B80100B9020021C8A20000"), 
+      ""
     
     # mov ax, 01h; mov cx, 02h; or ax, cx; mov mynum, ax
     check_code_result \
-      [[pun("="),idt("mynum"),[pun("|"),num("1"),num("2")]]], \
-      bin("B80100B9020009C8A20000")
+      [[asn,idt("mynum"),[por,num("1"),num("2")]]], \
+      bin("B80100B9020009C8A20000"), 
+      ""
     
     # mov ax, 0; mov v1, ax
     # mov ax, 0; mov v2, ax
     # mov ax, v1; mov cx, v2; add ax, cx; mov mynum, ax
     check_code_result \
       [
-        [pun("="),idt("v1"),num("18")], 
-        [pun("="),idt("v2"),num("52")], 
-        [pun("="),idt("mynum"),[pun("+"),idt("v1"),idt("v2")]]
+        [asn,idt("v1"),num("18")], 
+        [asn,idt("v2"),num("52")], 
+        [asn,idt("mynum"),[plus,idt("v1"),idt("v2")]]
       ], \
-      bin("B81200A20000B83400A20000A100008B0E000001C8A20000")
+      bin("B81200A20000B83400A20000A100008B0E000001C8A20000"), 
+      ""
   end
   def test_simple_string_operation
   end
@@ -93,26 +125,31 @@ class TestCodeGenerator < Test::Unit::TestCase
     # ret
     check_code_result \
       [[idt("def"),idt("echo"),[],[]]], 
+      "", 
       bin("C3")
     
     # ret
     check_code_result \
       [[idt("def"),idt("echo"),fnp,[]]], 
+      "", 
       bin("C3")
     
     # ret 2
     check_code_result \
       [[idt("def"),idt("echo"),fnp("x"),[]]], 
+      "", 
       bin("C20200")
     
     # ret 4
     check_code_result \
       [[idt("def"),idt("echo"),fnp("x","y"),[]]], 
+      "", 
       bin("C20400")
     
     # mov ax, 05h; mov x, ax; ret 4
     check_code_result \
-      [[idt("def"),idt("echo"),fnp("x","y"),[[pun("="),idt("x"),num("5")]]]], 
+      [[idt("def"),idt("echo"),fnp("x","y"),[[asn,idt("x"),num("5")]]]], 
+      "", 
       bin("B80500A20000C20400")
     
     # mov ax, 05h; mov x, ax; mov ax, 02h; mov y, ax; ret 4
@@ -121,10 +158,11 @@ class TestCodeGenerator < Test::Unit::TestCase
         [[
           idt("def"),idt("echo"),fnp("x","y"),
           [
-            [pun("="),idt("x"),num("5")],
-            [pun("="),idt("y"),num("2")]
+            [asn,idt("x"),num("5")],
+            [asn,idt("y"),num("2")]
           ]
         ]], 
+        "", 
         bin("B80500A20000B80200A20000C20400")
       )
     assert_equal 2, codeset.symbols.count
@@ -135,6 +173,7 @@ class TestCodeGenerator < Test::Unit::TestCase
     # mov ax, 03h; push ax; call multiply_by_two
     check_code_result \
       [[idt("call"),idt("multiply_by_two"),[num("3")]]], 
-      bin("B8030050E80000")
+      bin("B8030050E80000"), 
+      ""
   end
 end

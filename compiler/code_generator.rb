@@ -1,9 +1,9 @@
 require './compiler/constant'
 require './compiler/variable'
 require './compiler/function'
-require './compiler/symbols'
 require './compiler/symbol_ref'
 require './compiler/ast_node'
+require './compiler/codeset'
 require './utils/converter'
 
 module Elang
@@ -12,13 +12,11 @@ module Elang
     
     private
     def initialize
+      @codeset = CodeSet.new
       @scope_stack = []
-      @symbols = Symbols.new
-      @symbol_refs = []
-      @binary_code = ""
     end
     def code_len
-      @binary_code.length
+      @codeset.binary_code.length
     end
     def hex2bin(h)
       Elang::Utils::Converter.hex_to_bin(h)
@@ -34,23 +32,23 @@ module Elang
       @scope_stack.pop if !@scope_stack.empty?
     end
     def add_constant_ref(symbol, location)
-      @symbol_refs << ConstantRef.new(symbol, current_scope, location)
+      @codeset.symbol_refs << ConstantRef.new(symbol, current_scope, location)
     end
     def add_variable_ref(symbol, location)
-      @symbol_refs << VariableRef.new(symbol, current_scope, location)
+      @codeset.symbol_refs << VariableRef.new(symbol, current_scope, location)
     end
     def add_function_ref(symbol, location)
-      @symbol_refs << FunctionRef.new(symbol, current_scope, location)
+      @codeset.symbol_refs << FunctionRef.new(symbol, current_scope, location)
     end
     def get_string_constant(str)
-      if (symbol = @symbols.find_str(str)).nil?
+      if (symbol = @codeset.symbols.find_str(str)).nil?
         symbol = Elang::Constant.new(current_scope, Elang::Constant.generate_name, str)
       end
       
       symbol
     end
     def append_code(code)
-      @binary_code << code if !code.empty?
+      @codeset.append_code code
     end
     def prepare_single_operand(node, value_index, operand_index)
       hex_code = ""
@@ -70,7 +68,7 @@ module Elang
         hex_code = hex + "0000"
       elsif val_node.type == :identifier
         # mov reg, var
-        if (symbol = @symbols.find_nearest(current_scope, val_node.text)).nil?
+        if (symbol = @codeset.symbols.find_nearest(current_scope, val_node.text)).nil?
           raise "Symbol '#{val_node.text}' not defined"
         else
           hex = right_val ?  "8B0E" : "A1"
@@ -96,8 +94,8 @@ module Elang
         raise "Left operand for assignment must be a symbol, #{left_var.inspect} given"
       end
       
-      if @symbols.find_exact(current_scope, var_name).nil?
-        @symbols.add(Elang::Variable.new(current_scope, var_name))
+      if @codeset.symbols.find_exact(current_scope, var_name).nil?
+        @codeset.symbols.add(Elang::Variable.new(current_scope, var_name))
       end
       
       prepare_single_operand(node, 2, nil)
@@ -206,9 +204,9 @@ module Elang
     
     public
     def generate_code(nodes)
-      @binary_code = ""
+      @codeset = CodeSet.new
       handle_any nodes
-      @binary_code
+      @codeset
     end
   end
 end

@@ -32,15 +32,18 @@ class TestCodeGenerator < Test::Unit::TestCase
     @code_generator.symbols
   end
   def check_code_result(nodes, expected)
-    actual = @code_generator.generate_code(nodes)
-    assert_equal expected, actual
+    codeset = @code_generator.generate_code(nodes)
+    assert_equal expected, codeset.binary_code
+    codeset
   end
   def test_simple_assignment
-    check_code_result \
-      [[pun("="), idt("a"), num("2")]], \
-      # mov ax, 02h; mov a, ax"
-      bin("B80200A20000")
-    assert_equal 1, symbols.count
+    codeset = 
+      check_code_result(
+        [[pun("="), idt("a"), num("2")]], \
+        # mov ax, 02h; mov a, ax"
+        bin("B80200A20000")
+      )
+    assert_equal 1, codeset.symbols.count
   end
   def test_simple_numeric_operation
     # mov ax, 01h; mov cx, 02h; add ax, cx; mov mynum, ax
@@ -113,18 +116,20 @@ class TestCodeGenerator < Test::Unit::TestCase
       bin("B80500A20000C20400")
     
     # mov ax, 05h; mov x, ax; mov ax, 02h; mov y, ax; ret 4
-    check_code_result \
-      [[
-        idt("def"),idt("echo"),fnp("x","y"),
-        [
-          [pun("="),idt("x"),num("5")],
-          [pun("="),idt("y"),num("2")]
-        ]
-      ]], 
-      bin("B80500A20000B80200A20000C20400")
-    assert_equal 2, symbols.count
-    assert_equal "x", symbols.items[0].name
-    assert_equal "y", symbols.items[1].name
+    codeset = 
+      check_code_result(
+        [[
+          idt("def"),idt("echo"),fnp("x","y"),
+          [
+            [pun("="),idt("x"),num("5")],
+            [pun("="),idt("y"),num("2")]
+          ]
+        ]], 
+        bin("B80500A20000B80200A20000C20400")
+      )
+    assert_equal 2, codeset.symbols.count
+    assert_equal "x", codeset.symbols.items[0].name
+    assert_equal "y", codeset.symbols.items[1].name
   end
   def test_simple_function_call
     # mov ax, 03h; push ax; call multiply_by_two

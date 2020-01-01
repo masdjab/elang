@@ -209,8 +209,5 @@ module Elang
       nodes = tokens.map{|x|AstNode.new(x.row, x.col, x.type, x.text)}
       fetch_sexp(FetcherV2.new(nodes))
     end
-    def lex(tokens)
-      tokens = optimize(tokens)
-    end
   end
 end

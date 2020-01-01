@@ -18,7 +18,7 @@ module Elang
       alt1 = nil
       alt2 = nil 
       alt3 = nil
-      func_context = context
+      func_context = context ? context : ""
       
       if chpos = func_context.index("#")
         func_context = func_context[0...chpos]
@@ -39,6 +39,9 @@ module Elang
       end
       
       alt1 ? alt1 : alt2 ? alt2 : alt3
+    end
+    def find_string(str)
+      @symbols.find{|x|x.is_a?(Constant) && (x.value == str)}
     end
     def item(index)
       @symbols[index]

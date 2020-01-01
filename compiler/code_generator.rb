@@ -1,15 +1,27 @@
-require './compiler/symbols'
+require './compiler/constant'
 require './compiler/variable'
+require './compiler/function'
+require './compiler/symbols'
+require './compiler/symbol_ref'
 require './compiler/ast_node'
 require './utils/converter'
 
 module Elang
   class CodeGenerator
-    attr_reader :symbols
+    attr_reader :symbols, :symbol_refs
     
+    private
     def initialize
-      @symbols = Symbols.new
       @scope_stack = []
+      @symbols = Symbols.new
+      @symbol_refs = []
+      @binary_code = ""
+    end
+    def code_len
+      @binary_code.length
+    end
+    def hex2bin(h)
+      Elang::Utils::Converter.hex_to_bin(h)
     end
     def current_scope
       !@scope_stack.empty? ? @scope_stack.last : nil
@@ -21,27 +33,60 @@ module Elang
     def leave_scope
       @scope_stack.pop if !@scope_stack.empty?
     end
+    def add_constant_ref(symbol, location)
+      @symbol_refs << ConstantRef.new(symbol, current_scope, location)
+    end
+    def add_variable_ref(symbol, location)
+      @symbol_refs << VariableRef.new(symbol, current_scope, location)
+    end
+    def add_function_ref(symbol, location)
+      @symbol_refs << FunctionRef.new(symbol, current_scope, location)
+    end
+    def get_string_constant(str)
+      if (symbol = @symbols.find_str(str)).nil?
+        symbol = Elang::Constant.new(current_scope, Elang::Constant.generate_name, str)
+      end
+      
+      symbol
+    end
+    def append_code(code)
+      @binary_code << code if !code.empty?
+    end
     def prepare_single_operand(node, value_index, operand_index)
+      hex_code = ""
+      right_val = !operand_index.nil? && operand_index > 1
+      
       if (val_node = node[value_index]).is_a?(Array)
         handle_any([val_node])
       elsif val_node.type == :number
         # mov reg, imm
-        (!operand_index.nil? && operand_index > 1 ? "B9" : "B8") + Elang::Utils::Converter.int_to_whex_be(val_node.text.to_i).upcase
+        value_hex = Elang::Utils::Converter.int_to_whex_be(val_node.text.to_i).upcase
+        hex_code = (right_val ? "B9" : "B8") + value_hex
       elsif val_node.type == :string
         # mov reg, str
-        (!operand_index.nil? && operand_index > 1 ? "8B0E" : "A1") + "0000"
+        str = get_string_constant(val_node.text)
+        hex = right_val ? "8B0E" : "A1"
+        add_constant_ref str, code_len + (hex.length / 2)
+        hex_code = hex + "0000"
       elsif val_node.type == :identifier
         # mov reg, var
-        (!operand_index.nil? && operand_index > 1 ?  "8B0E" : "A1") + "0000"
+        if (symbol = @symbols.find_nearest(current_scope, val_node.text)).nil?
+          raise "Symbol '#{val_node.text}' not defined"
+        else
+          hex = right_val ?  "8B0E" : "A1"
+          add_variable_ref symbol, code_len + (hex.length / 2)
+          hex_code = hex + "0000"
+        end
       else
         op_info = operand_index ? " #{operand_index}" : ""
         raise "Invalid operand#{op_info}: #{val_node.inspect}"
       end
+      
+      append_code hex2bin(hex_code)
     end
     def prepare_operands(node)
-      init_ax = prepare_single_operand(node, 1, 1)
-      init_cx = prepare_single_operand(node, 2, 2)
-      init_ax + init_cx
+      prepare_single_operand(node, 1, 1)
+      prepare_single_operand(node, 2, 2)
     end
     def handle_assignment(node)
       left_var = node[1]
@@ -55,34 +100,39 @@ module Elang
         @symbols.add(Elang::Variable.new(current_scope, var_name))
       end
       
-      init_ax = prepare_single_operand(node, 2, nil)
-      
+      prepare_single_operand(node, 2, nil)
       # mov var, ax
-      init_ax + "A20000"
+      append_code hex2bin("A20000")
     end
     def handle_addition(node)
       # add ax, cx
-      prepare_operands(node) + "01C8"
+      prepare_operands(node)
+      append_code hex2bin("01C8")
     end
     def handle_subtraction(node)
       # sub ax, cx
-      prepare_operands(node) + "29C8"
+      prepare_operands(node)
+      append_code hex2bin("29C8")
     end
     def handle_multiplication(node)
       # mul ax, cx
-      prepare_operands(node) + "F7E9"
+      prepare_operands(node)
+      append_code hex2bin("F7E9")
     end
     def handle_division(node)
       # div ax, cx
-      prepare_operands(node) + "F7F9"
+      prepare_operands(node)
+      append_code hex2bin("F7F9")
     end
     def handle_numeric_and(node)
       # and ax, cx
-      prepare_operands(node) + "21C8"
+      prepare_operands(node)
+      append_code hex2bin("21C8")
     end
     def handle_numeric_or(node)
       # or ax, cx
-      prepare_operands(node) + "09C8"
+      prepare_operands(node)
+      append_code hex2bin("09C8")
     end
     def handle_function_def(node)
       func_name = node[1].text
@@ -96,20 +146,23 @@ module Elang
       end
       
       enter_scope "##{func_name}"
-      body_code = handle_any(func_body)
+      handle_any(func_body)
       leave_scope
       
       # "ret" + (params_count > 0 ? " #{params_count * 2}" : "")
-      body_code + (params_count > 0 ? "C2#{Elang::Utils::Converter.int_to_whex_be(params_count * 2).upcase}" : "C3")
+      hex_code = (params_count > 0 ? "C2#{Elang::Utils::Converter.int_to_whex_be(params_count * 2).upcase}" : "C3")
+      append_code hex2bin(hex_code)
     end
     def handle_function_call(node)
       # push ax; call target
-      init_args = (0...node[2].count).map{|x|prepare_single_operand(node[2], x, 1) + "50"}.join
-      init_args + "E80000"
+      (0...node[2].count).each do |x|
+        prepare_single_operand(node[2], x, 1)
+        append_code hex2bin("50")
+      end
+      
+      append_code hex2bin("E80000")
     end
     def handle_any(nodes)
-      binary_code = ""
-      
       nodes.each do |node|
         if node.is_a?(Array)
           if !node[0].is_a?(Elang::AstNode)
@@ -117,28 +170,28 @@ module Elang
           elsif node[0].type == :punc
             case node[0].text
             when "="
-              binary_code << handle_assignment(node)
+              handle_assignment(node)
             when "+"
-              binary_code << handle_addition(node)
+              handle_addition(node)
             when "-"
-              binary_code << handle_subtraction(node)
+              handle_subtraction(node)
             when "*"
-              binary_code << handle_multiplication(node)
+              handle_multiplication(node)
             when "/"
-              binary_code << handle_division(node)
+              handle_division(node)
             when "&"
-              binary_code << handle_numeric_and(node)
+              handle_numeric_and(node)
             when "|"
-              binary_code << handle_numeric_or(node)
+              handle_numeric_or(node)
             else
               raise "Unknown node type: #{node.inspect}"
             end
           elsif node[0].type == :identifier
             case node[0].text
             when "def"
-              binary_code << handle_function_def(node)
+              handle_function_def(node)
             when "call"
-              binary_code << handle_function_call(node)
+              handle_function_call(node)
             else
               raise "Cannot handle node: #{node.inspect}"
             end
@@ -149,11 +202,13 @@ module Elang
           raise "Expected array, #{node.class} given: #{node.inspect}"
         end
       end
-      
-      binary_code
     end
+    
+    public
     def generate_code(nodes)
-      Elang::Utils::Converter.hex_to_bin(handle_any(nodes))
+      @binary_code = ""
+      handle_any nodes
+      @binary_code
     end
   end
 end

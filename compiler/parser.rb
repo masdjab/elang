@@ -177,7 +177,7 @@ module Elang
     IDENTIFIER = "#{LETTERS}#{NUMBERS}_"
     
     def initialize
-      @fetcher    = FetcherV2.new("")
+      @fetcher = FetcherV2.new("")
       @code_lines = []
     end
     def _pos_to_row_col(pos)
@@ -208,7 +208,7 @@ module Elang
       end
     end
     def _code_snapshot(pos, anchor, ellipsis = true)
-      "#{@fetcher.text[anchor, 10]}#{ellipsis ? "..." : ""}"
+      "#{@fetcher.element[anchor, 10]}#{ellipsis ? "..." : ""}"
     end
     def _pos_info(pos)
       pos = _pos_to_row_col(pos) if pos.is_a?(Integer)

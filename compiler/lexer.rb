@@ -2,9 +2,8 @@ require './compiler/ast_node'
 
 module Elang
   class Lexer
-    # lexer
     # class responsibility:
-    # convert from tokens into ast nodes
+    # convert from tokens to ast nodes
     
     PRIORITY = 
       {
@@ -208,9 +207,6 @@ module Elang
       tokens = optimize(tokens)
       nodes = tokens.map{|x|AstNode.new(x.row, x.col, x.type, x.text)}
       fetch_sexp(FetcherV2.new(nodes))
-    end
-    def lex(tokens)
-      tokens = optimize(tokens)
     end
   end
 end

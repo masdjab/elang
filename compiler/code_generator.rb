@@ -16,7 +16,7 @@ module Elang
       @scope_stack = []
     end
     def code_len
-      @codeset.binary_code.length
+      @codeset.code_branch.length
     end
     def hex2bin(h)
       Elang::Utils::Converter.hex_to_bin(h)
@@ -27,8 +27,10 @@ module Elang
     def enter_scope(scope)
       cs = current_scope
       @scope_stack << "#{cs ? cs : ""}#{scope}"
+      @codeset.enter_subs
     end
     def leave_scope
+      @codeset.leave_subs
       @scope_stack.pop if !@scope_stack.empty?
     end
     def add_constant_ref(symbol, location)
@@ -94,11 +96,12 @@ module Elang
         raise "Left operand for assignment must be a symbol, #{left_var.inspect} given"
       end
       
-      if @codeset.symbols.find_exact(current_scope, var_name).nil?
-        @codeset.symbols.add(Elang::Variable.new(current_scope, var_name))
+      if receiver = @codeset.symbols.find_exact(current_scope, var_name).nil?
+        @codeset.symbols.add(receiver = Elang::Variable.new(current_scope, var_name))
       end
       
       prepare_single_operand(node, 2, nil)
+      add_variable_ref receiver, code_len + 1
       # mov var, ax
       append_code hex2bin("A20000")
     end
@@ -144,57 +147,66 @@ module Elang
       end
       
       enter_scope "##{func_name}"
+      offset = code_len
       handle_any(func_body)
-      leave_scope
-      
       # "ret" + (params_count > 0 ? " #{params_count * 2}" : "")
       hex_code = (params_count > 0 ? "C2#{Elang::Utils::Converter.int_to_whex_be(params_count * 2).upcase}" : "C3")
+      function = Function.new(current_scope, func_name, func_args, offset)
+      @codeset.symbols.add function
       append_code hex2bin(hex_code)
+      leave_scope
     end
     def handle_function_call(node)
       # push ax; call target
-      (0...node[2].count).each do |x|
-        prepare_single_operand(node[2], x, 1)
-        append_code hex2bin("50")
-      end
+      func_name = node[1].text
       
-      append_code hex2bin("E80000")
+      if (function = @codeset.symbols.find_function(func_name)).nil?
+        raise "Call to undefined function '#{func_name}'"
+      else
+        (0...node[2].count).each do |x|
+          prepare_single_operand(node[2], x, 1)
+          append_code hex2bin("50")
+        end
+        
+        add_function_ref function, code_len + 1
+        append_code hex2bin("E80000")
+      end
     end
     def handle_any(nodes)
       nodes.each do |node|
         if node.is_a?(Array)
-          if !node[0].is_a?(Elang::AstNode)
+          first_node = node[0]
+          
+          if !first_node.is_a?(Elang::AstNode)
             raise "Expected identifier, #{node[0].inspect} given"
-          elsif node[0].type == :punc
-            case node[0].text
-            when "="
+          else
+            case first_node.type
+            when :assign
               handle_assignment(node)
-            when "+"
+            when :plus
               handle_addition(node)
-            when "-"
+            when :minus
               handle_subtraction(node)
-            when "*"
+            when :star
               handle_multiplication(node)
-            when "/"
+            when :slash
               handle_division(node)
-            when "&"
+            when :and
               handle_numeric_and(node)
-            when "|"
+            when :or
               handle_numeric_or(node)
-            else
-              raise "Unknown node type: #{node.inspect}"
-            end
-          elsif node[0].type == :identifier
-            case node[0].text
-            when "def"
-              handle_function_def(node)
-            when "call"
-              handle_function_call(node)
+            when :identifier
+              case first_node.text
+              when "def"
+                handle_function_def(node)
+              when "call"
+                handle_function_call(node)
+              else
+                raise "Cannot handle node: #{node.inspect}"
+              end
             else
               raise "Cannot handle node: #{node.inspect}"
             end
-          else
-            raise "Cannot handle node: #{node.inspect}"
           end
         else
           raise "Expected array, #{node.class} given: #{node.inspect}"

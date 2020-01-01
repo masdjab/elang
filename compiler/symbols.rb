@@ -43,6 +43,9 @@ module Elang
     def find_string(str)
       @symbols.find{|x|x.is_a?(Constant) && (x.value == str)}
     end
+    def find_function(name)
+      @symbols.find{|x|x.is_a?(Function) && (x.name == name)}
+    end
     def item(index)
       @symbols[index]
     end

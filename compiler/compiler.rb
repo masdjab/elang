@@ -39,6 +39,12 @@ require './compiler/linker'
 
 module Elang
   class Compiler
+    # class responsibility: convert source code to executable binary codes
+    # - convert source code to tokens
+    # - convert tokens to ast nodes using lexer
+    # - create codeset from ast nodes using code generator
+    # - resolve symbol references add build final binary code
+    
     def compile(source)
       parser = Elang::Parser.new
       tokens = parser.parse(source)

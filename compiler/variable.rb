@@ -8,5 +8,8 @@ module Elang
       @scope = scope
       @name = name
     end
+    def self.reset_index
+      @@index = 0
+    end
   end
 end

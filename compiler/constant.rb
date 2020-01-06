@@ -9,6 +9,9 @@ module Elang
       @name = name
       @value = value
     end
+    def self.reset_index
+      @@index = 0
+    end
     def self.generate_name
       "const_#{@@index + 1}"
     end

@@ -1,10 +1,11 @@
 module Elang
   class SymbolRef
-    attr_reader :symbol, :context, :location
-    def initialize(symbol, context, location)
+    attr_reader :symbol, :context, :location, :code_type
+    def initialize(symbol, context, location, code_type)
       @symbol = symbol
       @context = context
       @location = location
+      @code_type = code_type
     end
   end
   

@@ -6,6 +6,10 @@ require './compiler/ast_node'
 require './compiler/codeset'
 require './utils/converter'
 
+#(todo)#
+# - assign local variable
+# - get parameter value passed by ref
+
 module Elang
   class CodeGenerator
     attr_reader :symbols, :symbol_refs
@@ -33,14 +37,17 @@ module Elang
       @codeset.leave_subs
       @scope_stack.pop if !@scope_stack.empty?
     end
+    def code_type
+      (current_scope ? current_scope : "").index("#") ? :subs : :main
+    end
     def add_constant_ref(symbol, location)
-      @codeset.symbol_refs << ConstantRef.new(symbol, current_scope, location)
+      @codeset.symbol_refs << ConstantRef.new(symbol, current_scope, location, code_type)
     end
     def add_variable_ref(symbol, location)
-      @codeset.symbol_refs << VariableRef.new(symbol, current_scope, location)
+      @codeset.symbol_refs << VariableRef.new(symbol, current_scope, location, code_type)
     end
     def add_function_ref(symbol, location)
-      @codeset.symbol_refs << FunctionRef.new(symbol, current_scope, location)
+      @codeset.symbol_refs << FunctionRef.new(symbol, current_scope, location, code_type)
     end
     def get_string_constant(str)
       if (symbol = @codeset.symbols.find_str(str)).nil?
@@ -52,41 +59,41 @@ module Elang
     def append_code(code)
       @codeset.append_code code
     end
-    def prepare_single_operand(node, value_index, operand_index)
+    def prepare_single_operand(node, operand_index)
       hex_code = ""
       right_val = !operand_index.nil? && operand_index > 1
       
-      if (val_node = node[value_index]).is_a?(Array)
-        handle_any([val_node])
-      elsif val_node.type == :number
+      if node.is_a?(Array)
+        handle_any([node])
+      elsif node.type == :number
         # mov reg, imm
-        value_hex = Elang::Utils::Converter.int_to_whex_be(val_node.text.to_i).upcase
+        value_hex = Elang::Utils::Converter.int_to_whex_be(node.text.to_i).upcase
         hex_code = (right_val ? "B9" : "B8") + value_hex
-      elsif val_node.type == :string
+      elsif node.type == :string
         # mov reg, str
-        str = get_string_constant(val_node.text)
+        str = get_string_constant(node.text)
         hex = right_val ? "8B0E" : "A1"
         add_constant_ref str, code_len + (hex.length / 2)
         hex_code = hex + "0000"
-      elsif val_node.type == :identifier
-        # mov reg, var
-        if (symbol = @codeset.symbols.find_nearest(current_scope, val_node.text)).nil?
-          raise "Symbol '#{val_node.text}' not defined"
+      elsif node.type == :identifier
+        if (symbol = @codeset.symbols.find_nearest(current_scope, node.text)).nil?
+          raise "Symbol '#{node.text}' not defined"
         else
+          # mov reg, var
           hex = right_val ?  "8B0E" : "A1"
           add_variable_ref symbol, code_len + (hex.length / 2)
           hex_code = hex + "0000"
         end
       else
         op_info = operand_index ? " #{operand_index}" : ""
-        raise "Invalid operand#{op_info}: #{val_node.inspect}"
+        raise "Invalid operand#{op_info}: #{node.inspect}"
       end
       
       append_code hex2bin(hex_code)
     end
     def prepare_operands(node)
-      prepare_single_operand(node, 1, 1)
-      prepare_single_operand(node, 2, 2)
+      prepare_single_operand(node[1], 1)
+      prepare_single_operand(node[2], 2)
     end
     def handle_assignment(node)
       left_var = node[1]
@@ -100,7 +107,7 @@ module Elang
         @codeset.symbols.add(receiver = Elang::Variable.new(current_scope, var_name))
       end
       
-      prepare_single_operand(node, 2, nil)
+      prepare_single_operand(node[2], nil)
       add_variable_ref receiver, code_len + 1
       # mov var, ax
       append_code hex2bin("A20000")
@@ -147,24 +154,26 @@ module Elang
       end
       
       enter_scope "##{func_name}"
-      offset = code_len
-      handle_any(func_body)
+      function = @codeset.symbols.find_exact(active_scope, func_name)
+      function.offset = code_len
+      func_args.each{|x|@codeset.symbols.add Variable.new(current_scope, x.text)}
+      handle_any func_body
       # "ret" + (params_count > 0 ? " #{params_count * 2}" : "")
       hex_code = (params_count > 0 ? "C2#{Elang::Utils::Converter.int_to_whex_be(params_count * 2).upcase}" : "C3")
-      function = Function.new(current_scope, func_name, func_args, offset)
-      @codeset.symbols.add function
       append_code hex2bin(hex_code)
       leave_scope
     end
     def handle_function_call(node)
       # push ax; call target
-      func_name = node[1].text
+      func_name = node[0].text
       
       if (function = @codeset.symbols.find_function(func_name)).nil?
         raise "Call to undefined function '#{func_name}'"
       else
-        (0...node[2].count).each do |x|
-          prepare_single_operand(node[2], x, 1)
+        arguments = node[1]
+        
+        (0...arguments.count).each do |i|
+          prepare_single_operand(arguments[i], 1)
           append_code hex2bin("50")
         end
         
@@ -196,13 +205,16 @@ module Elang
             when :or
               handle_numeric_or(node)
             when :identifier
-              case first_node.text
-              when "def"
+              if first_node.text == "def"
                 handle_function_def(node)
-              when "call"
-                handle_function_call(node)
               else
-                raise "Cannot handle node: #{node.inspect}"
+                if (function = @codeset.symbols.find_exact(current_scope, first_node.text)).nil?
+                  raise "Call to undefined function '#{first_node.text}'"
+                elsif !function.is_a?(Function)
+                  raise "Call to non-function '#{first_node.text}'"
+                else
+                  handle_function_call node
+                end
               end
             else
               raise "Cannot handle node: #{node.inspect}"
@@ -213,10 +225,25 @@ module Elang
         end
       end
     end
+    def detect_functions(nodes)
+      nodes.each do |node|
+        if node.is_a?(Array)
+          if node[0].is_a?(Array)
+            detect_functions node
+          elsif (node[0].type == :identifier) && (node[0].text == "def")
+            func_name = node[1].text
+            func_args = node[2]
+            function = Function.new(nil, func_name, func_args, 0)
+            @codeset.symbols.add function
+          end
+        end
+      end
+    end
     
     public
     def generate_code(nodes)
       @codeset = CodeSet.new
+      detect_functions nodes
       handle_any nodes
       @codeset
     end

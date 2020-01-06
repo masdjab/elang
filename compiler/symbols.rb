@@ -9,6 +9,10 @@ module Elang
     # - singleton var: module::module::class@name
     
     def initialize
+      Constant.reset_index
+      Variable.reset_index
+      Function.reset_index
+      
       @symbols = []
     end
     def find_exact(context, name)

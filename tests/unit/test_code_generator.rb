@@ -165,15 +165,23 @@ class TestCodeGenerator < Test::Unit::TestCase
         "", 
         bin("B80500A20000B80200A20000C20400")
       )
-    assert_equal 2, codeset.symbols.count
-    assert_equal "x", codeset.symbols.items[0].name
-    assert_equal "y", codeset.symbols.items[1].name
+    assert_equal 3, codeset.symbols.count
+    assert_equal "echo", codeset.symbols.items[0].name
+    assert_equal "x", codeset.symbols.items[1].name
+    assert_equal "y", codeset.symbols.items[2].name
   end
   def test_simple_function_call
     # mov ax, 03h; push ax; call multiply_by_two
-    check_code_result \
-      [[idt("call"),idt("multiply_by_two"),[num("3")]]], 
-      bin("B8030050E80000"), 
-      ""
+    codeset = 
+      check_code_result \
+        [
+          [idt("def"),idt("multiply_by_two"),fnp("x"),[]], 
+          [idt("multiply_by_two"),[num("3")]]
+        ], 
+        bin("B8030050E80000"), 
+        ""
+    functions = codeset.symbols.items.select{|x|x.is_a?(Elang::Function)}
+    assert_equal 1, functions.count
+    assert_equal "multiply_by_two", functions[0].name
   end
 end

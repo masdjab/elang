@@ -47,7 +47,7 @@ module Elang
       
       while node = fetcher.fetch
         if node.type == :identifier
-          params << node.text
+          params << node
         elsif node.type == :comma
           # do nothing
         elsif node.type == :rbrk
@@ -95,7 +95,7 @@ module Elang
       
       fetch_end(fetcher)
       
-      [:def, funct_name, funct_args, funct_body]
+      [identifier, name_node, funct_args, funct_body]
     end
     def fetch_function_args(fetcher)
       #(todo)#fetch function args

@@ -43,11 +43,11 @@ class TestLexer < Test::Unit::TestCase
     
     check_expression \
       "def hitung\r\na = 2\r\nend\r\n", 
-      "[[:def,hitung,[],[[=,a,2]]]]"
+      "[[def,hitung,[],[[=,a,2]]]]"
     
     check_expression \
       "def hitung(text)\r\nx = mid(text, sqrt(2), 4)\r\nend", 
-      "[[:def,hitung,[text],[[=,x,[mid,[text,[sqrt,[2]],4]]]]]]"
+      "[[def,hitung,[text],[[=,x,[mid,[text,[sqrt,[2]],4]]]]]]"
   end
   def test_multiline_expression
     # check_expression "x = 32 + 5\nputs x\n", "[=,x,[+,32,5]]"

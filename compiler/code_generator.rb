@@ -62,11 +62,24 @@ module Elang
     def intobj(value)
       (value << 1) | 1
     end
-    def invoke_cls_method(cls, meth_name, *args)
+    def invoke_cls_method(cls, meth_name)
       #(todo)#invoke_cls_method
     end
-    def invoke_obj_method(obj, meth_name, *args)
+    def invoke_obj_method(obj, meth_name)
       #(todo)#invoke_obj_method
+    end
+    def invoke_num_method(meth_name)
+      function_ids = 
+        {
+          :plus   => "4180", 
+          :minus  => "4280", 
+          :star   => "4380", 
+          :slash  => "4480", 
+          :and    => "4580", 
+          :or     => "4680"
+        }
+      
+      append_code hex2bin("E8" + function_ids[meth_name])
     end
     def prepare_operand(node)
       if node.is_a?(Array)
@@ -119,17 +132,7 @@ module Elang
         end
       end
       
-      function_ids = 
-        {
-          :plus   => "4180", 
-          :minus  => "4280", 
-          :star   => "4380", 
-          :slash  => "4480", 
-          :and    => "4580", 
-          :or     => "4680"
-        }
-      
-      append_code hex2bin("E8" + function_ids[op_node.type])
+      invoke_num_method op_node.type
     end
     def handle_assignment(node)
       left_var = node[1]

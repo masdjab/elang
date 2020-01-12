@@ -12,7 +12,7 @@ class CompilerTest < Test::Unit::TestCase
   def test_link_main_code
     check_output \
       "x = 2\r\ny = 3\r\nz = x + y\r\n", 
-      "b80200a20000b80300a20200a100008b0e020001c8a20400"
+      "b80200a20000b80300a20200a1000050a1020050e84180a20400"
   end
   def test_link_simple_combination
     source = <<EOS
@@ -25,6 +25,6 @@ b = multiply_by_two(a)
 EOS
     check_output \
       source, 
-      "e90000a10000b9000001c8c20200b8020050e8eeffa20200a1020050e8e4ffa20400"
+      "e90000a1000050b8000050e84180c20200b8020050e8ebffa20200a1020050e8e1ffa20400"
   end
 end

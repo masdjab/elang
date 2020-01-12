@@ -59,41 +59,80 @@ module Elang
     def append_code(code)
       @codeset.append_code code
     end
-    def prepare_single_operand(node, operand_index)
-      hex_code = ""
-      right_val = !operand_index.nil? && operand_index > 1
-      
+    def intobj(value)
+      (value << 1) | 1
+    end
+    def invoke_cls_method(cls, meth_name, *args)
+      #(todo)#invoke_cls_method
+    end
+    def invoke_obj_method(obj, meth_name, *args)
+      #(todo)#invoke_obj_method
+    end
+    def invoke_num_method(obj, meth_name, *args)
+      #(todo)#invoke_num_method
+    end
+    def prepare_operand(node)
       if node.is_a?(Array)
         handle_any([node])
       elsif node.type == :number
         # mov reg, imm
         value_hex = Elang::Utils::Converter.int_to_whex_be(node.text.to_i).upcase
-        hex_code = (right_val ? "B9" : "B8") + value_hex
+        append_code hex2bin("B8" + value_hex)
       elsif node.type == :string
         # mov reg, str
         str = get_string_constant(node.text)
-        hex = right_val ? "8B0E" : "A1"
-        add_constant_ref str, code_len + (hex.length / 2)
-        hex_code = hex + "0000"
+        add_constant_ref str, code_len + 1
+        append_code hex2bin("A10000")
       elsif node.type == :identifier
         if (symbol = @codeset.symbols.find_nearest(current_scope, node.text)).nil?
           raise "Symbol '#{node.text}' not defined"
         else
           # mov reg, var
-          hex = right_val ?  "8B0E" : "A1"
-          add_variable_ref symbol, code_len + (hex.length / 2)
-          hex_code = hex + "0000"
+          add_variable_ref symbol, code_len + 1
+          append_code hex2bin("A10000")
         end
       else
-        op_info = operand_index ? " #{operand_index}" : ""
-        raise "Invalid operand#{op_info}: #{node.inspect}"
+        raise "Invalid operand: #{node.inspect}"
+      end
+    end
+    def handle_numeric_operation(node)
+      op_node = node[0]
+      v1_node = node[1]
+      v2_node = node[2]
+      
+      (1..2).each do |i|
+        v = node[i]
+        
+        if v.is_a?(Array)
+          handle_any v
+          append_code hex2bin("50")
+        elsif v.type == :number
+          value_hex = Elang::Utils::Converter.int_to_whex_be(v.text.to_i).upcase
+          append_code hex2bin("B8" + value_hex + "50")
+        elsif v.type == :identifier
+          if (symbol = @codeset.symbols.find_nearest(current_scope, v.text)).nil?
+            raise "Symbol '#{v.text}' not defined"
+          else
+            # mov reg, var
+            add_variable_ref symbol, code_len + 1
+            append_code hex2bin("A10000" + "50")
+          end
+        else
+          raise "Invalid operand 1: #{v.inspect}"
+        end
       end
       
-      append_code hex2bin(hex_code)
-    end
-    def prepare_operands(node)
-      prepare_single_operand(node[1], 1)
-      prepare_single_operand(node[2], 2)
+      function_ids = 
+        {
+          :plus   => "4180", 
+          :minus  => "4280", 
+          :star   => "4380", 
+          :slash  => "4480", 
+          :and    => "4580", 
+          :or     => "4680"
+        }
+      
+      append_code hex2bin("E8" + function_ids[op_node.type])
     end
     def handle_assignment(node)
       left_var = node[1]
@@ -107,40 +146,10 @@ module Elang
         @codeset.symbols.add(receiver = Elang::Variable.new(current_scope, var_name))
       end
       
-      prepare_single_operand(node[2], nil)
+      prepare_operand node[2]
       add_variable_ref receiver, code_len + 1
       # mov var, ax
       append_code hex2bin("A20000")
-    end
-    def handle_addition(node)
-      # add ax, cx
-      prepare_operands(node)
-      append_code hex2bin("01C8")
-    end
-    def handle_subtraction(node)
-      # sub ax, cx
-      prepare_operands(node)
-      append_code hex2bin("29C8")
-    end
-    def handle_multiplication(node)
-      # mul ax, cx
-      prepare_operands(node)
-      append_code hex2bin("F7E9")
-    end
-    def handle_division(node)
-      # div ax, cx
-      prepare_operands(node)
-      append_code hex2bin("F7F9")
-    end
-    def handle_numeric_and(node)
-      # and ax, cx
-      prepare_operands(node)
-      append_code hex2bin("21C8")
-    end
-    def handle_numeric_or(node)
-      # or ax, cx
-      prepare_operands(node)
-      append_code hex2bin("09C8")
     end
     def handle_function_def(node)
       func_name = node[1].text
@@ -173,7 +182,7 @@ module Elang
         arguments = node[1]
         
         (0...arguments.count).each do |i|
-          prepare_single_operand(arguments[i], 1)
+          prepare_operand arguments[i]
           append_code hex2bin("50")
         end
         
@@ -192,18 +201,8 @@ module Elang
             case first_node.type
             when :assign
               handle_assignment(node)
-            when :plus
-              handle_addition(node)
-            when :minus
-              handle_subtraction(node)
-            when :star
-              handle_multiplication(node)
-            when :slash
-              handle_division(node)
-            when :and
-              handle_numeric_and(node)
-            when :or
-              handle_numeric_or(node)
+            when :plus, :minus, :star, :slash, :and, :or
+              handle_numeric_operation(node)
             when :identifier
               if first_node.text == "def"
                 handle_function_def(node)

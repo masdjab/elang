@@ -74,37 +74,37 @@ class TestCodeGenerator < Test::Unit::TestCase
     # mov ax, 01h; mov cx, 02h; add ax, cx; mov mynum, ax
     check_code_result \
       [[asn,idt("mynum"),[plus,num("1"),num("2")]]], \
-      bin("B80100B9020001C8A20000"), 
+      bin("B8010050B8020050E84180A20000"), 
       ""
       
     # mov ax, 01h; mov cx, 02h; sub ax, cx; mov mynum, ax
     check_code_result \
       [[asn,idt("mynum"),[minus,num("1"),num("2")]]], \
-      bin("B80100B9020029C8A20000"), 
+      bin("B8010050B8020050E84280A20000"), 
       ""
     
     # mov ax, 01h; mov cx, 02h; mul ax, cx; mov mynum, ax
     check_code_result \
       [[asn,idt("mynum"),[star,num("1"),num("2")]]], \
-      bin("B80100B90200F7E9A20000"), 
+      bin("B8010050B8020050E84380A20000"), 
       ""
     
     # mov ax, 01h; mov cx, 02h; div ax, cx; mov mynum, ax
     check_code_result \
       [[asn,idt("mynum"),[slash,num("1"),num("2")]]], \
-      bin("B80100B90200F7F9A20000"), 
+      bin("B8010050B8020050E84480A20000"), 
       ""
     
     # mov ax, 01h; mov cx, 02h; and ax, cx; mov mynum, ax
     check_code_result \
       [[asn,idt("mynum"),[pand,num("1"),num("2")]]], \
-      bin("B80100B9020021C8A20000"), 
+      bin("B8010050B8020050E84580A20000"), 
       ""
     
     # mov ax, 01h; mov cx, 02h; or ax, cx; mov mynum, ax
     check_code_result \
       [[asn,idt("mynum"),[por,num("1"),num("2")]]], \
-      bin("B80100B9020009C8A20000"), 
+      bin("B8010050B8020050E84680A20000"), 
       ""
     
     # mov ax, 0; mov v1, ax
@@ -116,7 +116,7 @@ class TestCodeGenerator < Test::Unit::TestCase
         [asn,idt("v2"),num("52")], 
         [asn,idt("mynum"),[plus,idt("v1"),idt("v2")]]
       ], \
-      bin("B81200A20000B83400A20000A100008B0E000001C8A20000"), 
+      bin("B81200A20000B83400A20000A1000050A1000050E84180A20000"), 
       ""
   end
   def test_simple_string_operation

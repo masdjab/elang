@@ -68,9 +68,6 @@ module Elang
     def invoke_obj_method(obj, meth_name, *args)
       #(todo)#invoke_obj_method
     end
-    def invoke_num_method(obj, meth_name, *args)
-      #(todo)#invoke_num_method
-    end
     def prepare_operand(node)
       if node.is_a?(Array)
         handle_any([node])

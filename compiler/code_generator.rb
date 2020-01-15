@@ -25,6 +25,9 @@ module Elang
     def hex2bin(h)
       Elang::Utils::Converter.hex_to_bin(h)
     end
+    def make_int(value)
+      (value << 1) | (value < 0 ? 0x8000 : 0) | 1
+    end
     def current_scope
       !@scope_stack.empty? ? @scope_stack.last : nil
     end
@@ -86,7 +89,7 @@ module Elang
         handle_any([node])
       elsif node.type == :number
         # mov reg, imm
-        value_hex = Elang::Utils::Converter.int_to_whex_be(node.text.to_i).upcase
+        value_hex = Elang::Utils::Converter.int_to_whex_be(make_int(node.text.to_i)).upcase
         append_code hex2bin("B8" + value_hex)
       elsif node.type == :string
         # mov reg, str
@@ -117,7 +120,7 @@ module Elang
           handle_any v
           append_code hex2bin("50")
         elsif v.type == :number
-          value_hex = Elang::Utils::Converter.int_to_whex_be(v.text.to_i).upcase
+          value_hex = Elang::Utils::Converter.int_to_whex_be(make_int(v.text.to_i)).upcase
           append_code hex2bin("B8" + value_hex + "50")
         elsif v.type == :identifier
           if (symbol = @codeset.symbols.find_nearest(current_scope, v.text)).nil?

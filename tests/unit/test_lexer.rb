@@ -7,11 +7,16 @@ class TestLexer < Test::Unit::TestCase
     @parser = Elang::Parser.new
     @lexer = Elang::Lexer.new
   end
-  def check_expression(expression, expected_str)
+  def check_expression(expression, expected)
     tokens = @parser.parse(expression)
     ast_nodes = @lexer.to_sexp_array(tokens)
     display = Elang::Lexer.sexp_display(ast_nodes)
-    assert_equal expected_str, display
+    
+    if expected.is_a?(Array)
+      expected = Elang::Lexer.sexp_display(expected)
+    end
+    
+    assert_equal expected, display
   end
   def test_simple_expression
     check_expression "", "[]"
@@ -48,6 +53,10 @@ class TestLexer < Test::Unit::TestCase
     check_expression \
       "def hitung(text)\r\nx = mid(text, sqrt(2), 4)\r\nend", 
       "[[def,hitung,[text],[[=,x,[mid,[text,[sqrt,[2]],4]]]]]]"
+    
+    check_expression \
+      "def hitung(text)\r\nx = mid(text, sqrt(2), 4)\r\nend", 
+      [["def","hitung",["text"],[["=","x",["mid",["text",["sqrt",["2"]],"4"]]]]]]
   end
   def test_multiline_expression
     # check_expression "x = 32 + 5\nputs x\n", "[=,x,[+,32,5]]"
@@ -73,5 +82,58 @@ end
 a = "hello world...".tcase
 show a
 EOS
+  end
+  def test_methods
+    source = <<EOS
+class Person
+  def get_name
+    @name
+  end
+  def set_name(v)
+    @name = v
+  end
+  def self.get_person_name(person)
+    person.get_name
+  end
+  def self.set_person_name(person, name)
+    person.set_name(name)
+  end
+end
+
+def test_person
+  p1 = Person.new
+  p1.set_name "Bowo"
+  a = p1.get_name
+  b = Person.set_person_name(p1, "Agus")
+  c = Person.get_person_name(p1)
+end
+
+test_person
+EOS
+    
+    check_expression \
+      source, 
+      [
+        [
+          "class","Person",nil,
+            [
+              ["def","get_name",[],[["@","name"]]],
+              ["def","set_name",["v"],[["=","@","name","v"]]],
+              ["def","self",[],[[".",["get_person_name",["person"]]],["person",".","get_name"]]],
+              ["def","self",[],[[".",["set_person_name",["person","name"]]],["person",".",["set_name",["name"]]]]]
+            ]
+        ], 
+        [
+          "def","test_person",[],
+          [
+            ["=","p1","Person",".","new"], 
+            ["p1",".","set_name","Bowo"], 
+            ["=","a","p1",".","get_name"], 
+            ["=","b","Person",".",["set_person_name",["p1","Agus"]]], 
+            ["=","c","Person",".",["get_person_name",["p1"]]]
+          ]
+        ], 
+        ["test_person"]
+      ]
   end
 end

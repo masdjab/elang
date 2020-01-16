@@ -64,6 +64,42 @@ module Elang
       
       params
     end
+    def fetch_class_def(fetcher)
+      if (identifier = fetcher.fetch).type != :identifier
+        raise_error identifier, "Class definition must start with 'class'"
+      elsif identifier.text != "class"
+        raise_error identifier, "Class definition must start with 'class'"
+      end
+      
+      classname = ""
+      if (name_node = fetcher.fetch).nil?
+        raise_error node, "Incomplete class definition"
+      elsif name_node.type != :identifier
+        raise_error node, "Expected class name"
+      else
+        class_name = name_node.text
+      end
+      
+      supername = ""
+      if test_node = fetcher.next
+        if test_node.text == "<"
+          x = fetcher.fetch
+          if (super_node = fetcher.fetch).nil?
+            raise_error "Expected superclass name"
+          elsif super_node.type != :identifier
+            raise_error "Expected superclass name"
+          else
+            supername = super_node.text
+          end
+        end
+      end
+      
+      body_node = fetch_sexp(fetcher)
+      
+      fetch_end fetcher
+      
+      [identifier, name_node, super_node, body_node]
+    end
     def fetch_function_def(fetcher)
       if (identifier = fetcher.fetch).type != :identifier
         raise_error identifier, "Function definition must start with 'def'"
@@ -169,6 +205,8 @@ module Elang
       while node = fetcher.element
         if node.type == :identifier
           case node.text
+          when "class"
+            sexp << fetch_class_def(fetcher)
           when "def"
             sexp << fetch_function_def(fetcher)
           when "end"
@@ -193,7 +231,13 @@ module Elang
           if x.is_a?(Array)
             self.sexp_display x
           elsif x.is_a?(AstNode)
-            x.text
+            if x.type == :string
+              x.text[1...-1]
+            else
+              x.text
+            end
+          elsif x.nil?
+            "nil"
           elsif x.is_a?(String)
             x
           else
@@ -201,7 +245,7 @@ module Elang
           end
         end
       
-      temp = "[#{temp.join(",")}]"
+      "[" + temp.join(",") + "]"
     end
     def to_sexp_array(tokens)
       tokens = optimize(tokens)

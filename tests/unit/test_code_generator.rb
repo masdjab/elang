@@ -55,8 +55,11 @@ class TestCodeGenerator < Test::Unit::TestCase
   def symbols
     @code_generator.symbols
   end
+  def generate_code(nodes)
+    @code_generator.generate_code(nodes)
+  end
   def check_code_result(nodes, exp_main, exp_subs)
-    codeset = @code_generator.generate_code(nodes)
+    codeset = generate_code(nodes)
     assert_equal exp_main, codeset.main_code
     codeset
   end
@@ -183,5 +186,18 @@ class TestCodeGenerator < Test::Unit::TestCase
     functions = codeset.symbols.items.select{|x|x.is_a?(Elang::Function)}
     assert_equal 1, functions.count
     assert_equal "multiply_by_two", functions[0].name
+  end
+  def test_class_definition
+    codeset = 
+      generate_code \
+        [
+          [idt("class"), idt("Integer"), idt("nil"), []], 
+          [idt("class"), idt("TrueClass"), idt("nil"), []], 
+          [idt("class"), idt("FalseClass"), idt("nil"), []]
+        ]
+    
+    classes = codeset.symbols.items.select{|x|x.is_a?(Elang::Class)}
+    assert_equal 3, classes.count
+    assert_equal [], classes.map{|x|x.name} - ["Integer", "TrueClass", "FalseClass"]
   end
 end

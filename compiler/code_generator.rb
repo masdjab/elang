@@ -1,6 +1,11 @@
 require './compiler/constant'
-require './compiler/variable'
+require './compiler/class'
 require './compiler/function'
+require './compiler/variable'
+require './compiler/instance_variable'
+require './compiler/instance_function'
+require './compiler/class_function'
+require './compiler/scope'
 require './compiler/symbol_ref'
 require './compiler/ast_node'
 require './compiler/codeset'
@@ -29,11 +34,10 @@ module Elang
       (value << 1) | (value < 0 ? 0x8000 : 0) | 1
     end
     def current_scope
-      !@scope_stack.empty? ? @scope_stack.last : nil
+      !@scope_stack.empty? ? @scope_stack.last : Scope.new
     end
     def enter_scope(scope)
-      cs = current_scope
-      @scope_stack << "#{cs ? cs : ""}#{scope}"
+      @scope_stack << scope
       @codeset.enter_subs
     end
     def leave_scope
@@ -41,7 +45,7 @@ module Elang
       @scope_stack.pop if !@scope_stack.empty?
     end
     def code_type
-      (current_scope ? current_scope : "").index("#") ? :subs : :main
+      !current_scope.to_s.empty? ? :subs : :main
     end
     def add_constant_ref(symbol, location)
       @codeset.symbol_refs << ConstantRef.new(symbol, current_scope, location, code_type)
@@ -161,12 +165,8 @@ module Elang
       params_count = func_args.count
       active_scope = current_scope
       
-      if (active_scope ? active_scope : "").index("#")
-        raise "Function cannot be nested"
-      end
-      
-      enter_scope "##{func_name}"
       function = @codeset.symbols.find_exact(active_scope, func_name)
+      enter_scope Scope.new(active_scope.cls, function)
       function.offset = code_len
       func_args.each{|x|@codeset.symbols.add Variable.new(current_scope, x.text)}
       handle_any func_body
@@ -193,6 +193,14 @@ module Elang
         append_code hex2bin("E80000")
       end
     end
+    def handle_class_def(nodes)
+      cls_name = nodes[1].text
+      cls_prnt = nodes[2].text
+      
+      enter_scope Scope.new(cls_name)
+      handle_any nodes[3]
+      leave_scope
+    end
     def handle_any(nodes)
       nodes.each do |node|
         if node.is_a?(Array)
@@ -209,6 +217,8 @@ module Elang
             when :identifier
               if first_node.text == "def"
                 handle_function_def(node)
+              elsif first_node.text == "class"
+                handle_class_def(node)
               else
                 if (function = @codeset.symbols.find_exact(current_scope, first_node.text)).nil?
                   raise "Call to undefined function '#{first_node.text}'"
@@ -227,16 +237,41 @@ module Elang
         end
       end
     end
-    def detect_functions(nodes)
+    def detect_names(nodes)
+      @scope_stack = []
+      
       nodes.each do |node|
         if node.is_a?(Array)
-          if node[0].is_a?(Array)
-            detect_functions node
-          elsif (node[0].type == :identifier) && (node[0].text == "def")
-            func_name = node[1].text
-            func_args = node[2]
-            function = Function.new(nil, func_name, func_args, 0)
-            @codeset.symbols.add function
+          if (first_node = node[0]).type == :identifier
+            if first_node.text == "def"
+              func_name = node[1].text
+              func_args = node[2]
+              func_body = node[3]
+              function = Function.new(nil, func_name, func_args, 0)
+              
+              if !(active_scope = current_scope).fun.nil?
+                raise "Function cannot be nested"
+              else
+                @codeset.symbols.add function
+                enter_scope Scope.new(active_scope.cls, function)
+                detect_names func_body
+                leave_scope
+              end
+            elsif first_node.text == "class"
+              cls_name = node[1].text
+              cls_parent = node[2].text
+              cls_body = node[3]
+              cls_object = Class.new(nil, cls_name, nil)
+              
+              if !(active_scope = current_scope).cls.nil?
+                raise "Class cannot be nested"
+              else
+                @codeset.symbols.add cls_object
+                enter_scope Scope.new(cls_name)
+                detect_names cls_body
+                leave_scope
+              end
+            end
           end
         end
       end
@@ -244,8 +279,9 @@ module Elang
     
     public
     def generate_code(nodes)
+      @scope_stack = []
       @codeset = CodeSet.new
-      detect_functions nodes
+      detect_names nodes
       handle_any nodes
       @codeset
     end

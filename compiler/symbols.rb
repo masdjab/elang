@@ -10,39 +10,40 @@ module Elang
     
     def initialize
       Constant.reset_index
-      Variable.reset_index
+      Class.reset_index
       Function.reset_index
+      Variable.reset_index
+      InstanceVariable.reset_index
+      InstanceFunction.reset_index
+      ClassFunction.reset_index
       
       @symbols = []
     end
-    def find_exact(context, name)
-      @symbols.find{|x|(x.scope == context) && (x.name == name)}
-    end
-    def find_nearest(context, name)
+    def find_matching(context, name)
       alt1 = nil
       alt2 = nil 
       alt3 = nil
-      func_context = context ? context : ""
-      
-      if chpos = func_context.index("#")
-        func_context = func_context[0...chpos]
-      end
       
       @symbols.each do |x|
         if x.name == name
-          if x.scope == context
+          if x.scope.to_s == context.to_s
             alt1 = x
-          elsif !x.scope.nil?
-            if x.is_a?(Elang::Function) && (x.scope == func_context)
-              alt2 = x
-            end
-          else
+          elsif x.is_a?(Elang::Function) && (x.scope.cls == context.cls)
+            alt2 = x
+          elsif x.scope.root?
             alt3 = x
           end
         end
       end
       
-      alt1 ? alt1 : alt2 ? alt2 : alt3
+      [alt1, alt2, alt3]
+    end
+    def find_exact(context, name)
+      find_matching(context, name)[0]
+    end
+    def find_nearest(context, name)
+      m = find_matching(context, name)
+      m[0] ? m[0] : m[1] ? m[1] : m[2]
     end
     def find_string(str)
       @symbols.find{|x|x.is_a?(Constant) && (x.value == str)}

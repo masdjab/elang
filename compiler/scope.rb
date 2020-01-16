@@ -1,8 +1,26 @@
-class Scope
-  attr_accessor :scope, :name, :type
-  def initialize(scope, name, type)
-    @scope = scope
-    @name = name
-    @type = type
+module Elang
+  class Scope
+    attr_accessor :cls, :fun
+    
+    def initialize(cls = nil, fun = nil)
+      @cls = cls
+      @fun = fun
+    end
+    def root?
+      @cls.nil? && @fun.nil?
+    end
+    def to_s
+      cn = @cls ? @cls : ""
+      
+      if @fun.nil?
+        fn = ""
+      elsif @fun.is_a?(ClassFunction)
+        fn = "#" + @fun.name
+      else
+        fn = "." + @fun.name
+      end
+      
+      "#{cn}#{fn}"
+    end
   end
 end

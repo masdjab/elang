@@ -159,9 +159,10 @@ module Elang
       append_code hex2bin("A20000")
     end
     def handle_function_def(node)
-      func_name = node[1].text
-      func_args = node[2]
-      func_body = node[3]
+      func_rcvr = node[1]
+      func_name = node[2].text
+      func_args = node[3]
+      func_body = node[4]
       params_count = func_args.count
       active_scope = current_scope
       
@@ -244,9 +245,10 @@ module Elang
         if node.is_a?(Array)
           if (first_node = node[0]).type == :identifier
             if first_node.text == "def"
-              func_name = node[1].text
-              func_args = node[2]
-              func_body = node[3]
+              rcvr_node = node[1]
+              func_name = node[2].text
+              func_args = node[3]
+              func_body = node[4]
               function = Function.new(nil, func_name, func_args, 0)
               
               if !(active_scope = current_scope).fun.nil?

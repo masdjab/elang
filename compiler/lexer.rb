@@ -193,8 +193,12 @@ module Elang
           elsif node.type == :lbrk
             node = fetcher.fetch
             if !last_node.nil? && (last_node.type == :identifier)
-              modified = [current.pop, fetch_expression(fetcher)]
-              current << modified
+              if current.first.is_a?(AstNode) && (current.first.type == :dot)
+                current << fetch_expression(fetcher)
+              else
+                modified = [current.pop, fetch_expression(fetcher)]
+                current << modified
+              end
             else
               current << fetch_expression(fetcher)
             end

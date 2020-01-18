@@ -18,6 +18,19 @@ module Elang
     
     private
     def optimize(tokens)
+      loop do
+        if index = tokens.index{|x|x.text == "@"}
+          if next_token = tokens[index + 1]
+            tokens.delete next_token
+            token = tokens[index]
+            token.type = next_token.type
+            token.text = token.text + next_token.text
+          end
+        end
+        
+        break if index.nil?
+      end
+      
       tokens.reject{|x|x.type == :whitespace}
     end
     def raise_error(node, msg)

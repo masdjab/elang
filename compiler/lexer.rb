@@ -7,16 +7,31 @@ module Elang
     
     PRIORITY = 
       {
-        and: 1, 
-        star: 2, 
-        slash: 3, 
-        plus: 4, 
-        minus: 4, 
-        assign: 5
+        and:    1, 
+        or:     2, 
+        star:   3, 
+        slash:  3, 
+        plus:   4, 
+        minus:  4, 
+        assign: 5, 
+        dot:    6
       }
     
     private
     def optimize(tokens)
+      loop do
+        if index = tokens.index{|x|x.text == "@"}
+          if next_token = tokens[index + 1]
+            tokens.delete next_token
+            token = tokens[index]
+            token.type = next_token.type
+            token.text = token.text + next_token.text
+          end
+        end
+        
+        break if index.nil?
+      end
+      
       tokens.reject{|x|x.type == :whitespace}
     end
     def raise_error(node, msg)
@@ -107,13 +122,21 @@ module Elang
         raise_error identifier, "Function definition must start with 'def'"
       end
       
-      funct_name = ""
       if (name_node = fetcher.fetch).nil?
         raise_error node, "Incomplete function definition"
       elsif name_node.type != :identifier
         raise_error node, "Expected function name"
-      else
-        funct_name = name_node.text
+      end
+      
+      rcvr_node = nil
+      if (test_node = fetcher.element) && (test_node.text == ".")
+        node1 = fetcher.fetch
+        node2 = fetcher.fetch
+        if node2.type != :identifier
+          raise_error node2, "Expected function name"
+        else
+          rcvr_node, name_node = name_node, node2
+        end
       end
       
       if (node = fetcher.element).nil?
@@ -121,17 +144,17 @@ module Elang
       else
         if node.type == :lbrk
           # fetch function arguments
-          funct_args = fetch_function_params(fetcher)
+          args_node = fetch_function_params(fetcher)
         else
-          funct_args = []
+          args_node = []
         end
       end
       
-      funct_body = fetch_sexp(fetcher)
+      body_node = fetch_sexp(fetcher)
       
       fetch_end(fetcher)
       
-      [identifier, name_node, funct_args, funct_body]
+      [identifier, rcvr_node, name_node, args_node, body_node]
     end
     def fetch_function_args(fetcher)
       #(todo)#fetch function args
@@ -148,7 +171,7 @@ module Elang
       
       while node = fetcher.element
         begin
-          if [:and, :star, :slash, :plus, :minus, :assign].include?(node.type)
+          if [:and, :star, :slash, :plus, :minus, :assign, :dot].include?(node.type)
             node = fetcher.fetch
             priority2 = PRIORITY[node.type]
             

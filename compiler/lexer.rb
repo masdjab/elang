@@ -121,13 +121,21 @@ module Elang
         raise_error identifier, "Function definition must start with 'def'"
       end
       
-      funct_name = ""
       if (name_node = fetcher.fetch).nil?
         raise_error node, "Incomplete function definition"
       elsif name_node.type != :identifier
         raise_error node, "Expected function name"
-      else
-        funct_name = name_node.text
+      end
+      
+      rcvr_node = nil
+      if (test_node = fetcher.element) && (test_node.text == ".")
+        node1 = fetcher.fetch
+        node2 = fetcher.fetch
+        if node2.type != :identifier
+          raise_error node2, "Expected function name"
+        else
+          rcvr_node, name_node = name_node, node2
+        end
       end
       
       if (node = fetcher.element).nil?
@@ -135,17 +143,17 @@ module Elang
       else
         if node.type == :lbrk
           # fetch function arguments
-          funct_args = fetch_function_params(fetcher)
+          args_node = fetch_function_params(fetcher)
         else
-          funct_args = []
+          args_node = []
         end
       end
       
-      funct_body = fetch_sexp(fetcher)
+      body_node = fetch_sexp(fetcher)
       
       fetch_end(fetcher)
       
-      [identifier, name_node, funct_args, funct_body]
+      [identifier, rcvr_node, name_node, args_node, body_node]
     end
     def fetch_function_args(fetcher)
       #(todo)#fetch function args

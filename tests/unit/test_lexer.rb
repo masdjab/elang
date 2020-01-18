@@ -33,7 +33,8 @@ class TestLexer < Test::Unit::TestCase
       "[[=,x,[+,32,[-,[*,p,5],[+,[/,[*,[&,4,q],r],s],1]]]]]"
     check_expression \
       "x = (32 + p) * (5 - 4) & q * r / s + 1", 
-      "[[=,x,[*,[+,32,p],[+,[/,[*,[&,[-,5,4],q],r],s],1]]]]"
+      #"[[=,x,[*,[+,32,p],[+,[/,[*,[&,[-,5,4],q],r],s],1]]]]"
+      "[[=,x,[+,[*,[+,32,p],[/,[*,[&,[-,5,4],q],r],s]],1]]]"
     check_expression \
       "x = (32 + p * (5 - sqrt(4))) & (q * r / s + 1)", 
       "[[=,x,[&,[+,32,[*,p,[-,5,[sqrt,[4]]]]],[*,q,[+,[/,r,s],1]]]]]"
@@ -48,15 +49,19 @@ class TestLexer < Test::Unit::TestCase
     
     check_expression \
       "def hitung\r\na = 2\r\nend\r\n", 
-      "[[def,hitung,[],[[=,a,2]]]]"
+      "[[def,nil,hitung,[],[[=,a,2]]]]"
     
     check_expression \
       "def hitung(text)\r\nx = mid(text, sqrt(2), 4)\r\nend", 
-      "[[def,hitung,[text],[[=,x,[mid,[text,[sqrt,[2]],4]]]]]]"
+      "[[def,nil,hitung,[text],[[=,x,[mid,[text,[sqrt,[2]],4]]]]]]"
     
     check_expression \
       "def hitung(text)\r\nx = mid(text, sqrt(2), 4)\r\nend", 
-      [["def","hitung",["text"],[["=","x",["mid",["text",["sqrt",["2"]],"4"]]]]]]
+      [["def",nil,"hitung",["text"],[["=","x",["mid",["text",["sqrt",["2"]],"4"]]]]]]
+    
+    check_expression \
+      "def self.hitung(text)\r\nx = mid(text, sqrt(2), 4)\r\nend", 
+      [["def","self","hitung",["text"],[["=","x",["mid",["text",["sqrt",["2"]],"4"]]]]]]
   end
   def test_multiline_expression
     # check_expression "x = 32 + 5\nputs x\n", "[=,x,[+,32,5]]"
@@ -117,14 +122,14 @@ EOS
         [
           "class","Person",nil,
             [
-              ["def","get_name",[],[["@","name"]]],
-              ["def","set_name",["v"],[["=","@","name","v"]]],
-              ["def","self",[],[[".",["get_person_name",["person"]]],["person",".","get_name"]]],
-              ["def","self",[],[[".",["set_person_name",["person","name"]]],["person",".",["set_name",["name"]]]]]
+              ["def",nil,"get_name",[],[["@name"]]],
+              ["def",nil,"set_name",["v"],[["=","@name","v"]]],
+              ["def","self","get_person_name",["person"],[["person",".","get_name"]]],
+              ["def","self","set_person_name",["person","name"],[["person",".",["set_name",["name"]]]]]
             ]
         ], 
         [
-          "def","test_person",[],
+          "def",nil,"test_person",[],
           [
             ["=","p1","Person",".","new"], 
             ["p1",".","set_name","Bowo"], 

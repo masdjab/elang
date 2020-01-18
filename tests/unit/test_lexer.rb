@@ -124,18 +124,18 @@ EOS
             [
               ["def",nil,"get_name",[],[["@name"]]],
               ["def",nil,"set_name",["v"],[["=","@name","v"]]],
-              ["def","self","get_person_name",["person"],[["person",".","get_name"]]],
-              ["def","self","set_person_name",["person","name"],[["person",".",["set_name",["name"]]]]]
+              ["def","self","get_person_name",["person"],[[".","person","get_name"]]],
+              ["def","self","set_person_name",["person","name"],[[".","person",["set_name",["name"]]]]]
             ]
         ], 
         [
           "def",nil,"test_person",[],
           [
-            ["=","p1","Person",".","new"], 
-            ["p1",".","set_name","Bowo"], 
-            ["=","a","p1",".","get_name"], 
-            ["=","b","Person",".",["set_person_name",["p1","Agus"]]], 
-            ["=","c","Person",".",["get_person_name",["p1"]]]
+            ["=","p1",[".","Person","new"]], 
+            [".","p1","set_name","Bowo"], 
+            ["=","a",[".","p1","get_name"]], 
+            ["=","b",[".","Person",["set_person_name",["p1","Agus"]]]], 
+            ["=","c",[".","Person",["get_person_name",["p1"]]]]
           ]
         ], 
         ["test_person"]

@@ -13,7 +13,8 @@ module Elang
         slash:  3, 
         plus:   4, 
         minus:  4, 
-        assign: 5
+        assign: 5, 
+        dot:    6
       }
     
     private
@@ -170,7 +171,7 @@ module Elang
       
       while node = fetcher.element
         begin
-          if [:and, :star, :slash, :plus, :minus, :assign].include?(node.type)
+          if [:and, :star, :slash, :plus, :minus, :assign, :dot].include?(node.type)
             node = fetcher.fetch
             priority2 = PRIORITY[node.type]
             

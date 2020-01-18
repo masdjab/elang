@@ -7,11 +7,12 @@ module Elang
     
     PRIORITY = 
       {
-        and: 1, 
-        star: 2, 
-        slash: 3, 
-        plus: 4, 
-        minus: 4, 
+        and:    1, 
+        or:     2, 
+        star:   3, 
+        slash:  3, 
+        plus:   4, 
+        minus:  4, 
         assign: 5
       }
     

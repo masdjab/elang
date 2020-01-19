@@ -3,10 +3,11 @@ module Elang
     @@index = 0
     
     attr_accessor :offset
-    attr_reader :scope, :name, :params, :index
-    def initialize(scope, name, params, offset)
+    attr_reader :scope, :receiver, :name, :params, :index
+    def initialize(scope, receiver, name, params, offset)
       @index = @@index = @@index + 1
       @scope = scope
+      @receiver = receiver
       @name = name
       @params = params
       @offset = offset

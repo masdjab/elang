@@ -14,7 +14,6 @@ module Elang
       Function.reset_index
       Variable.reset_index
       InstanceVariable.reset_index
-      InstanceFunction.reset_index
       ClassFunction.reset_index
       
       @symbols = []

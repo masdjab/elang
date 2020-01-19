@@ -127,31 +127,31 @@ class TestCodeGenerator < Test::Unit::TestCase
   def test_simple_function_definition
     # ret
     check_code_result \
-      [[idt("def"),idt("echo"),[],[]]], 
+      [[idt("def"),nil,idt("echo"),[],[]]], 
       "", 
       bin("C3")
     
     # ret
     check_code_result \
-      [[idt("def"),idt("echo"),fnp,[]]], 
+      [[idt("def"),nil,idt("echo"),fnp,[]]], 
       "", 
       bin("C3")
     
     # ret 2
     check_code_result \
-      [[idt("def"),idt("echo"),fnp("x"),[]]], 
+      [[idt("def"),nil,idt("echo"),fnp("x"),[]]], 
       "", 
       bin("C20200")
     
     # ret 4
     check_code_result \
-      [[idt("def"),idt("echo"),fnp("x","y"),[]]], 
+      [[idt("def"),nil,idt("echo"),fnp("x","y"),[]]], 
       "", 
       bin("C20400")
     
     # mov ax, 05h; mov x, ax; ret 4
     check_code_result \
-      [[idt("def"),idt("echo"),fnp("x","y"),[[asn,idt("x"),num("5")]]]], 
+      [[idt("def"),nil,idt("echo"),fnp("x","y"),[[asn,idt("x"),num("5")]]]], 
       "", 
       bin("B80500A20000C20400")
     
@@ -159,7 +159,7 @@ class TestCodeGenerator < Test::Unit::TestCase
     codeset = 
       check_code_result(
         [[
-          idt("def"),idt("echo"),fnp("x","y"),
+          idt("def"),nil,idt("echo"),fnp("x","y"),
           [
             [asn,idt("x"),num("5")],
             [asn,idt("y"),num("2")]
@@ -178,7 +178,7 @@ class TestCodeGenerator < Test::Unit::TestCase
     codeset = 
       check_code_result \
         [
-          [idt("def"),idt("multiply_by_two"),fnp("x"),[]], 
+          [idt("def"),nil,idt("multiply_by_two"),fnp("x"),[]], 
           [idt("multiply_by_two"),[num("3")]]
         ], 
         bin("B8070050E80000"), 

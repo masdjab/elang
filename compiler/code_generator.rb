@@ -162,7 +162,7 @@ module Elang
       func_name = node[2].text
       func_args = node[3]
       func_body = node[4]
-      params_count = func_args.count
+      params_count = func_args.count + (rcvr_name ? 1 : 0)
       active_scope = current_scope
       
       function = @codeset.symbols.find_exact(active_scope, func_name)

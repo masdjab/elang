@@ -28,7 +28,7 @@ b = multiply_by_two(a)
 EOS
     
     codeset = compile(source)
-    check_binary codeset.subs_code, "a1000050b8030050e84180c20200"
+    check_binary codeset.subs_code, "5589e5a1000050b8030050e841805dc20200"
     check_binary codeset.main_code, "b8050050e80000a20000a1000050e80000a20000"
   end
   def test_link_methods

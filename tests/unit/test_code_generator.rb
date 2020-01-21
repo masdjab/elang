@@ -127,6 +127,7 @@ class TestCodeGenerator < Test::Unit::TestCase
       ""
   end
   def test_simple_string_operation
+    #(todo)#test_simple_string_operation
   end
   def test_simple_function_definition
     # ret
@@ -266,6 +267,31 @@ class TestCodeGenerator < Test::Unit::TestCase
       "", 
       bin("5589E5B805008946008B460050E800005DC20600")
   end
+  def test_instance_variable
+    # instance function local var
+    # #(todo)#fix instance variable read/write binary commands (A6/A3)
+    check_code_result \
+      [
+        [idt("class"),idt("Person"),nil, 
+          [
+            [
+              idt("def"),nil,idt("set_name"),fnp("name"),
+              [
+                [asn,idt("@name"),idt("name")]
+              ]
+            ],
+            [
+              idt("def"),nil,idt("get_name"),[],
+              [
+                [idt("@name")]
+              ]
+            ]
+          ]
+        ]
+      ], 
+      "", 
+      bin("5589E5A600005DC206005589E5A300005DC20400")
+  end
   def test_class_definition
     codeset = 
       generate_code \
@@ -278,5 +304,11 @@ class TestCodeGenerator < Test::Unit::TestCase
     classes = codeset.symbols.items.select{|x|x.is_a?(Elang::Class)}
     assert_equal 3, classes.count
     assert_equal [], classes.map{|x|x.name} - ["Integer", "TrueClass", "FalseClass"]
+  end
+  def test_class_variabel
+    #(todo)#test_class_variable
+  end
+  def test_class_function_call
+    #(todo)#test_class_function_call
   end
 end

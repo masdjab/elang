@@ -196,10 +196,28 @@ module Elang
       
       function = @codeset.symbols.find_exact(active_scope, func_name)
       function.offset = code_len
+      variable_count = 0
       params_count = func_args.count + (rcvr_name ? 2 : 0)
       
       enter_scope Scope.new(active_scope.cls, func_name)
+      
+      # push bp; mov bp, sp
+      append_code hex2bin("55" + "89E5")
+      
+      if variable_count > 0
+        # sub sp, nn
+        append_code hex2bin("81EC" + Elang::Utils::Converter.int_to_whex_be(variable_count * 2))
+      end
+      
       handle_any func_body
+      
+      if variable_count > 0
+        # add sp, nn
+        append_code hex2bin("81C4" + Elang::Utils::Converter.int_to_whex_be(variable_count * 2))
+      end
+      
+      # pop bp
+      append_code hex2bin("5D")
       
       # ret [n]
       hex_code = (params_count > 0 ? "C2#{Elang::Utils::Converter.int_to_whex_be(params_count * 2).upcase}" : "C3")

@@ -1,6 +1,7 @@
 require './compiler/constant'
 require './compiler/class'
 require './compiler/function'
+require './compiler/function_parameter'
 require './compiler/variable'
 require './compiler/instance_variable'
 require './compiler/class_function'
@@ -68,12 +69,6 @@ module Elang
     def intobj(value)
       (value << 1) | 1
     end
-    def invoke_cls_method(cls, meth_name)
-      #(todo)#invoke_cls_method
-    end
-    def invoke_obj_method(obj, meth_name)
-      #(todo)#invoke_obj_method
-    end
     def invoke_num_method(meth_name)
       function_ids = 
         {
@@ -88,6 +83,8 @@ module Elang
       append_code hex2bin("E8" + function_ids[meth_name])
     end
     def prepare_operand(node)
+      active_scope = current_scope
+      
       if node.is_a?(Array)
         handle_any([node])
       elsif node.type == :number
@@ -100,18 +97,34 @@ module Elang
         add_constant_ref str, code_len + 1
         append_code hex2bin("A10000")
       elsif node.type == :identifier
-        if (symbol = @codeset.symbols.find_nearest(current_scope, node.text)).nil?
-          raise "Symbol '#{node.text}' not defined"
+        if (symbol = @codeset.symbols.find_nearest(active_scope, node.text)).nil?
+          raise "Symbol '#{node.text}' not defined in scope '#{active_scope.to_s}'"
         else
-          # mov reg, var
-          add_variable_ref symbol, code_len + 1
-          append_code hex2bin("A10000")
+          if symbol.scope.root?
+            # mov ax, [root_variable]
+            add_variable_ref symbol, code_len + 1
+            append_code hex2bin("A10000")
+          elsif symbol.is_a?(FunctionParameter)
+            # mov ax, [bp - n]
+            add_variable_ref symbol, code_len + 2
+            append_code hex2bin("8B4600")
+          else
+            # mov ax, [bp + n]
+            add_variable_ref symbol, code_len + 2
+            append_code hex2bin("8B4600")
+          end
         end
       else
         raise "Invalid operand: #{node.inspect}"
       end
     end
-    def handle_numeric_operation(node)
+    def prepare_arguments(arguments)
+      (0...arguments.count).map{|x|x}.reverse.each do |i|
+        prepare_operand arguments[i]
+        append_code hex2bin("50")
+      end
+    end
+    def handle_expression(node)
       op_node = node[0]
       v1_node = node[1]
       v2_node = node[2]
@@ -143,34 +156,52 @@ module Elang
     def handle_assignment(node)
       left_var = node[1]
       var_name = left_var.text
+      active_scope = current_scope
       
       if !left_var.is_a?(Elang::AstNode) || (left_var.type != :identifier)
         raise "Left operand for assignment must be a symbol, #{left_var.inspect} given"
       end
       
-      if receiver = @codeset.symbols.find_exact(current_scope, var_name).nil?
+      if (receiver = @codeset.symbols.find_exact(current_scope, var_name)).nil?
         @codeset.symbols.add(receiver = Elang::Variable.new(current_scope, var_name))
       end
       
-      prepare_operand node[2]
-      add_variable_ref receiver, code_len + 1
-      # mov var, ax
-      append_code hex2bin("A20000")
+      if receiver.scope.root?
+        # assign root variable
+        # mov [var], ax
+        prepare_operand node[2]
+        add_variable_ref receiver, code_len + 1
+        append_code hex2bin("A20000")
+      elsif receiver.is_a?(FunctionParameter)
+        # assign function parameter
+        # mov [bp - n], ax
+        prepare_operand node[2]
+        add_variable_ref receiver, code_len + 2
+        append_code hex2bin("894600")
+      else
+        # assign local variable
+        # mov [bp + n], ax
+        prepare_operand node[2]
+        add_variable_ref receiver, code_len + 2
+        append_code hex2bin("894600")
+      end
     end
     def handle_function_def(node)
-      rcvr_name = node[1] ? node[1].text : nil
+      active_scope = current_scope
+      
+      rcvr_name = node[1] ? node[1].text : active_scope.cls
       func_name = node[2].text
       func_args = node[3]
       func_body = node[4]
-      params_count = func_args.count
-      active_scope = current_scope
       
       function = @codeset.symbols.find_exact(active_scope, func_name)
-      enter_scope Scope.new(active_scope.cls, function)
       function.offset = code_len
-      func_args.each{|x|@codeset.symbols.add Variable.new(current_scope, x.text)}
+      params_count = func_args.count + (rcvr_name ? 2 : 0)
+      
+      enter_scope Scope.new(active_scope.cls, func_name)
       handle_any func_body
-      # "ret" + (params_count > 0 ? " #{params_count * 2}" : "")
+      
+      # ret [n]
       hex_code = (params_count > 0 ? "C2#{Elang::Utils::Converter.int_to_whex_be(params_count * 2).upcase}" : "C3")
       append_code hex2bin(hex_code)
       leave_scope
@@ -182,20 +213,26 @@ module Elang
       if (function = @codeset.symbols.find_function(func_name)).nil?
         raise "Call to undefined function '#{func_name}'"
       else
-        arguments = node[1]
-        
-        (0...arguments.count).each do |i|
-          prepare_operand arguments[i]
-          append_code hex2bin("50")
-        end
-        
+        prepare_arguments node[1]
         add_function_ref function, code_len + 1
         append_code hex2bin("E80000")
       end
     end
+    def handle_send(node)
+      # [., receiver, name, args]
+      
+      active_scope = current_scope
+      rcvr_name = node[1] ? node[1].text : nil
+      func_name = node[2].text
+      func_args = node[3]
+      
+      prepare_arguments func_args
+      append_code hex2bin("B8000050A1000050")
+      append_code hex2bin("E80000")
+    end
     def handle_class_def(nodes)
       cls_name = nodes[1].text
-      cls_prnt = nodes[2].text
+      cls_prnt = nodes[2] ? nodes[2].text : nil
       
       enter_scope Scope.new(cls_name)
       handle_any nodes[3]
@@ -204,24 +241,24 @@ module Elang
     def handle_any(nodes)
       nodes.each do |node|
         if node.is_a?(Array)
-          first_node = node[0]
-          
-          if !first_node.is_a?(Elang::AstNode)
+          if !(first_node = node[0]).is_a?(Elang::AstNode)
             raise "Expected identifier, #{node[0].inspect} given"
           else
             case first_node.type
             when :assign
-              handle_assignment(node)
+              handle_assignment node
             when :plus, :minus, :star, :slash, :and, :or
-              handle_numeric_operation(node)
+              handle_expression node
+            when :dot
+              handle_send node
             when :identifier
               if first_node.text == "def"
-                handle_function_def(node)
+                handle_function_def node
               elsif first_node.text == "class"
-                handle_class_def(node)
+                handle_class_def node
               else
-                if (function = @codeset.symbols.find_exact(current_scope, first_node.text)).nil?
-                  raise "Call to undefined function '#{first_node.text}'"
+                if (function = @codeset.symbols.find_nearest(current_scope, first_node.text)).nil?
+                  raise "Call to undefined function '#{first_node.text}' from scope '#{current_scope.to_s}'"
                 elsif !function.is_a?(Function)
                   raise "Call to non-function '#{first_node.text}'"
                 else
@@ -229,7 +266,7 @@ module Elang
                 end
               end
             else
-              raise "Cannot handle node: #{node.inspect}"
+              raise "Unexpected node type #{first_node.type.inspect} in #{first_node.inspect}"
             end
           end
         else
@@ -238,35 +275,42 @@ module Elang
       end
     end
     def detect_names(nodes)
-      @scope_stack = []
-      
       nodes.each do |node|
         if node.is_a?(Array)
+          #if (first_node = node[0]).is_a?(Array)
+          #  detect_names first_node
           if (first_node = node[0]).type == :identifier
             if first_node.text == "def"
+              active_scope = current_scope
               rcvr_name = node[1] ? node[1].text : nil
               func_name = node[2].text
               func_args = node[3]
               func_body = node[4]
-              function = Function.new(nil, rcvr_name, func_name, func_args, 0)
+              function = Function.new(active_scope, rcvr_name, func_name, func_args, 0)
               
-              if !(active_scope = current_scope).fun.nil?
+              if !active_scope.fun.nil?
                 raise "Function cannot be nested"
               else
                 @codeset.symbols.add function
-                enter_scope Scope.new(active_scope.cls, function)
+                enter_scope Scope.new(active_scope.cls, func_name)
+                
+                (0...func_args.count).each do |i|
+                  param = FunctionParameter.new(current_scope, func_args[i].text, i)
+                  @codeset.symbols.add param
+                end
+                
                 detect_names func_body
                 leave_scope
               end
             elsif first_node.text == "class"
               cls_name = node[1].text
-              cls_parent = node[2].text
+              cls_parent = node[2] ? node[2].text : nil
               cls_body = node[3]
-              cls_object = Class.new(nil, cls_name, nil)
               
               if !(active_scope = current_scope).cls.nil?
                 raise "Class cannot be nested"
               else
+                cls_object = Class.new(active_scope, cls_name, cls_parent)
                 @codeset.symbols.add cls_object
                 enter_scope Scope.new(cls_name)
                 detect_names cls_body
@@ -281,8 +325,12 @@ module Elang
     public
     def generate_code(nodes)
       @scope_stack = []
+      @scope_stack = []
       @codeset = CodeSet.new
       detect_names nodes
+#functions = @codeset.symbols.items.select{|x|x.is_a?(Function)}
+#puts "functions (#{functions.count}):"
+#functions.each{|x|puts " @'#{x.scope ? x.scope.to_s : "(NIL)"}' #{x.name}"} if !functions.empty?
       handle_any nodes
       @codeset
     end

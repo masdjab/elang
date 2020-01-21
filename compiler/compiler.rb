@@ -55,10 +55,12 @@ module Elang
       codegen = Elang::CodeGenerator.new
       codeset = codegen.generate_code(nodes)
       
-      linker = Elang::Linker.new
-      binary = linker.link(codeset)
+      codeset
       
-      binary
+      #linker = Elang::Linker.new
+      #binary = linker.link(codeset)
+      
+      #binary
     end
   end
 end

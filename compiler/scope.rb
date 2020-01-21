@@ -11,15 +11,7 @@ module Elang
     end
     def to_s
       cn = @cls ? @cls : ""
-      
-      if @fun.nil?
-        fn = ""
-      elsif @fun.is_a?(ClassFunction)
-        fn = "#" + @fun.name
-      else
-        fn = "." + @fun.name
-      end
-      
+      fn = @fun ? ".#{@fun}" : ""
       "#{cn}#{fn}"
     end
   end

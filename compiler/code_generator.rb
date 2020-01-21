@@ -12,12 +12,23 @@ require './compiler/ast_node'
 require './compiler/codeset'
 require './utils/converter'
 
-#(todo)#
-# - assign local variable
-# - get parameter value passed by ref
 
 module Elang
   class CodeGenerator
+    FUNCTION_IDS = 
+      {
+        :plus         => "4180", 
+        :minus        => "4280", 
+        :star         => "4380", 
+        :slash        => "4480", 
+        :and          => "4580", 
+        :or           => "4680", 
+        :get_obj_var  => "4780", 
+        :set_obj_var  => "4880", 
+        :get_cls_var  => "4980", 
+        :set_cls_var  => "4A80"
+      }
+    
     attr_reader :symbols, :symbol_refs
     
     private
@@ -71,20 +82,11 @@ module Elang
       (value << 1) | 1
     end
     def invoke_num_method(meth_name)
-      function_ids = 
-        {
-          :plus   => "4180", 
-          :minus  => "4280", 
-          :star   => "4380", 
-          :slash  => "4480", 
-          :and    => "4580", 
-          :or     => "4680"
-        }
-      
-      append_code hex2bin("E8" + function_ids[meth_name])
+      # #(todo)#fix numeric method addresses
+      append_code hex2bin("E8" + FUNCTION_IDS[meth_name])
     end
-    def register_class_variable(name)
-      receiver = ClassVariable.new(current_scope, name)
+    def register_local_variable(name)
+      receiver = Elang::Variable.new(current_scope, name)
       @codeset.symbols.add receiver
       receiver
     end
@@ -93,10 +95,87 @@ module Elang
       @codeset.symbols.add receiver
       receiver
     end
-    def register_local_variable(name)
-      receiver = Elang::Variable.new(current_scope, name)
+    def register_class_variable(name)
+      receiver = ClassVariable.new(current_scope, name)
       @codeset.symbols.add receiver
       receiver
+    end
+    def get_number(number)
+      # mov ax, imm
+      value_hex = Elang::Utils::Converter.int_to_whex_be(make_int(number)).upcase
+      append_code hex2bin("B8" + value_hex)
+    end
+    def get_string_object(name)
+      # mov reg, str
+      str = get_string_constant(node.text)
+      add_constant_ref str, code_len + 1
+      append_code hex2bin("A10000")
+    end
+    def get_variable(name)
+      if (symbol = @codeset.symbols.find_nearest(active_scope = current_scope, name)).nil?
+        raise "Cannot get value from '#{name}' , symbol not defined in scope '#{active_scope.to_s}'"
+      elsif symbol.is_a?(FunctionParameter)
+        # mov ax, [bp - n]
+        add_variable_ref symbol, code_len + 2
+        append_code hex2bin("8B4600")
+      elsif symbol.is_a?(InstanceVariable)
+        # #(todo)#resolve object id, class id, and instance variable getter address
+        if active_scope.cls.nil?
+          raise "Instance variable '#{name}' accessed in scope '#{active_scope.to_s}' which is not instance method"
+        elsif (cls = @codeset.symbols.find_exact(Scope.new, active_scope.cls)).nil?
+          raise "Class #{active_scope.cls} is not defined"
+        else
+          add_variable_ref symbol, code_len + 1
+          add_variable_ref cls, code_len + 5
+          append_code hex2bin("B8000050B8000050E8" + FUNCTION_IDS[:get_obj_var])
+        end
+      elsif symbol.is_a?(ClassVariable)
+        # #(todo)#fix binary command
+        append_code hex2bin("A40000")
+      elsif symbol.scope.root?
+        # mov var, ax
+        add_variable_ref symbol, code_len + 1
+        append_code hex2bin("A10000")
+      elsif symbol.is_a?(Variable)
+        # mov ax, [bp + n]
+        add_variable_ref symbol, code_len + 2
+        append_code hex2bin("8B4600")
+      else
+        raise "Cannot get value from '#{name}', symbol type '#{symbol.class}' unknown"
+      end
+    end
+    def set_variable(name)
+      if (symbol = @codeset.symbols.find_nearest(active_scope = current_scope, name)).nil?
+        raise "Cannot set value to '#{name}' , symbol not defined in scope '#{active_scope.to_s}'"
+      elsif symbol.is_a?(FunctionParameter)
+        # mov [bp - n], ax
+        add_variable_ref symbol, code_len + 2
+        append_code hex2bin("894600")
+      elsif symbol.is_a?(InstanceVariable)
+        # #(todo)#fix binary command
+        if active_scope.cls.nil?
+          raise "Attempted to write to instance variable '#{name}' in scope '#{active_scope.to_s}' which is not instance method"
+        elsif (cls = @codeset.symbols.find_exact(Scope.new, active_scope.cls)).nil?
+          raise "Class #{active_scope.cls} is not defined"
+        else
+          add_variable_ref symbol, code_len + 1
+          add_variable_ref cls, code_len + 5
+          append_code hex2bin("50B8000050B8000050E8" + FUNCTION_IDS[:set_obj_var])
+        end
+      elsif symbol.is_a?(ClassVariable)
+        ## #(todo)#fix binary command
+        append_code hex2bin("A70000")
+      elsif symbol.scope.root?
+        # mov var, ax
+        add_variable_ref symbol, code_len + 1
+        append_code hex2bin("A30000")
+      elsif symbol.is_a?(Variable)
+        # mov [bp + n], ax
+        add_variable_ref symbol, code_len + 2
+        append_code hex2bin("894600")
+      else
+        raise "Cannot set value to '#{name}', symbol type '#{symbol.class}' unknown"
+      end
     end
     def prepare_operand(node)
       active_scope = current_scope
@@ -104,42 +183,11 @@ module Elang
       if node.is_a?(Array)
         handle_any([node])
       elsif node.type == :number
-        # mov reg, imm
-        value_hex = Elang::Utils::Converter.int_to_whex_be(make_int(node.text.to_i)).upcase
-        append_code hex2bin("B8" + value_hex)
+        get_number node.text.to_i
       elsif node.type == :string
-        # mov reg, str
-        str = get_string_constant(node.text)
-        add_constant_ref str, code_len + 1
-        append_code hex2bin("A10000")
-      elsif node.type == :identifier
-        if (symbol = @codeset.symbols.find_nearest(active_scope, node.text)).nil?
-          raise "Symbol '#{node.text}' not defined in scope '#{active_scope.to_s}'"
-        else
-          if symbol.scope.root?
-            # mov ax, [root_variable]
-            add_variable_ref symbol, code_len + 1
-            append_code hex2bin("A10000")
-          elsif symbol.is_a?(FunctionParameter)
-            # mov ax, [bp - n]
-            add_variable_ref symbol, code_len + 2
-            append_code hex2bin("8B4600")
-          elsif symbol.is_a?(InstanceVariable)
-            # #(todo)#fix binary command
-            add_variable_ref symbol, code_len + 1
-            append_code hex2bin("A30000")
-          elsif symbol.is_a?(ClassVariable)
-            # #(todo)#fix binary command
-            add_variable_ref symbol, code_len + 1
-            append_code hex2bin("A40000")
-          else
-            # mov ax, [bp + n]
-            add_variable_ref symbol, code_len + 2
-            append_code hex2bin("8B4600")
-          end
-        end
+        get_string_object node.text
       else
-        raise "Invalid operand: #{node.inspect}"
+        get_variable node.text
       end
     end
     def prepare_arguments(arguments)
@@ -149,33 +197,11 @@ module Elang
       end
     end
     def handle_expression(node)
-      op_node = node[0]
-      v1_node = node[1]
-      v2_node = node[2]
-      
-      (1..2).each do |i|
-        v = node[i]
-        
-        if v.is_a?(Array)
-          handle_any v
-          append_code hex2bin("50")
-        elsif v.type == :number
-          value_hex = Elang::Utils::Converter.int_to_whex_be(make_int(v.text.to_i)).upcase
-          append_code hex2bin("B8" + value_hex + "50")
-        elsif v.type == :identifier
-          if (symbol = @codeset.symbols.find_nearest(current_scope, v.text)).nil?
-            raise "Symbol '#{v.text}' not defined"
-          else
-            # mov reg, var
-            add_variable_ref symbol, code_len + 1
-            append_code hex2bin("A10000" + "50")
-          end
-        else
-          raise "Invalid operand 1: #{v.inspect}"
-        end
-      end
-      
-      invoke_num_method op_node.type
+      prepare_operand node[1]
+      append_code hex2bin("50")
+      prepare_operand node[2]
+      append_code hex2bin("50")
+      invoke_num_method node[0].type
     end
     def handle_assignment(node)
       left_var = node[1]
@@ -199,31 +225,8 @@ module Elang
         end
       end
       
-      if receiver.scope.root?
-        # assign root variable
-        # mov [var], ax
-        prepare_operand node[2]
-        add_variable_ref receiver, code_len + 1
-        append_code hex2bin("A20000")
-      elsif receiver.is_a?(FunctionParameter)
-        # assign function parameter
-        # mov [bp - n], ax
-        prepare_operand node[2]
-        add_variable_ref receiver, code_len + 2
-        append_code hex2bin("894600")
-      elsif receiver.is_a?(InstanceVariable)
-        add_variable_ref receiver, code_len + 2
-        append_code hex2bin("A60000")
-      elsif receiver.is_a?(ClassVariable)
-        add_variable_ref receiver, code_len + 2
-        append_code hex2bin("A70000")
-      else
-        # assign local variable
-        # mov [bp + n], ax
-        prepare_operand node[2]
-        add_variable_ref receiver, code_len + 2
-        append_code hex2bin("894600")
-      end
+      prepare_operand node[2]
+      set_variable var_name
     end
     def handle_function_def(node)
       active_scope = current_scope
@@ -316,10 +319,10 @@ module Elang
                 handle_class_def node
               elsif first_node.text.index("@@")
                 register_class_variable first_node.text
-                prepare_operand first_node
+                get_variable first_node.text
               elsif first_node.text.index("@")
                 register_instance_variable first_node.text
-                prepare_operand first_node
+                get_variable first_node.text
               else
                 if (function = @codeset.symbols.find_nearest(current_scope, first_node.text)).nil?
                   raise "Call to undefined function '#{first_node.text}' from scope '#{current_scope.to_s}'"

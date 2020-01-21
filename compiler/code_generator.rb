@@ -4,6 +4,7 @@ require './compiler/function'
 require './compiler/function_parameter'
 require './compiler/variable'
 require './compiler/instance_variable'
+require './compiler/class_variable'
 require './compiler/class_function'
 require './compiler/scope'
 require './compiler/symbol_ref'
@@ -82,6 +83,21 @@ module Elang
       
       append_code hex2bin("E8" + function_ids[meth_name])
     end
+    def register_class_variable(name)
+      receiver = ClassVariable.new(current_scope, name)
+      @codeset.symbols.add receiver
+      receiver
+    end
+    def register_instance_variable(name)
+      receiver = InstanceVariable.new(current_scope, name)
+      @codeset.symbols.add receiver
+      receiver
+    end
+    def register_local_variable(name)
+      receiver = Elang::Variable.new(current_scope, name)
+      @codeset.symbols.add receiver
+      receiver
+    end
     def prepare_operand(node)
       active_scope = current_scope
       
@@ -108,6 +124,14 @@ module Elang
             # mov ax, [bp - n]
             add_variable_ref symbol, code_len + 2
             append_code hex2bin("8B4600")
+          elsif symbol.is_a?(InstanceVariable)
+            # #(todo)#fix binary command
+            add_variable_ref symbol, code_len + 1
+            append_code hex2bin("A30000")
+          elsif symbol.is_a?(ClassVariable)
+            # #(todo)#fix binary command
+            add_variable_ref symbol, code_len + 1
+            append_code hex2bin("A40000")
           else
             # mov ax, [bp + n]
             add_variable_ref symbol, code_len + 2
@@ -162,8 +186,17 @@ module Elang
         raise "Left operand for assignment must be a symbol, #{left_var.inspect} given"
       end
       
-      if (receiver = @codeset.symbols.find_exact(current_scope, var_name)).nil?
-        @codeset.symbols.add(receiver = Elang::Variable.new(current_scope, var_name))
+      if (receiver = @codeset.symbols.find_nearest(active_scope, var_name)).nil?
+        if var_name.index("@@") == 0
+          # #(todo)#class variable
+          receiver = register_class_variable(var_name)
+        elsif var_name.index("@") == 0
+          # instance variable
+          receiver = register_instance_variable(var_name)
+        else
+          # local variable
+          receiver = register_local_variable(var_name)
+        end
       end
       
       if receiver.scope.root?
@@ -178,6 +211,12 @@ module Elang
         prepare_operand node[2]
         add_variable_ref receiver, code_len + 2
         append_code hex2bin("894600")
+      elsif receiver.is_a?(InstanceVariable)
+        add_variable_ref receiver, code_len + 2
+        append_code hex2bin("A60000")
+      elsif receiver.is_a?(ClassVariable)
+        add_variable_ref receiver, code_len + 2
+        append_code hex2bin("A70000")
       else
         # assign local variable
         # mov [bp + n], ax
@@ -194,6 +233,7 @@ module Elang
       func_args = node[3]
       func_body = node[4]
       
+      #(todo)#count variable_count
       function = @codeset.symbols.find_exact(active_scope, func_name)
       function.offset = code_len
       variable_count = 0
@@ -274,6 +314,12 @@ module Elang
                 handle_function_def node
               elsif first_node.text == "class"
                 handle_class_def node
+              elsif first_node.text.index("@@")
+                register_class_variable first_node.text
+                prepare_operand first_node
+              elsif first_node.text.index("@")
+                register_instance_variable first_node.text
+                prepare_operand first_node
               else
                 if (function = @codeset.symbols.find_nearest(current_scope, first_node.text)).nil?
                   raise "Call to undefined function '#{first_node.text}' from scope '#{current_scope.to_s}'"
@@ -295,9 +341,10 @@ module Elang
     def detect_names(nodes)
       nodes.each do |node|
         if node.is_a?(Array)
-          #if (first_node = node[0]).is_a?(Array)
-          #  detect_names first_node
-          if (first_node = node[0]).type == :identifier
+          if (first_node = node[0]).is_a?(Array)
+            raise "This branch is not expected to be executed"
+            detect_names first_node
+          elsif first_node.type == :identifier
             if first_node.text == "def"
               active_scope = current_scope
               rcvr_name = node[1] ? node[1].text : nil
@@ -346,9 +393,6 @@ module Elang
       @scope_stack = []
       @codeset = CodeSet.new
       detect_names nodes
-#functions = @codeset.symbols.items.select{|x|x.is_a?(Function)}
-#puts "functions (#{functions.count}):"
-#functions.each{|x|puts " @'#{x.scope ? x.scope.to_s : "(NIL)"}' #{x.name}"} if !functions.empty?
       handle_any nodes
       @codeset
     end

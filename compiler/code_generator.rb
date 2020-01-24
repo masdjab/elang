@@ -23,7 +23,7 @@ module Elang
         :star         => SystemFunction.new("[int_multiply]"), 
         :slash        => SystemFunction.new("[int_divide]"), 
         :and          => SystemFunction.new("[int_and]"), 
-        :or           => SystemFunction.new("[int_or])", 
+        :or           => SystemFunction.new("[int_or]"), 
         :get_obj_var  => SystemFunction.new("[get_obj_var]"), 
         :set_obj_var  => SystemFunction.new("[set_obj_var]")
       }

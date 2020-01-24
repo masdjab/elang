@@ -18,12 +18,14 @@ module Elang
   class CodeGenerator
     SYS_FUNCTIONS = 
       {
-        :plus         => "[int_add]", 
-        :minus        => "[int_subtract]", 
-        :star         => "[int_multiply]", 
-        :slash        => "[int_divide]", 
-        :and          => "[int_and]", 
-        :or           => "[int_or]"
+        :plus         => SystemFunction.new("[int_add]"), 
+        :minus        => SystemFunction.new("[int_subtract]"), 
+        :star         => SystemFunction.new("[int_multiply]"), 
+        :slash        => SystemFunction.new("[int_divide]"), 
+        :and          => SystemFunction.new("[int_and]"), 
+        :or           => SystemFunction.new("[int_or])", 
+        :get_obj_var  => SystemFunction.new("[get_obj_var]"), 
+        :set_obj_var  => SystemFunction.new("[set_obj_var]")
       }
     
     attr_reader :symbols, :symbol_refs
@@ -79,8 +81,7 @@ module Elang
       (value << 1) | 1
     end
     def invoke_num_method(meth_name)
-      function = SystemFunction.new(SYS_FUNCTIONS[meth_name])
-      add_function_ref function, code_len + 1
+      add_function_ref SYS_FUNCTIONS[meth_name], code_len + 1
       append_code hex2bin("E80000")
     end
     def register_local_variable(name)
@@ -125,7 +126,7 @@ module Elang
         else
           add_variable_ref symbol, code_len + 1
           add_variable_ref cls, code_len + 5
-          add_function_ref SystemFunction.new("get_obj_var"), code_len + 9
+          add_function_ref SYS_FUNCTIONS[:get_obj_var], code_len + 9
           append_code hex2bin("B8000050B8000050E80000")
         end
       elsif symbol.is_a?(ClassVariable)
@@ -159,7 +160,7 @@ module Elang
         else
           add_variable_ref symbol, code_len + 1
           add_variable_ref cls, code_len + 5
-          add_function_ref SystemFunction.new("set_obj_var"), code_len + 10
+          add_function_ref SYS_FUNCTIONS[:set_obj_var], code_len + 10
           append_code hex2bin("50B8000050B8000050E80000")
         end
       elsif symbol.is_a?(ClassVariable)

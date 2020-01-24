@@ -15,7 +15,7 @@ class CompilerTest < Test::Unit::TestCase
     source = "x = 2\r\ny = 3\r\nz = x + y\r\n"
     codeset = compile(source)
     check_binary codeset.subs_code, ""
-    check_binary codeset.main_code, "b80500a30000b80700a30000a1000050a1000050e84180a30000"
+    check_binary codeset.main_code, "b80500a30000b80700a30000a1000050a1000050e80000a30000"
   end
   def test_link_simple_combination
     source = <<EOS
@@ -28,7 +28,7 @@ b = multiply_by_two(a)
 EOS
     
     codeset = compile(source)
-    check_binary codeset.subs_code, "5589e58B460050b8030050e841805dc20200"
+    check_binary codeset.subs_code, "5589e58B460050b8030050e800005dc20200"
     check_binary codeset.main_code, "b8050050e80000a30000a1000050e80000a30000"
   end
   def test_link_methods

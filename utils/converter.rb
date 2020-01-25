@@ -17,6 +17,9 @@ module Elang
         word2 = (value & 0xffff0000) >> 16
         self.int_to_word(word1) + self.int_to_word(word2)
       end
+      def self.byte_to_int(value)
+        value.bytes[0]
+      end
       def self.word_to_int(value)
         bytes = value.bytes
         (1 << 8) * bytes[1] + bytes[0]

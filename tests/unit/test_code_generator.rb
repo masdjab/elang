@@ -81,37 +81,37 @@ class TestCodeGenerator < Test::Unit::TestCase
     # mov ax, 01h; mov cx, 02h; add ax, cx; mov mynum, ax
     check_code_result \
       [[asn,idt("mynum"),[plus,num("1"),num("2")]]], \
-      bin("B8030050B8050050E84180A30000"), 
+      bin("B8030050B8050050E80000A30000"), 
       ""
       
     # mov ax, 01h; mov cx, 02h; sub ax, cx; mov mynum, ax
     check_code_result \
       [[asn,idt("mynum"),[minus,num("1"),num("2")]]], \
-      bin("B8030050B8050050E84280A30000"), 
+      bin("B8030050B8050050E80000A30000"), 
       ""
     
     # mov ax, 01h; mov cx, 02h; mul ax, cx; mov mynum, ax
     check_code_result \
       [[asn,idt("mynum"),[star,num("1"),num("2")]]], \
-      bin("B8030050B8050050E84380A30000"), 
+      bin("B8030050B8050050E80000A30000"), 
       ""
     
     # mov ax, 01h; mov cx, 02h; div ax, cx; mov mynum, ax
     check_code_result \
       [[asn,idt("mynum"),[slash,num("1"),num("2")]]], \
-      bin("B8030050B8050050E84480A30000"), 
+      bin("B8030050B8050050E80000A30000"), 
       ""
     
     # mov ax, 01h; mov cx, 02h; and ax, cx; mov mynum, ax
     check_code_result \
       [[asn,idt("mynum"),[pand,num("1"),num("2")]]], \
-      bin("B8030050B8050050E84580A30000"), 
+      bin("B8030050B8050050E80000A30000"), 
       ""
     
     # mov ax, 01h; mov cx, 02h; or ax, cx; mov mynum, ax
     check_code_result \
       [[asn,idt("mynum"),[por,num("1"),num("2")]]], \
-      bin("B8030050B8050050E84680A30000"), 
+      bin("B8030050B8050050E80000A30000"), 
       ""
     
     # mov ax, 0; mov v1, ax
@@ -123,7 +123,7 @@ class TestCodeGenerator < Test::Unit::TestCase
         [asn,idt("v2"),num("52")], 
         [asn,idt("mynum"),[plus,idt("v1"),idt("v2")]]
       ], \
-      bin("B82500A30000B86900A30000A1000050A1000050E84180A30000"), 
+      bin("B82500A30000B86900A30000A1000050A1000050E80000A30000"), 
       ""
   end
   def test_simple_string_operation
@@ -269,7 +269,6 @@ class TestCodeGenerator < Test::Unit::TestCase
   end
   def test_instance_variable
     # instance function local var
-    # #(todo)#fix instance variable read/write binary commands (A6/A3)
     check_code_result \
       [
         [idt("class"),idt("Person"),nil, 
@@ -290,7 +289,7 @@ class TestCodeGenerator < Test::Unit::TestCase
         ]
       ], 
       "", 
-      bin("5589E58B460050B8000050B8000050E848805DC206005589E5B8000050B8000050E847805DC20400")
+      bin("5589E58B460050B8000050B8000050E800005DC206005589E5B8000050B8000050E800005DC20400")
   end
   def test_class_definition
     codeset = 

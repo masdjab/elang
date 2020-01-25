@@ -1,6 +1,6 @@
 dw code
 
-dw 9
+dw 10
 
 dw _int_add, 9
   db "_int_add"
@@ -18,8 +18,10 @@ dw _get_obj_var, 13
   db "_get_obj_var"
 dw _set_obj_var, 13
   db "_set_obj_var"
-dw _puts, 5
+dw _puts, 4
   db "puts"
+dw _getch, 5
+  db "getch"
 
 code:
 include 'stdproc.asm'

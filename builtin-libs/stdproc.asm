@@ -1,15 +1,5 @@
 ; written by Heryudi Praja
 
-; default values
-DEFAULT_SCREEN_COLOR  EQU 7
-DEFAULT_SCREEN_SIZE   EQU 2580h
-
-; data offset table
-SCREEN_SIZE           EQU 0
-BOTTOM_LINE_OFFSET    EQU 2
-SCREEN_POINTER        EQU 4
-;CURSOR_POSITION       EQU 2
-
 _cbw:
   push bp
   mov bp, sp
@@ -163,7 +153,7 @@ _putchr:
   pop ax
   ret
   
-_puts:
+_print:
   ; input: offset, length
   push bp
   mov bp, sp
@@ -189,3 +179,24 @@ _puts_done:
   pop ax
   pop bp
   ret 4
+
+_puts:
+  ; input: str object => struct {0: size, 2: data}
+  push bp
+  mov bp, sp
+  mov bx, [bp + 4]
+  mov ax, [bx]
+  push ax
+  mov ax, bx
+  add ax, 2
+  push ax
+  call _print
+  pop bp
+  ret 2
+
+_getch:
+  mov ah, 8
+  int 21h
+  cbw
+  call _int_pack
+  ret

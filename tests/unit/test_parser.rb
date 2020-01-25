@@ -188,7 +188,6 @@ class TestParser < Test::Unit::TestCase
     assert_equal "|", tokens[2].text
   end
   def test_punctuations
-    assert_punct = lambda{|seq, tt|assert_equal tt, _parse(seq).map{|x|x.type}}
     tests = 
       [
         [".,:;()", [:dot, :comma, :colon, :semicolon, :lbrk, :rbrk]], 

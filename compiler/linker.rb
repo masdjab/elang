@@ -26,9 +26,12 @@ module Elang
               resolve_value = symbol.offset - (origin + ref.location + 2)
               code[ref.location, 2] = Utils::Converter.int_to_word(resolve_value)
             elsif symbol.is_a?(SystemFunction)
-              sys_function = @system_functions[symbol.name]
-              resolve_value = sys_function[:offset] - (origin + ref.location + 2)
-              code[ref.location, 2] = Utils::Converter.int_to_word(resolve_value)
+              if (sys_function = @system_functions[symbol.name]).nil?
+                raise "Undefined system function '#{symbol.name}'"
+              else
+                resolve_value = sys_function[:offset] - (origin + ref.location + 2)
+                code[ref.location, 2] = Utils::Converter.int_to_word(resolve_value)
+              end
             else
               raise "Cannot resolve reference to symbol of type '#{symbol.class}'"
             end

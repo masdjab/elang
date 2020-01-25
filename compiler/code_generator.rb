@@ -198,9 +198,9 @@ module Elang
       end
     end
     def handle_expression(node)
-      prepare_operand node[1]
-      append_code hex2bin("50")
       prepare_operand node[2]
+      append_code hex2bin("50")
+      prepare_operand node[1]
       append_code hex2bin("50")
       invoke_num_method node[0].type
     end

@@ -1,23 +1,25 @@
 dw code
 
-dw 8
+dw 9
 
-dw int_add, 9
-  db "[int_add]"
-dw int_subtract, 14
-  db "[int_subtract]"
-dw int_multiply, 14
-  db "[int_multiply]"
-dw int_divide, 12
-  db "[int_divide]"
-dw int_add, 9
-  db "[int_and]"
-dw int_or, 8
-  db "[int_or]"
-dw get_obj_var, 13
-  db "[get_obj_var]"
-dw set_obj_var, 13
-  db "[set_obj_var]"
+dw _int_add, 9
+  db "_int_add"
+dw _int_subtract, 14
+  db "_int_subtract"
+dw _int_multiply, 14
+  db "_int_multiply"
+dw _int_divide, 12
+  db "_int_divide"
+dw _int_add, 9
+  db "_int_and"
+dw _int_or, 8
+  db "int_or"
+dw _get_obj_var, 13
+  db "_get_obj_var"
+dw _set_obj_var, 13
+  db "_set_obj_var"
+dw _puts, 5
+  db "puts"
 
 code:
-include 'stdlib.asm'
+include 'stdproc.asm'

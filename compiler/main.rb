@@ -6,6 +6,7 @@ module Elang
     def compile(source_file, output_file)
       compiler = Elang::Compiler.new
       linker = Elang::Linker.new
+      linker.load_library 'stdlibh.bin'
       
       codeset = compiler.compile(File.read(source_file))
       binary = linker.link(codeset)

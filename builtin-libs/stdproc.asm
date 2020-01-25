@@ -179,16 +179,19 @@ _puts_done:
   pop ax
   pop bp
   ret 4
-
+  
 _puts:
-  ; input: str object => struct {0: size, 2: data}
+  ; input: str object
+  ; string structure:
+  ; - class id
+  ; - string length
+  ; - buffer location
   push bp
   mov bp, sp
   mov bx, [bp + 4]
-  mov ax, [bx]
+  mov ax, [bx + 2]    ; length
   push ax
-  mov ax, bx
-  add ax, 2
+  mov ax, [bx + 4]    ; buffer location
   push ax
   call _print
   pop bp

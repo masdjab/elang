@@ -1,3 +1,3 @@
 require './compiler/main'
 
-Elang::Main.new.compile("tests/elang/numeric_operations.rb", "output.com")
+Elang::Main.new.compile(ARGV[0], "output.com")

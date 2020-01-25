@@ -1,0 +1,191 @@
+; written by Heryudi Praja
+
+; default values
+DEFAULT_SCREEN_COLOR  EQU 7
+DEFAULT_SCREEN_SIZE   EQU 2580h
+
+; data offset table
+SCREEN_SIZE           EQU 0
+BOTTOM_LINE_OFFSET    EQU 2
+SCREEN_POINTER        EQU 4
+;CURSOR_POSITION       EQU 2
+
+_cbw:
+  push bp
+  mov bp, sp
+  mov ax, [bp + 4]
+  cbw
+  pop bp
+  ret 2
+  
+_int_pack:
+  shl ax, 1
+  or ax, 1
+  ret
+  
+_int_unpack:
+  shr ax, 1
+  test ax, 4000h
+  jz _int_unpack_done
+  or ax, 8000h
+_int_unpack_done:
+  ret
+  
+_int_add:
+  push bp
+  mov bp, sp
+  push cx
+  mov ax, [bp + 6]
+  call _int_unpack
+  mov cx, ax
+  mov ax, [bp + 4]
+  call _int_unpack
+  add ax, cx
+  call _int_pack
+  pop cx
+  pop bp
+  ret 4
+  
+_int_subtract:
+  push bp
+  mov bp, sp
+  push cx
+  mov ax, [bp + 6]
+  call _int_unpack
+  mov cx, ax
+  mov ax, [bp + 4]
+  call _int_unpack
+  sub ax, cx
+  call _int_pack
+  pop cx
+  pop bp
+  ret 4
+  
+_int_multiply:
+  push bp
+  mov bp, sp
+  push cx
+  push dx
+  xor dx, dx
+  mov ax, [bp + 6]
+  call _int_unpack
+  mov cx, ax
+  mov ax, [bp + 4]
+  call _int_unpack
+  imul cx
+  call _int_pack
+  pop dx
+  pop cx
+  pop bp
+  ret 4
+  
+_int_divide:
+  push bp
+  mov bp, sp
+  push cx
+  push dx
+  xor dx, dx
+  mov ax, [bp + 6]
+  call _int_unpack
+  mov cx, ax
+  mov ax, [bp + 4]
+  call _int_unpack
+  idiv cx
+  call _int_pack
+  pop dx
+  pop cx
+  pop bp
+  ret 4
+  
+_int_and:
+  push bp
+  mov bp, sp
+  push cx
+  mov ax, [bp + 6]
+  call _int_unpack
+  mov cx, ax
+  mov ax, [bp + 4]
+  call _int_unpack
+  and ax, cx
+  call _int_pack
+  pop cx
+  pop bp
+  ret 4
+  
+_int_or:
+  push bp
+  mov bp, sp
+  push cx
+  mov ax, [bp + 6]
+  call _int_unpack
+  mov cx, ax
+  mov ax, [bp + 4]
+  call _int_unpack
+  or ax, cx
+  call _int_pack
+  pop cx
+  pop bp
+  ret 4
+  
+_get_obj_var:
+  push bp
+  mov bp, sp
+  push si
+  mov si, [bp + 4]
+  add si, [bp + 6]
+  mov ax, [si]
+  pop si
+  pop bp
+  ret
+  
+_set_obj_var:
+  push bp
+  mov bp, sp
+  push ax
+  push si
+  mov si, [bp + 4]
+  add si, [bp + 6]
+  mov ax, [bp + 4]
+  mov [si], ax
+  pop si
+  pop ax
+  pop bp
+  ret
+  
+_putchr:
+  ; input: int = 10, ah = 14, al = character code, bh = page number (text mode), bl = foreground pixel (graphic mode)
+  push ax
+  push bx
+  mov ah, 14
+  xor bx, bx
+  int 10h
+  pop bx
+  pop ax
+  ret
+  
+_puts:
+  ; input: offset, length
+  push bp
+  mov bp, sp
+  push ax
+  push cx
+  push bx
+  push si
+  mov si, [bp + 4]
+  mov cx, [bp + 6]
+  test cx, cx
+  jz _puts_done
+  cld
+  mov ah, 14
+  xor bx, bx
+_puts_repeat:
+  lodsb
+  int 10h
+  loop _puts_repeat
+_puts_done:
+  pop si
+  pop bx
+  pop cx
+  pop ax
+  pop bp
+  ret 4

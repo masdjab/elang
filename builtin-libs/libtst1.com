@@ -1,3 +1,0 @@
-л[h.SГ[h?SГ[ZSґ	Н!ГPґН!XГивяиляивяиеяикяН Hello world...
-$Press eny key to exit
-$

@@ -18,14 +18,14 @@ module Elang
   class CodeGenerator
     SYS_FUNCTIONS = 
       {
-        :plus         => SystemFunction.new("[int_add]"), 
-        :minus        => SystemFunction.new("[int_subtract]"), 
-        :star         => SystemFunction.new("[int_multiply]"), 
-        :slash        => SystemFunction.new("[int_divide]"), 
-        :and          => SystemFunction.new("[int_and]"), 
-        :or           => SystemFunction.new("[int_or]"), 
-        :get_obj_var  => SystemFunction.new("[get_obj_var]"), 
-        :set_obj_var  => SystemFunction.new("[set_obj_var]")
+        :plus         => SystemFunction.new("_int_add"), 
+        :minus        => SystemFunction.new("_int_subtract"), 
+        :star         => SystemFunction.new("_int_multiply"), 
+        :slash        => SystemFunction.new("_int_divide"), 
+        :and          => SystemFunction.new("_int_and"), 
+        :or           => SystemFunction.new("_int_or"), 
+        :get_obj_var  => SystemFunction.new("_get_obj_var"), 
+        :set_obj_var  => SystemFunction.new("_set_obj_var")
       }
     
     attr_reader :symbols, :symbol_refs

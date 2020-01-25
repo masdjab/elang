@@ -1,24 +1,20 @@
 require 'test-unit'
-require './compiler/fetcher'
+require './compiler/fetcher_v2'
 
 class TestFetcher < Test::Unit::TestCase
   IDENTIFIER = "abcdefghijklmnopqrstuvwxyz_"
   
-  def test_case_1
-    fetcher = Elang::Fetcher.new
-    test_code = "text = \"Hello world...\"\r\nputs text\r\n"
-    fetcher.init test_code
-    assert_equal test_code, fetcher.code
-    assert_equal test_code.length, fetcher.code_len
-    assert_equal 0, fetcher.char_pos
-    assert_equal "", fetcher.fetch{|px, cx|false}
-    assert_equal "text", fetcher.fetch{|px, cx|IDENTIFIER.index(cx)}
-    assert_equal " = ", (0..2).map{|x|fetcher.fetch}.join
-    assert_equal '"', fetcher.fetch
-    assert_equal "Hello world...", fetcher.fetch{|px, cx|cx != "\""}
-    assert_equal '"', fetcher.fetch
-    assert_equal "\r\nputs text\r\n", fetcher.fetch{|px, cx|true}
-    assert_equal nil, fetcher.fetch
-    assert_equal nil, fetcher.fetch{|px, cx|true}
+  def test_functionalities
+    #(todo)#test all methods: empty? eob?, element, next, prev, last, fetch
+    #(todo)#test attributes: items, len, pos
+  end
+  def test_fetch_string
+    test_code = "a+b=215.0"
+    fetcher = Elang::FetcherV2.new(test_code)
+    assert_equal test_code, fetcher.items
+    (0...test_code.length).each{|x|assert_equal test_code[x, 1], fetcher.fetch}
+  end
+  def test_fetch_array
+    #(todo)#test fetch array
   end
 end

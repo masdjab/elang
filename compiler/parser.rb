@@ -98,7 +98,7 @@ module Elang
       cpos = @fetcher.pos
       text = ""
       
-      while char = @fetcher.char
+      while char = @fetcher.element
         if " \t".index(char)
           text << @fetcher.fetch
         else
@@ -112,13 +112,13 @@ module Elang
       lnfd = 13.chr + 10.chr
       type = nil
       cpos = @fetcher.pos
-      char = @fetcher.char
+      char = @fetcher.element
       text = ""
       
       if char == lnfd[0]
         text << @fetcher.fetch
         
-        if @fetcher.char == lnfd[1]
+        if @fetcher.element == lnfd[1]
           text << @fetcher.fetch
           type = :crlf
         else
@@ -135,7 +135,7 @@ module Elang
       cpos = @fetcher.pos
       text = @fetcher.fetch
       
-      while char = @fetcher.char
+      while char = @fetcher.element
         if (13.chr + 10.chr).index(char)
           break
         else
@@ -149,7 +149,7 @@ module Elang
       cpos = @fetcher.pos
       text = ""
       
-      while char = @fetcher.char
+      while char = @fetcher.element
         if IDENTIFIER.index(char.downcase)
           text << @fetcher.fetch
         else
@@ -162,7 +162,7 @@ module Elang
     def _parse_string
       text = ""
       cpos = @fetcher.pos
-      quote = @fetcher.char
+      quote = @fetcher.element
       
       while char = @fetcher.fetch
         if (char == quote) && !text.empty?
@@ -179,7 +179,7 @@ module Elang
       text = ""
       cpos = @fetcher.pos
       
-      while char = @fetcher.char
+      while char = @fetcher.element
         if NUMBERS.index(char)
           text << @fetcher.fetch
         elsif char == "."
@@ -230,7 +230,7 @@ module Elang
       text = @fetcher.fetch
       type = :assign
       
-      if @fetcher.char == "="
+      if @fetcher.element == "="
         text << @fetcher.fetch
         type = :equal
       end
@@ -242,7 +242,7 @@ module Elang
       text = @fetcher.fetch
       type = :lt
       
-      if @fetcher.char == "="
+      if @fetcher.element == "="
         text << @fetcher.fetch
         type = :le
       end
@@ -254,7 +254,7 @@ module Elang
       text = @fetcher.fetch
       type = :gt
       
-      if @fetcher.char == "="
+      if @fetcher.element == "="
         text << @fetcher.fetch
         type = :ge
       end
@@ -266,7 +266,7 @@ module Elang
       tmap = {"&" => :and, "&&" => :dbland, "|" => :or, "||" => :dblor}
       text = @fetcher.fetch
       
-      if @fetcher.char == text
+      if @fetcher.element == text
         text << @fetcher.fetch
       end
       
@@ -309,7 +309,7 @@ module Elang
       @code_lines = _detect_lines(code)
       raw_tokens = []
       
-      while char = @fetcher.char
+      while char = @fetcher.element
         if " \t".index(char)
           raw_tokens << _parse_whitespace
         elsif [13.chr, 10.chr].include?(char)

@@ -65,6 +65,21 @@ class TestLexer < Test::Unit::TestCase
   end
   def test_multiline_expression
     # check_expression "x = 32 + 5\nputs x\n", "[=,x,[+,32,5]]"
+    
+    source = <<EOS
+def tambah(a, b)
+  a + b
+end
+
+a = tambah(4, 3)
+EOS
+    
+    check_expression \
+      source, 
+      [
+        ["def",nil,"tambah",["a","b"],[["+","a","b"]]], 
+        ["=","a",["tambah",["4","3"]]]
+      ]
   end
   def test_multiline_complex_expression
     source = <<EOS

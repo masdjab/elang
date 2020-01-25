@@ -183,6 +183,19 @@ class TestCodeGenerator < Test::Unit::TestCase
     assert_equal "b", codeset.symbols.items[4].name
   end
   def test_simple_function_call
+    check_code_result \
+      [
+        [
+          idt("def"),nil,idt("tambah"),fnp("a","b"),
+          [
+            [plus,idt("a"),idt("b")]
+          ]
+        ], 
+        [asn,idt("a"),[idt("tambah"),[num("4"),num("3")]]]
+      ], 
+      bin("B8070050B8090050E80000A30000"), 
+      bin("5589E58B4600508B460050E800005DC20400")
+    
     # mov ax, 03h; push ax; call multiply_by_two
     codeset = 
       check_code_result \

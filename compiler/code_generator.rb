@@ -90,9 +90,27 @@ module Elang
       receiver
     end
     def register_instance_variable(name)
-      receiver = InstanceVariable.new(current_scope, name)
-      @codeset.symbols.add receiver
+      scope = Scope.new(current_scope.cls)
+      ivars = @codeset.symbols.items.select{|x|(x.scope.cls == scope.cls) && x.is_a?(InstanceVariable)}
+      
+      if (receiver = ivars.find{|x|x.name == name}).nil?
+        index = ivars.inject(0){|a,b|b.index >= a ? b.index + 1 : a}
+        receiver = InstanceVariable.new(scope, name, index)
+        @codeset.symbols.add receiver
+      end
+      
       receiver
+    end
+    def register_class(name, parent)
+      scope = Scope.new
+      clist = @codeset.symbols.items.select{|x|x.is_a?(Class)}
+      
+      if (cls = clist.find{|x|x.name == name}).nil?
+        idx = clist.inject(0){|a,b|b.index >= a ? b.index + 1 : a}
+        @codeset.symbols.add(cls = Class.new(scope, name, parent, idx))
+      end
+      
+      cls
     end
     def register_class_variable(name)
       receiver = ClassVariable.new(current_scope, name)
@@ -125,7 +143,8 @@ module Elang
           raise "Class #{active_scope.cls} is not defined"
         else
           add_variable_ref symbol, code_len + 1
-          add_variable_ref cls, code_len + 5
+          #(todo)#push self
+          #add_variable_ref _self, code_len + 5
           add_function_ref SYS_FUNCTIONS[:get_obj_var], code_len + 9
           append_code hex2bin("B8000050B8000050E80000")
         end
@@ -158,8 +177,9 @@ module Elang
         elsif (cls = @codeset.symbols.find_exact(Scope.new, active_scope.cls)).nil?
           raise "Class #{active_scope.cls} is not defined"
         else
-          add_variable_ref symbol, code_len + 1
-          add_variable_ref cls, code_len + 5
+          add_variable_ref symbol, code_len + 2
+          #(todo)#push self
+          #add_variable_ref _self, code_len + 6
           add_function_ref SYS_FUNCTIONS[:set_obj_var], code_len + 10
           append_code hex2bin("50B8000050B8000050E80000")
         end
@@ -286,11 +306,12 @@ module Elang
       active_scope = current_scope
       rcvr_name = node[1] ? node[1].text : nil
       func_name = node[2].text
-      func_args = node[3]
+      func_args = node[3] ? node[3] : []
       
       prepare_arguments func_args
       append_code hex2bin("B8000050A1000050")
       append_code hex2bin("E80000")
+puts "handle_send #{rcvr_name}, #{func_name}, [#{func_args.map{|x|x.text}.join(", ")}]"
     end
     def handle_class_def(nodes)
       cls_name = nodes[1].text
@@ -379,8 +400,7 @@ module Elang
               if !(active_scope = current_scope).cls.nil?
                 raise "Class cannot be nested"
               else
-                cls_object = Class.new(active_scope, cls_name, cls_parent)
-                @codeset.symbols.add cls_object
+                cls_object = register_class(cls_name, cls_parent)
                 enter_scope Scope.new(cls_name)
                 detect_names cls_body
                 leave_scope

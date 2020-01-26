@@ -19,12 +19,14 @@ module Elang
             if symbol.is_a?(Constant)
               resolve_value = (symbol.index - 1) * 2
               code[ref.location, 2] = Utils::Converter.int_to_word(resolve_value)
-            elsif symbol.is_a?(Variable)
-              resolve_value = (symbol.index - 1) * 2
-              code[ref.location, 2] = Utils::Converter.int_to_word(resolve_value)
             elsif symbol.is_a?(FunctionParameter)
               resolve_value = (symbol.index + 2) * 2
               code[ref.location, 1] = Utils::Converter.int_to_byte(resolve_value)
+            elsif symbol.is_a?(Variable)
+              resolve_value = (symbol.index - 1) * 2
+              code[ref.location, 2] = Utils::Converter.int_to_word(resolve_value)
+            elsif symbol.is_a?(InstanceVariable)
+              code[ref.location, 2] = Utils::Converter.int_to_word(symbol.index)
             elsif symbol.is_a?(Function)
               resolve_value = symbol.offset - (origin + ref.location + 2)
               code[ref.location, 2] = Utils::Converter.int_to_word(resolve_value)
@@ -35,6 +37,8 @@ module Elang
                 resolve_value = sys_function[:offset] - (origin + ref.location + 2)
                 code[ref.location, 2] = Utils::Converter.int_to_word(resolve_value)
               end
+            elsif symbol.is_a?(Class)
+puts "Resolving class '#{symbol.name}', index: #{symbol.index}"
             else
               raise "Cannot resolve reference to symbol of type '#{symbol.class}'"
             end

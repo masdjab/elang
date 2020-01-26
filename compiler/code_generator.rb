@@ -302,6 +302,7 @@ module Elang
     end
     def handle_send(node)
       # [., receiver, name, args]
+      #(todo)#send parameters
       
       active_scope = current_scope
       rcvr_name = node[1] ? node[1].text : nil
@@ -309,8 +310,7 @@ module Elang
       func_args = node[3] ? node[3] : []
       
       prepare_arguments func_args
-      append_code hex2bin("B8000050A1000050")
-      append_code hex2bin("E80000")
+      append_code hex2bin("B8000050A1000050E80000")
 puts "handle_send #{rcvr_name}, #{func_name}, [#{func_args.map{|x|x.text}.join(", ")}]"
     end
     def handle_class_def(nodes)

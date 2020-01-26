@@ -148,6 +148,10 @@ _set_obj_var:
   pop bp
   ret
   
+_send_to_object:
+  ; dummy function
+  ret 4
+  
 _putchr:
   ; input: int = 10, ah = 14, al = character code, bh = page number (text mode), bl = foreground pixel (graphic mode)
   push ax

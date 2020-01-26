@@ -10,10 +10,8 @@ module Elang
     
     def initialize
       Constant.reset_index
-      Class.reset_index
       Function.reset_index
       Variable.reset_index
-      InstanceVariable.reset_index
       ClassVariable.reset_index
       ClassFunction.reset_index
       
@@ -28,7 +26,9 @@ module Elang
         if x.name == name
           if x.scope.to_s == context.to_s
             alt1 = x
-          elsif x.is_a?(Elang::Function) && (x.scope.cls == context.cls)
+          elsif x.is_a?(InstanceVariable) && (x.scope.cls == context.cls)
+            alt1 = x
+          elsif x.is_a?(Function) && (x.scope.cls == context.cls)
             alt2 = x
           elsif x.scope.root?
             alt3 = x

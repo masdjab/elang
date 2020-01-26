@@ -25,7 +25,8 @@ module Elang
         :and          => SystemFunction.new("_int_and"), 
         :or           => SystemFunction.new("_int_or"), 
         :get_obj_var  => SystemFunction.new("_get_obj_var"), 
-        :set_obj_var  => SystemFunction.new("_set_obj_var")
+        :set_obj_var  => SystemFunction.new("_set_obj_var"), 
+        :send_to_obj  => SystemFunction.new("_send_to_object")
       }
     
     attr_reader :symbols, :symbol_refs
@@ -302,7 +303,6 @@ module Elang
     end
     def handle_send(node)
       # [., receiver, name, args]
-      #(todo)#send parameters
       
       active_scope = current_scope
       rcvr_name = node[1] ? node[1].text : nil
@@ -310,7 +310,25 @@ module Elang
       func_args = node[3] ? node[3] : []
       
       prepare_arguments func_args
-      append_code hex2bin("B8000050A1000050E80000")
+      #(todo)#push args count (?)
+      #(todo)#push object method id
+      
+      # push receiver object
+      if rcvr_name.nil?
+        if active_scope.cls.nil?
+          raise "Send without receiver"
+        else
+          append_code hex2bin("8B460450")
+        end
+      elsif (receiver = @codeset.symbols.find_nearest(active_scope, rcvr_name)).nil?
+        raise "Undefined symbol '#{rcvr_name}' in scope '#{active_scope.to_s}'"
+      else
+        add_variable_ref receiver, code_len + 1
+        append_code hex2bin("B8000050")
+      end
+      
+      add_function_ref SYS_FUNCTIONS[:send_to_obj], code_len + 1
+      append_code hex2bin("E80000")
 puts "handle_send #{rcvr_name}, #{func_name}, [#{func_args.map{|x|x.text}.join(", ")}]"
     end
     def handle_class_def(nodes)

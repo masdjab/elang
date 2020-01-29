@@ -1,6 +1,6 @@
 dw code
 
-dw 10
+dw 11
 
 dw _int_add, 8
   db "_int_add"
@@ -18,6 +18,8 @@ dw _get_obj_var, 12
   db "_get_obj_var"
 dw _set_obj_var, 12
   db "_set_obj_var"
+dw _send_to_object, 15
+  db "_send_to_object"
 dw _puts, 4
   db "puts"
 dw _getch, 5

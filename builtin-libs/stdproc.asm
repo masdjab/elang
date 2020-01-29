@@ -118,29 +118,40 @@ _int_or:
   ret 4
   
 _get_obj_var:
+  ; input: object, var-index
   push bp
   mov bp, sp
   push si
   mov si, [bp + 4]
-  add si, [bp + 6]
+  mov ax, [bp + 6]
+  shl ax, 1
+  add si, ax
   mov ax, [si]
   pop si
   pop bp
   ret
   
 _set_obj_var:
+  ; input: object, var-index, value
   push bp
   mov bp, sp
   push ax
   push si
   mov si, [bp + 4]
-  add si, [bp + 6]
-  mov ax, [bp + 4]
+  add ax, [bp + 6]
+  shl ax, 1
+  add si, ax
+  mov ax, [bp + 8]
   mov [si], ax
   pop si
   pop ax
   pop bp
   ret
+  
+_send_to_object:
+  ; dummy function
+  ; input: object, method id, argument
+  ret 6
   
 _putchr:
   ; input: int = 10, ah = 14, al = character code, bh = page number (text mode), bl = foreground pixel (graphic mode)

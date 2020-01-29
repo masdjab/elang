@@ -19,7 +19,7 @@ class Person
   end
 end
 
-class Programmer
+class Programmer < Person
   def set_lang(lang)
     @lang = lang
   end

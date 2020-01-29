@@ -259,12 +259,12 @@ module Elang
       func_body = node[4]
       
       #(todo)#count variable_count
+      enter_scope Scope.new(active_scope.cls, func_name)
+      
       function = @codeset.symbols.find_exact(active_scope, func_name)
       function.offset = code_len
       variable_count = 0
       params_count = func_args.count + (rcvr_name ? 2 : 0)
-      
-      enter_scope Scope.new(active_scope.cls, func_name)
       
       # push bp; mov bp, sp
       append_code hex2bin("55" + "89E5")

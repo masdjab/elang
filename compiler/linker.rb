@@ -1,4 +1,5 @@
 require './utils/converter'
+require './compiler/codeset_tool'
 
 module Elang
   class Linker
@@ -10,6 +11,7 @@ module Elang
     def hex2bin(h)
       Utils::Converter.hex_to_bin(h)
     end
+=begin
     def create_class_id(original_id)
       original_id + 5
     end
@@ -39,7 +41,7 @@ module Elang
     def build_function_dispatcher(codeset)
       options = 
         {
-          :primitive_classes  => ["Integer", "NilClass", "TrueClass", "FalseClass"], 
+          :root_classes       => ["Integer", "NilClass", "TrueClass", "FalseClass", "Object"], 
           :base_function_id   => 10, 
           :functions          => get_function_names(codeset)
         }
@@ -62,6 +64,7 @@ module Elang
       
       puts classes.inspect
     end
+=end
     def resolve_references(type, code, refs, origin)
       if !code.empty?
         refs.each do |ref|
@@ -120,7 +123,8 @@ puts "Resolving class '#{symbol.name}', index: #{symbol.index}"
       @library_code = buff[head_size...-1]
     end
     def link(codeset)
-      build_function_dispatcher codeset
+      cs_tool = CodesetTool.new(codeset)
+      classes = cs_tool.get_classes_hierarchy
       
       main_code = codeset.main_code + Elang::Utils::Converter.hex_to_bin("CD20")
       libs_code = @library_code

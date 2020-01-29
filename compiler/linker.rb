@@ -11,60 +11,6 @@ module Elang
     def hex2bin(h)
       Utils::Converter.hex_to_bin(h)
     end
-=begin
-    def create_class_id(original_id)
-      original_id + 5
-    end
-    def get_function_names(codeset)
-      codeset.symbols.items.select{|x|x.is_a?(Function)}.map{|x|x.name}.uniq
-    end
-    def get_instance_vars(codeset, cls)
-      if cls.parent
-        parent = codeset.symbols.items.find{|x|x.is_a?(Class) && (x.name == cls.parent)}
-        parent_iv = get_instance_vars(codeset, parent)
-      else
-        parent_iv = []
-      end
-      
-      self_iv = codeset.symbols.items.select{|x|x.is_a?(InstanceVariable) && (x.scope.cls == cls.name)}.map{|x|x.name}
-      
-      parent_iv + self_iv
-    end
-    def get_instance_methods(codeset, cls, options)
-      base_function_id = options[:base_function_id]
-      functions = options[:functions]
-      
-      codeset.symbols.items
-        .select{|x|x.is_a?(Function) && (x.scope.cls == cls.name) && x.receiver.nil?}
-        .map{|x|{id: base_function_id + functions.index(x.name), name: x.name, offset: x.offset}}
-    end
-    def build_function_dispatcher(codeset)
-      options = 
-        {
-          :root_classes       => ["Integer", "NilClass", "TrueClass", "FalseClass", "Object"], 
-          :base_function_id   => 10, 
-          :functions          => get_function_names(codeset)
-        }
-      
-      classes = {}
-      
-      codeset.symbols.items.each do |s|
-        if s.is_a?(Class)
-          if !classes.key?(s.name)
-            classes[s.name] = 
-              {
-                :clsid  => create_class_id(s.index), 
-                :parent => s.parent, 
-                :i_vars => get_instance_vars(codeset, s), 
-                :i_funs => get_instance_methods(codeset, s, options)
-              }
-          end
-        end
-      end
-      
-      puts classes.inspect
-    end
-=end
     def resolve_references(type, code, refs, origin)
       if !code.empty?
         refs.each do |ref|

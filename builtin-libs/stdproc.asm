@@ -150,7 +150,8 @@ _set_obj_var:
   
 _send_to_object:
   ; dummy function
-  ret 4
+  ; input: object, method id, argument
+  ret 6
   
 _putchr:
   ; input: int = 10, ah = 14, al = character code, bh = page number (text mode), bl = foreground pixel (graphic mode)

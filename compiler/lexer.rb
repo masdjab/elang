@@ -95,17 +95,13 @@ module Elang
         class_name = name_node.text
       end
       
-      supername = ""
-      if test_node = fetcher.next
-        if test_node.text == "<"
-          x = fetcher.fetch
-          if (super_node = fetcher.fetch).nil?
-            raise_error "Expected superclass name"
-          elsif super_node.type != :identifier
-            raise_error "Expected superclass name"
-          else
-            supername = super_node.text
-          end
+      super_node = nil
+      if (test_node = fetcher.element).text == "<"
+        x = fetcher.fetch
+        if (super_node = fetcher.fetch).nil?
+          raise_error "Expected superclass name"
+        elsif super_node.type != :identifier
+          raise_error "Expected superclass name"
         end
       end
       

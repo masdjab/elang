@@ -16,10 +16,10 @@ module Elang
       
       @functions
     end
-    def get_instance_vars(cls)
+    def get_instance_variables(cls)
       if cls.parent
         parent = @codeset.symbols.items.find{|x|x.is_a?(Class) && (x.name == cls.parent)}
-        parent_iv = get_instance_vars(parent)
+        parent_iv = get_instance_variables(parent)
       else
         parent_iv = []
       end
@@ -45,14 +45,14 @@ module Elang
               {
                 :clsid  => create_class_id(s.index), 
                 :parent => s.parent, 
-                :i_vars => get_instance_vars(s), 
+                :i_vars => get_instance_variables(s), 
                 :i_funs => get_instance_methods(s)
               }
           end
         end
       end
       
-      puts classes.inspect
+      classes
     end
   end
 end

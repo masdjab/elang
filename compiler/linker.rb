@@ -6,6 +6,7 @@ module Elang
     private
     def initialize
       @system_functions = {}
+      @classes = {}
       @library_code = ""
     end
     def hex2bin(h)
@@ -27,7 +28,13 @@ module Elang
               resolve_value = (symbol.index - 1) * 2
               code[ref.location, 2] = Utils::Converter.int_to_word(resolve_value)
             elsif symbol.is_a?(InstanceVariable)
-              code[ref.location, 2] = Utils::Converter.int_to_word(symbol.index)
+              if (clsinfo = @classes[symbol.scope.cls]).nil?
+                raise "Cannot find class '#{symbol.scope.cls}' in class info list"
+              elsif (index = clsinfo[:i_vars].index(symbol.name)).nil?
+                raise "Cannot find instance variable '#{symbol.name}' in '#{symbol.scope.cls}' class info"
+              else
+                code[ref.location, 2] = Utils::Converter.int_to_word(index)
+              end
             elsif symbol.is_a?(Function)
               resolve_value = symbol.offset - (origin + ref.location + 2)
               code[ref.location, 2] = Utils::Converter.int_to_word(resolve_value)
@@ -46,6 +53,19 @@ puts "Resolving class '#{symbol.name}', index: #{symbol.index}"
           end
         end
       end
+    end
+    def build_class_hierarchy(codeset)
+      cs_tool = CodesetTool.new(codeset)
+      @classes = cs_tool.get_classes_hierarchy
+    end
+    def build_cls_method_dispatcher
+      #(todo)#build class methods dispatcher
+    end
+    def build_obj_method_dispatcher
+      #(todo)#build object methods dispatcher
+      
+      table_code = ""
+      mapper_code = ""
     end
     
     public
@@ -69,8 +89,10 @@ puts "Resolving class '#{symbol.name}', index: #{symbol.index}"
       @library_code = buff[head_size...-1]
     end
     def link(codeset)
-      cs_tool = CodesetTool.new(codeset)
-      classes = cs_tool.get_classes_hierarchy
+      build_class_hierarchy codeset
+puts @classes.inspect
+      build_cls_method_dispatcher
+      build_obj_method_dispatcher
       
       main_code = codeset.main_code + Elang::Utils::Converter.hex_to_bin("CD20")
       libs_code = @library_code

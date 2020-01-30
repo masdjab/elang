@@ -266,8 +266,10 @@ module Elang
       variable_count = 0
       params_count = func_args.count + (rcvr_name ? 2 : 0)
       
-      # push bp; mov bp, sp
-      append_code hex2bin("55" + "89E5")
+      if active_scope.cls.nil?
+        # push bp; mov bp, sp
+        append_code hex2bin("55" + "89E5")
+      end
       
       if variable_count > 0
         # sub sp, nn
@@ -284,9 +286,14 @@ module Elang
       # pop bp
       append_code hex2bin("5D")
       
-      # ret [n]
-      hex_code = (params_count > 0 ? "C2#{Elang::Utils::Converter.int_to_whex_be(params_count * 2).upcase}" : "C3")
-      append_code hex2bin(hex_code)
+      if active_scope.cls.nil?
+        # ret [n]
+        hex_code = (params_count > 0 ? "C2#{Elang::Utils::Converter.int_to_whex_be(params_count * 2).upcase}" : "C3")
+        append_code hex2bin(hex_code)
+      else
+        append_code hex2bin("C3")
+      end
+      
       leave_scope
     end
     def handle_function_call(node)

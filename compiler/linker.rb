@@ -62,10 +62,86 @@ puts "Resolving class '#{symbol.name}', index: #{symbol.index}"
       #(todo)#build class methods dispatcher
     end
     def build_obj_method_dispatcher
+      code_offset = 0x200
+      
+      invalid_class_handler_hex = "C3"
+      invalid_method_handler_hex = "C3"
+      
+      
+      class_selector = []
+      method_selector = []
+      class_selector << ["56", "  push si"]
+      class_selector << ["8B7604", "  mov si, [bp + 4]"]
+      class_selector << ["8B04", "  mov ax, [si]"]
+      class_selector << ["5E", "  pop si"]
+      @classes.each do |key, cls|
+        class_selector << ["83F800", "  cmp ax, #{cls[:clsid]}"]
+        class_selector << ["0F840000", "  jz method_selector_#{key.downcase}"]
+        method_selector << ["", "method_selector_#{key.downcase}:"]
+        method_selector << ["8B4606", "  mov ax, [bp + 6]"]
+        method_selector << ["", "first_method_#{key.downcase}:"]
+        cls[:i_funs].each do |f|
+          method_selector << ["83F800", "  cmp ax, #{f[:id]}"]
+          method_selector << ["0F840000", "  jz #{key.downcase}_obj_#{f[:name]}"]
+        end
+        
+        if cls[:parent]
+          method_selector << ["E90000", "  jmp first_method_#{cls[:parent].downcase}"]
+        else
+          method_selector << ["E90000", "  jmp object_method_not_found"]
+        end
+      end
+      class_selector << ["E90000", "  jmp invalid_class_id"]
+      class_selector_mnemonic = class_selector.map{|x|x[1]}
+      method_selector_mnemonic = method_selector.map{|x|x[1]}
+      mapper_method = (class_selector_mnemonic + method_selector_mnemonic).join("\r\n")
+      puts "object_method_mapper:"
+      puts mapper_method
+      
+      
+      hex_code = ""
+      
       #(todo)#build object methods dispatcher
       
-      table_code = ""
-      mapper_code = ""
+      #  ; args: object, method-id, args-count, *args
+      hex_code += 
+        [
+          "5589E5"                #  push bp; mov bp, sp
+        ].join
+      
+      hex_code += 
+        [
+          "B800005053"            #  mov ax, _dom_method_executed, push ax; push dx
+          #  mov ax, [bp + 6]
+          #  cmp ax, 1
+          #  mov dx, obj_method_1_1
+          #  jz _dom_method_set
+          #  cmp ax, 2
+          #  mov dx, obj_method_1_2
+          #  jz _dom_method_set
+          #  cmp ax, 3
+          #  mov dx, obj_method_2_1
+          #  jz _dom_method_set
+          #  cmp ax, 4
+          #  mov dx, obj_method_2_2
+          #  jz _dom_method_set
+          #  mov dx, obj_no_method
+          #_dom_method_set:
+          #  xchg ax, dx; pop dx; push ax; ret
+        ].join
+      
+      #_dom_method_executed:
+      hex_code += 
+        [
+          "505689EE",               #  push ax; push si; mov si, bp
+          "8B460883C004D1E001C6",   #  mov ax, [bp + 8]; add ax, 4; shl ax, 1; add si, ax
+          "8B460287EE894600",       #  mov ax, [bp + 2]; xchg bp, si; mov [bp], ax
+          "87EE897602",             #  xchg bp, si; mov [bp + 2], si
+          "5E585D",                 #  pop si; pop ax; pop bp
+          "5CC3"                    #  pop sp; ret
+        ].join
+      
+      hex2bin hex_code
     end
     
     public

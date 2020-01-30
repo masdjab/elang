@@ -10,6 +10,10 @@ obj_wrong_args_count:
   mov ax, 4002h
   ret
   
+obj_invalid_class_id:
+  mov ax, 4003h
+  ret
+  
 obj_method_1_1:
   ; args: 0
   mov ax, 8001h
@@ -34,31 +38,19 @@ dispatch_obj_method:
   ; args: object, method-id, args-count, *args
   push bp
   mov bp, sp
-  
-  mov ax, _dom_method_executed
+  mov ax, _dispatch_object_method_return_to_caller
   push ax
-  push dx
-  mov ax, [bp + 6]
-  cmp ax, 1
-  mov dx, obj_method_1_1
-  jz _dom_method_set
-  cmp ax, 2
-  mov dx, obj_method_1_2
-  jz _dom_method_set
-  cmp ax, 3
-  mov dx, obj_method_2_1
-  jz _dom_method_set
-  cmp ax, 4
-  mov dx, obj_method_2_2
-  jz _dom_method_set
-  mov dx, obj_no_method
-_dom_method_set:
-  xchg ax, dx
-  pop dx
+  
+  push si
+  mov si, [bp + 4]
+  mov ax, [si]
+  pop si
+  ; get handler address based on object type and method id
+  ; store the result in ax
   push ax
   ret
   
-_dom_method_executed:
+_dispatch_object_method_return_to_caller:
   push ax
   push si
   mov si, bp

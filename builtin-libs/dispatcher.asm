@@ -76,7 +76,8 @@ _dom_method_executed:
   pop bp
   pop sp
   ret
-
+  
+  
 main:
   mov dx, 100h
   mov bx, 33h

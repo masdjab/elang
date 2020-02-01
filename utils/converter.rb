@@ -36,6 +36,15 @@ module Elang
         t = "000#{value.to_s(16)}"[-4..-1]
         "0" * (4 - t.length) + t
       end
+      def self.int_to_bhex_rev(value)
+        t = "0#{value.to_s(16)}"[-2..-1]
+        "0" * (2 - t.length) + t
+      end
+      def self.int_to_whex_rev(value)
+        hi = (value & 0xff00) >> 8
+        lo = value & 0xff
+        self.int_to_bhex_rev(lo) + self.int_to_bhex_rev(hi)
+      end
       def self.int_to_bhex_be(value)
         self.int_to_byte(value).bytes.map{|x|self.int_to_bhex(x.ord)}.join
       end

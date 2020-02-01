@@ -3,6 +3,7 @@ require './compiler/class'
 require './compiler/function'
 require './compiler/system_function'
 require './compiler/function_parameter'
+require './compiler/function_id'
 require './compiler/variable'
 require './compiler/instance_variable'
 require './compiler/class_variable'
@@ -67,6 +68,9 @@ module Elang
     end
     def add_function_ref(symbol, location)
       @codeset.symbol_refs << FunctionRef.new(symbol, current_scope, location, code_type)
+    end
+    def add_function_id_ref(symbol, location)
+      @codeset.symbol_refs << FunctionIdRef.new(symbol, current_scope, location, code_type)
     end
     def get_string_constant(str)
       if (symbol = @codeset.symbols.find_str(str)).nil?
@@ -316,27 +320,39 @@ module Elang
       func_name = node[2].text
       func_args = node[3] ? node[3] : []
       
-      prepare_arguments func_args
-      #(todo)#push args count (?)
-      #(todo)#push object method id
-      
-      # push receiver object
-      if rcvr_name.nil?
-        if active_scope.cls.nil?
-          raise "Send without receiver"
-        else
-          append_code hex2bin("8B460450")
-        end
-      elsif (receiver = @codeset.symbols.find_nearest(active_scope, rcvr_name)).nil?
-        raise "Undefined symbol '#{rcvr_name}' in scope '#{active_scope.to_s}'"
+      if func_name == "new"
+        #(todo)#Class.new
+        append_code hex2bin("B80000")
       else
-        add_variable_ref receiver, code_len + 1
+        prepare_arguments func_args
+        
+        #push args count
+        append_code hex2bin("B8" + Utils::Converter.int_to_whex_rev(func_args.count) + "50")
+        
+        #(todo)#push object method id
+        function_id = FunctionId.new(current_scope, func_name)
+        add_function_id_ref function_id, code_len + 1
         append_code hex2bin("B8000050")
-      end
-      
-      add_function_ref SYS_FUNCTIONS[:send_to_obj], code_len + 1
-      append_code hex2bin("E80000")
+        
+        # push receiver object
+        if rcvr_name.nil?
+          if active_scope.cls.nil?
+            raise "Send without receiver"
+          else
+            append_code hex2bin("8B460450")
+          end
+        elsif (receiver = @codeset.symbols.find_nearest(active_scope, rcvr_name)).nil?
+          raise "Undefined symbol '#{rcvr_name}' in scope '#{active_scope.to_s}'"
+        else
+          add_variable_ref receiver, code_len + 1
+          append_code hex2bin("B8000050")
+        end
+        
+        # call _send_to_object
+        add_function_ref SYS_FUNCTIONS[:send_to_obj], code_len + 1
+        append_code hex2bin("E80000")
 puts "handle_send #{rcvr_name}, #{func_name}, [#{func_args.map{|x|x.text}.join(", ")}]"
+      end
     end
     def handle_class_def(nodes)
       cls_name = nodes[1].text

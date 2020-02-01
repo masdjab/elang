@@ -32,7 +32,7 @@ module Elang
         break if index.nil?
       end
       
-      tokens.reject{|x|x.type == :whitespace}
+      tokens.reject{|x|[:whitespace, :comment].include?(x.type)}
     end
     def raise_error(node, msg)
       rowcol_info = node ? " at #{node.row}, #{node.col}" : ""

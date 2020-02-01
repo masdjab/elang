@@ -19,6 +19,8 @@ module Elang
   class CodeGenerator
     SYS_FUNCTIONS = 
       {
+        :_int_pack    => SystemFunction.new("_int_pack"), 
+        :_int_unpack  => SystemFunction.new("_int_unpack"), 
         :plus         => SystemFunction.new("_int_add"), 
         :minus        => SystemFunction.new("_int_subtract"), 
         :star         => SystemFunction.new("_int_multiply"), 
@@ -134,7 +136,9 @@ module Elang
       append_code hex2bin("A10000")
     end
     def get_variable(name)
-      if (symbol = @codeset.symbols.find_nearest(active_scope = current_scope, name)).nil?
+      if name == "nil"
+        append_code hex2bin("B80000")
+      elsif (symbol = @codeset.symbols.find_nearest(active_scope = current_scope, name)).nil?
         raise "Cannot get value from '#{name}' , symbol not defined in scope '#{active_scope.to_s}'"
       elsif symbol.is_a?(FunctionParameter)
         # mov ax, [bp - n]
@@ -304,12 +308,16 @@ module Elang
       # push ax; call target
       func_name = node[0].text
       
-      if (function = @codeset.symbols.find_function(func_name)).nil?
-        raise "Call to undefined function '#{func_name}'"
-      else
+      if SYS_FUNCTIONS.key?(func_name.to_sym)
+        prepare_arguments node[1]
+        add_function_ref SystemFunction.new(func_name.to_sym), code_len + 1
+        append_code hex2bin("E80000")
+      elsif function = @codeset.symbols.find_function(func_name)
         prepare_arguments node[1]
         add_function_ref function, code_len + 1
         append_code hex2bin("E80000")
+      else
+        raise "Call to undefined function '#{func_name}'"
       end
     end
     def handle_send(node)
@@ -386,6 +394,8 @@ puts "handle_send #{rcvr_name}, #{func_name}, [#{func_args.map{|x|x.text}.join("
               elsif first_node.text.index("@")
                 register_instance_variable first_node.text
                 get_variable first_node.text
+              elsif SYS_FUNCTIONS.key?(first_node.text.to_sym)
+                handle_function_call node
               else
                 if (function = @codeset.symbols.find_nearest(current_scope, first_node.text)).nil?
                   raise "Call to undefined function '#{first_node.text}' from scope '#{current_scope.to_s}'"

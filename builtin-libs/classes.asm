@@ -67,75 +67,175 @@ print:
   int 21h
   ret
   
-; mem_block_init:
-  ; ; input: bx: variable, cx: size, dx: offset
-  ; xchg bx, dx
-  ; sub cx, 8
-  ; mov word [bx], 0                ; free flag
-  ; mov [bx + 2], cx                ; block data size
-  ; mov word [bx + 4], 0ffffh       ; prev block
-  ; mov word [bx + 6], 0ffffh       ; next block
-  ; xchg bx, dx
-  ; mov [bx], dx
-  ; ret
+mem_block_init:
+  ; input: offset, size, output: ax = address of first block
+  push bp
+  mov bp, sp
+  push cx
+  push dx
+  push bx
+  mov bx, [bp + 4]
+  mov dx, [bp + 6]
+  mov cx, [bp + 8]
+  xor ax, ax
+  mov [bx], ax          ; flag
+  mov [bx + 2], cx      ; data size
+  mov ax, 0ffffh
+  mov [bx + 4], ax      ; prev block
+  mov [bx + 6], ax      ; next block
+  pop bx
+  pop dx
+  pop cx
+  pop bp
+  ret 6
   
-; mem_block_data_offset:
-  ; ; input: bx; output: ax
-  ; lea ax, [bx + 8]
-  ; ret
+mem_find_free_block:
+  ; input: first block, size; output ax: address
+  push bp
+  mov bp, sp
+  push bx
+  mov bx, [bp + 4]
+_mem_find_free_block_check_current_block:
+  cmp word [bx], 0
+  jnz _mem_find_free_block_block_checked
+  mov ax, [bx + 2]
+  cmp ax, [bp + 6]
+  jc _mem_find_free_block_block_checked
+  mov ax, bx
+  jmp _mem_find_free_block_done
+_mem_find_free_block_block_checked:
+  mov bx, [bx + 6]
+  cmp bx, 0ffffh
+  jz _mem_find_free_block_check_current_block
+  mov ax, 0ffffh
+_mem_find_free_block_done:
+  pop bx
+  pop bp
+  ret 4
   
-; mem_find_free_block:
-  ; ; input: bx: first block, cx: size; output bx: address
-  ; cmp word [bx], 0
-  ; jnz _mem_find_free_block_block_checked
-  ; mov ax, [bx + 2]
-  ; cmp ax, cx
-  ; jc _mem_find_free_block_block_checked
-  ; mov bx, ax
-  ; ret
-; _mem_find_free_block_block_checked:
-  ; mov ax, [bx + 6]
-  ; cmp ax, 0ffffh
-  ; jz _mem_find_free_block_no_more_block
-  ; mov bx, ax
-  ; jmp mem_find_free_block
-; _mem_find_free_block_no_more_block:
-  ; mov bx, 0ffffh
-  ; ret
+mem_split_block:
+  ; input: block, size
+  push bp
+  mov bp, sp
+  push ax
+  push bx
+  push si
+  mov bx, [bp + 4]
+  mov ax, [bp + 6]
+  add ax, 10
+  cmp ax, [bx + 2]
+  jc _mem_splittable_block_done
+  mov ax, [bp + 6]
+  add ax, 8
+  add ax, bx
+  mov si, ax
+  xor ax, ax
+  mov [si], ax
+  mov ax, [bx + 2]
+  sub ax, [bp + 6]
+  sub ax, 8
+  mov [si + 2], ax
+  mov [si + 4], bx
+  mov ax, [bx + 6]
+  mov [si + 6], ax
+  mov ax, [bp + 6]
+  mov [bx + 2], ax
+  mov [bx + 6], si
+_mem_splittable_block_done:
+  pop si
+  pop bx
+  pop ax
+  pop bp
+  ret 4
+  
+mem_merge_free_block:
+  ; input: block
+  push bp
+  mov bp, sp
+  push ax
+  push bx
+  push si
+  mov bx, [bp + 4]
+  xor ax, ax
+  cmp ax, [bx]
+  jnz _mem_merge_free_block_done
+_mem_merge_free_block_find_head:
+  mov si, [bx + 4]
+  cmp si, 0ffffh
+  jz _mem_merge_free_block_do_merge
+  mov ax, [si]
+  test ax, ax
+  jz _mem_merge_free_block_do_merge
+  mov bx, si
+  jmp _mem_merge_free_block_find_head
+_mem_merge_free_block_do_merge:
+  mov si, [bx + 6]
+  cmp si, 0ffffh
+  jz _mem_merge_free_block_done
+  mov ax, [si]
+  test ax, ax
+  jnz _mem_merge_free_block_done
+  mov ax, [bx + 2]
+  add ax, [si + 2]
+  add ax, 8
+  mov [bx + 2], ax
+  mov ax, [si + 6]
+  mov [bx + 6], ax
+  mov bx, si
+  jmp _mem_merge_free_block_do_merge
+_mem_merge_free_block_done:
+  pop si
+  pop bx
+  pop ax
+  pop bp
+  ret 2
   
 mem_alloc:
-  ; ; input: bx: first block, cx: size; output: bx: block
-  ; call mem_find_free_block
-  ; cmp bx, 0ffffh
-  ; jnz _mem_alloc_found_free_block
-  ret
-; _mem_alloc_found_free_block:
-  ; mov ax, cx
-  ; add ax, 10
-  ; cmp [bx + 2], ax
-  ; jc _mem_alloc_split_done
-  ; mov ax, [bx + 2]
-  ; sub ax, cx
-  ; mov cx, [bx + 2]
-  ; mov [bx + 2], ax
-  ; sub cx, ax
-  ; sub cx, 8
-  ; mov si, bx
-  ; add si, ax
-  ; add si, 8
-  ; mov word [si], 0
-  ; mov [si + 2], cx
-  ; mov [si + 4], bx
-  ; mov ax, [bx + 6]
-  ; mov [si + 6], ax
-  ; mov [bx + 6], si
-; _mem_alloc_split_done:
-  ; mov word [bx], 1
-  ; ret
+  ; input: first_block, size; output: ax=address
+  push bp
+  mov bp, sp
+  push bx
+  mov ax, [bp + 6]
+  push ax
+  mov ax, [bp + 4]
+  push ax
+  call mem_find_free_block
+  cmp ax, 0ffffh
+  jz _mem_alloc_done
+  mov bx, ax
+  mov ax, [bp + 6]
+  push ax
+  push bx
+  call mem_split_block
+  xor ax, ax
+  mov [bx], ax
+  mov ax, bx
+_mem_alloc_done:
+  pop bx
+  pop bp
+  ret 4
   
 mem_dealloc:
-  ; input: bx: object
-  ret
+  ; input: block
+  push bp
+  mov bp, sp
+  push ax
+  push bx
+  mov bx, [bp + 4]
+  mov ax, [bx]
+  test ax, ax
+  jz _mem_dealloc_done
+  xor ax, ax
+  mov [bx], ax
+  push bx
+  call mem_merge_free_block
+_mem_dealloc_done:
+  pop bx
+  pop ax
+  pop bp
+  ret 2
+  
+  
   
 create_object_at:
   ; input: ax: clsid, cx: number_of_instance_variables, bx: address

@@ -20,6 +20,13 @@ module Elang
     def asm(code = "", desc = "")
       Assembly::Instruction.new(code, desc)
     end
+    def align_code(code, align_size = 16)
+      if (extra_size = (code.length % 16)) > 0
+        code = code + (0.chr * (16 - extra_size))
+      end
+      
+      code
+    end
     def resolve_references(type, code, refs, origin)
       if !code.empty?
         refs.each do |ref|
@@ -50,11 +57,11 @@ module Elang
               if symbol.name == "_send_to_object"
                 resolve_value = @dispatcher_offset - (origin + ref.location + 2)
                 code[ref.location, 2] = Utils::Converter.int_to_word(resolve_value)
-              elsif (sys_function = @system_functions[symbol.name]).nil?
-                raise "Undefined system function '#{symbol.name}'"
-              else
+              elsif sys_function = @system_functions[symbol.name.to_s]
                 resolve_value = sys_function[:offset] - (origin + ref.location + 2)
                 code[ref.location, 2] = Utils::Converter.int_to_word(resolve_value)
+              else
+                raise "Undefined system function '#{symbol.name}'"
               end
             elsif symbol.is_a?(FunctionId)
               resolve_value = @function_names.index(symbol.name) + 1
@@ -209,31 +216,56 @@ puts "Resolving class '#{symbol.name}', index: #{symbol.index}"
         read_offset = read_offset + name_length + 4
       end
       
-      @library_code = buff[head_size...-1]
+      @library_code = align_code(buff[head_size...-1], 16)
     end
     def link(codeset)
-      main_code = codeset.main_code + Elang::Utils::Converter.hex_to_bin("CD20")
+      head_code = align_code(hex2bin("B8000050C3"), 16)
       libs_code = @library_code
-      subs_code = codeset.subs_code
+      subs_code = align_code(codeset.subs_code, 16)
+      main_code = codeset.main_code + Elang::Utils::Converter.hex_to_bin("CD20")
+      head_size = head_code.length
       libs_size = libs_code.length
       subs_size = subs_code.length
-      head_size = (libs_size + subs_size) > 0 ? 5 : 0
+      main_size = main_code.length
       
       build_class_hierarchy codeset
 puts
 puts "classes:"
 puts @classes.inspect
       build_cls_method_dispatcher
-      asmcode = build_obj_method_dispatcher(head_size + libs_size, subs_size)
-      mapper_method = asmcode.instructions.map{|x|x.to_s}.join("\r\n")
+      asm = build_obj_method_dispatcher(head_size + libs_size, subs_size)
+      dispatcher_code = align_code(asm.code, 16)
+      dispatcher_size = dispatcher_code.length
+      mapper_method = asm.instructions.map{|x|x.to_s}.join("\r\n")
       puts
       puts "*** OBJECT METHOD MAPPER ***"
       puts mapper_method
       puts
       
-      main_offset = @code_origin + head_size + libs_size + subs_size + asmcode.code.length
-      jump_target = Elang::Utils::Converter.int_to_whex_be(main_offset)
-      head_code = hex2bin("B8#{jump_target}50C3")
+      
+      init_cmnd = 
+        [
+          "8CC8",     # mov ax, cs
+          "050000",   # add ax, 0
+          "8ED0",     # mov ss, ax
+          "8ED8"      # mov ds, ax
+        ]
+      init_code = hex2bin(init_cmnd.join)
+      init_size = init_code.length
+      ds_offset = head_size + libs_size + subs_size + dispatcher_size + init_size + main_size
+      
+      if (extra_size = (ds_offset % 16)) > 0
+        pad_count = 16 - extra_size
+        main_code = main_code + (0.chr * pad_count)
+        main_size = main_size + pad_count
+        ds_offset = ds_offset + pad_count
+      end
+      
+      init_code[3, 2] = Utils::Converter.int_to_word(ds_offset >> 4)
+      
+      
+      main_offset = @code_origin + head_size + libs_size + subs_size + dispatcher_size
+      head_code[1, 2] = Elang::Utils::Converter.int_to_word(main_offset)
       
       if libs_size > 0
         @system_functions.each do |k,v|
@@ -248,9 +280,9 @@ puts @classes.inspect
       end
       
       resolve_references :subs, subs_code, codeset.symbol_refs, head_size + libs_size
-      resolve_references :main, main_code, codeset.symbol_refs, head_size + libs_size + subs_size + asmcode.code.length
+      resolve_references :main, main_code, codeset.symbol_refs, head_size + libs_size + subs_size + dispatcher_size + init_size
       
-      head_code + libs_code + subs_code + asmcode.code + main_code
+      head_code + libs_code + subs_code + dispatcher_code + init_code + main_code
     end
   end
 end

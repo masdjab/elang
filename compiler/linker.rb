@@ -1,16 +1,24 @@
 require './utils/converter'
 require './compiler/codeset_tool'
+require './compiler/assembly_instruction'
+require './compiler/assembly_code_builder'
 
 module Elang
   class Linker
     private
     def initialize
+      @code_origin = 0x100
       @system_functions = {}
       @classes = {}
+      @function_names = []
       @library_code = ""
+      @dispatcher_offset = 0
     end
     def hex2bin(h)
       Utils::Converter.hex_to_bin(h)
+    end
+    def asm(code = "", desc = "")
+      Assembly::Instruction.new(code, desc)
     end
     def resolve_references(type, code, refs, origin)
       if !code.empty?
@@ -39,12 +47,18 @@ module Elang
               resolve_value = symbol.offset - (origin + ref.location + 2)
               code[ref.location, 2] = Utils::Converter.int_to_word(resolve_value)
             elsif symbol.is_a?(SystemFunction)
-              if (sys_function = @system_functions[symbol.name]).nil?
+              if symbol.name == "_send_to_object"
+                resolve_value = @dispatcher_offset - (origin + ref.location + 2)
+                code[ref.location, 2] = Utils::Converter.int_to_word(resolve_value)
+              elsif (sys_function = @system_functions[symbol.name]).nil?
                 raise "Undefined system function '#{symbol.name}'"
               else
                 resolve_value = sys_function[:offset] - (origin + ref.location + 2)
                 code[ref.location, 2] = Utils::Converter.int_to_word(resolve_value)
               end
+            elsif symbol.is_a?(FunctionId)
+              resolve_value = @function_names.index(symbol.name) + 1
+              code[ref.location, 2] = Utils::Converter.int_to_word(resolve_value)
             elsif symbol.is_a?(Class)
 puts "Resolving class '#{symbol.name}', index: #{symbol.index}"
             else
@@ -56,92 +70,125 @@ puts "Resolving class '#{symbol.name}', index: #{symbol.index}"
     end
     def build_class_hierarchy(codeset)
       cs_tool = CodesetTool.new(codeset)
+      @function_names = cs_tool.get_function_names
       @classes = cs_tool.get_classes_hierarchy
     end
     def build_cls_method_dispatcher
       #(todo)#build class methods dispatcher
     end
-    def build_obj_method_dispatcher
-      code_offset = 0x200
+    def build_obj_method_dispatcher(subs_offset, subs_length)
+      code_offset = {}
+      dispatcher_offset = subs_offset + subs_length
+      asmcode = Assembly::CodeBuilder.new
       
-      invalid_class_handler_hex = "C3"
-      invalid_method_handler_hex = "C3"
+      code_label = "handle_invalid_class_id"
+      code_offset[code_label] = asmcode.code.length
+      asmcode << asm("", "#{code_label}:")
+      asmcode << asm("C3", "  ret")
       
+      code_label = "handle_method_not_found"
+      code_offset[code_label] = asmcode.code.length
+      asmcode << asm("", "#{code_label}:")
+      asmcode << asm("C3", "  ret")
       
-      class_selector = []
-      method_selector = []
-      class_selector << ["56", "  push si"]
-      class_selector << ["8B7604", "  mov si, [bp + 4]"]
-      class_selector << ["8B04", "  mov ax, [si]"]
-      class_selector << ["5E", "  pop si"]
       @classes.each do |key, cls|
-        class_selector << ["83F800", "  cmp ax, #{cls[:clsid]}"]
-        class_selector << ["0F840000", "  jz method_selector_#{key.downcase}"]
-        method_selector << ["", "method_selector_#{key.downcase}:"]
-        method_selector << ["8B4606", "  mov ax, [bp + 6]"]
-        method_selector << ["", "first_method_#{key.downcase}:"]
+        code_label = "method_selector_#{key.downcase}"
+        code_offset[code_label] = asmcode.code.length
+        asmcode << asm("", "#{code_label}:")
+        asmcode << asm("8B4606", "  mov ax, [bp + 6]")
+        
+        code_label = "first_method_#{key.downcase}"
+        code_offset[code_label] = asmcode.code.length
+        asmcode << asm("", "#{code_label}:")
+        
         cls[:i_funs].each do |f|
-          method_selector << ["83F800", "  cmp ax, #{f[:id]}"]
-          method_selector << ["0F840000", "  jz #{key.downcase}_obj_#{f[:name]}"]
+          func_address = Utils::Converter.int_to_whex_rev(@code_origin + subs_offset + f[:offset]).upcase
+          asmcode << asm("83F8" + Utils::Converter.int_to_bhex_rev(f[:id]) + "7503", "  cmp ax, #{f[:id]}; jnz + 2")
+          asmcode << asm("B8#{func_address}C3", "  mov ax, #{key.downcase}_obj_#{f[:name]}; ret")
         end
         
         if cls[:parent]
-          method_selector << ["E90000", "  jmp first_method_#{cls[:parent].downcase}"]
+          code_label = "first_method_#{cls[:parent].downcase}"
+          jump_distance = code_offset[code_label] - (asmcode.code.length + 3)
+          jump_target = Utils::Converter.int_to_whex_rev(jump_distance).upcase
+          asmcode << asm("E9#{jump_target}", "  jmp #{code_label}")
         else
-          method_selector << ["E90000", "  jmp object_method_not_found"]
+          code_label = "handle_method_not_found"
+          code_address = @code_origin + dispatcher_offset + code_offset[code_label]
+          ax_value = Utils::Converter.int_to_whex_rev(code_address).upcase
+          asmcode << asm("B8#{ax_value}C3", "  mov ax, #{code_label}; ret")
         end
       end
-      class_selector << ["E90000", "  jmp invalid_class_id"]
-      class_selector_mnemonic = class_selector.map{|x|x[1]}
-      method_selector_mnemonic = method_selector.map{|x|x[1]}
-      mapper_method = (class_selector_mnemonic + method_selector_mnemonic).join("\r\n")
-      puts "object_method_mapper:"
-      puts mapper_method
       
       
-      hex_code = ""
+      asmcode << asm()
+      code_label = "find_obj_method_address"
+      code_offset[code_label] = asmcode.code.length
+      asmcode << asm("", "#{code_label}:")
       
-      #(todo)#build object methods dispatcher
+      @classes.each do |key, cls|
+        asmcode << asm("83F8" + Utils::Converter.int_to_bhex_rev(cls[:clsid]).upcase, "  cmp ax, #{cls[:clsid]}")
+        code_label = "method_selector_#{key.downcase}"
+        jump_distance = code_offset[code_label] - (asmcode.code.length + 4)
+        jump_target = Utils::Converter.int_to_whex_rev(jump_distance).upcase
+        asmcode << asm("0F84#{jump_target}", "  jz #{code_label}")
+      end
       
-      #  ; args: object, method-id, args-count, *args
-      hex_code += 
-        [
-          "5589E5"                #  push bp; mov bp, sp
-        ].join
+      code_label = "handle_invalid_class_id"
+      func_address = @code_origin + dispatcher_offset + code_offset[code_label]
+      ax_value = Utils::Converter.int_to_whex_rev(func_address).upcase
+      asmcode << asm("B8#{ax_value}C3", "  mov ax, #{code_label}; ret")
+      asmcode << asm()
       
-      hex_code += 
-        [
-          "B800005053"            #  mov ax, _dom_method_executed, push ax; push dx
-          #  mov ax, [bp + 6]
-          #  cmp ax, 1
-          #  mov dx, obj_method_1_1
-          #  jz _dom_method_set
-          #  cmp ax, 2
-          #  mov dx, obj_method_1_2
-          #  jz _dom_method_set
-          #  cmp ax, 3
-          #  mov dx, obj_method_2_1
-          #  jz _dom_method_set
-          #  cmp ax, 4
-          #  mov dx, obj_method_2_2
-          #  jz _dom_method_set
-          #  mov dx, obj_no_method
-          #_dom_method_set:
-          #  xchg ax, dx; pop dx; push ax; ret
-        ].join
+      code_label = "_return_to_caller"
+      code_offset[code_label] = asmcode.code.length
+      asmcode << asm("", "#{code_label}:")
+      asmcode << asm("50", "  push ax")
+      asmcode << asm("56", "  push si")
+      asmcode << asm("89EE", "  mov si, bp")
+      asmcode << asm("8B4608", "  mov ax, [bp + 8]")
+      asmcode << asm("83C004", "  add ax, 4")
+      asmcode << asm("D1E0", "  shl ax, 1")
+      asmcode << asm("01C6", "  add si, ax")
+      asmcode << asm("8B4602", "  mov ax, [bp + 2]")
+      asmcode << asm("87EE", "  xchg bp, si")
+      asmcode << asm("894600", "  mov [bp], ax")
+      asmcode << asm("87EE", "  xchg bp, si")
+      asmcode << asm("897602", "  mov [bp + 2], si")
+      asmcode << asm("5E", "  pop si")
+      asmcode << asm("58", "  pop ax")
+      asmcode << asm("5D", "  pop bp")
+      asmcode << asm("5C", "  pop sp")
+      asmcode << asm("C3", "  ret")
       
-      #_dom_method_executed:
-      hex_code += 
-        [
-          "505689EE",               #  push ax; push si; mov si, bp
-          "8B460883C004D1E001C6",   #  mov ax, [bp + 8]; add ax, 4; shl ax, 1; add si, ax
-          "8B460287EE894600",       #  mov ax, [bp + 2]; xchg bp, si; mov [bp], ax
-          "87EE897602",             #  xchg bp, si; mov [bp + 2], si
-          "5E585D",                 #  pop si; pop ax; pop bp
-          "5CC3"                    #  pop sp; ret
-        ].join
+      asmcode << asm()
+      code_label = "dispatch_obj_method"
+      code_offset[code_label] = asmcode.code.length
+      asmcode << asm("", "#{code_label}:")
+      asmcode << asm("55", "  push bp")
+      asmcode << asm("89E5", "  mov bp, sp")
+      code_label = "_return_to_caller"
+      code_address = @code_origin + dispatcher_offset + code_offset[code_label]
+      ax_value = Utils::Converter.int_to_whex_rev(code_address).upcase
+      asmcode << asm("B8#{ax_value}", "  mov ax, #{code_label}")
+      asmcode << asm("50", "  push ax")
+      asmcode << asm()
       
-      hex2bin hex_code
+      asmcode << asm("56", "  push si")
+      asmcode << asm("8B7604", "  mov si, [bp + 4]")
+      asmcode << asm("8B04", "  mov ax, [si]")
+      asmcode << asm("5E", "  pop si")
+      code_label = "find_obj_method_address"
+      call_distance = code_offset[code_label] - (asmcode.code.length + 3)
+      call_target = Utils::Converter.int_to_whex_rev(call_distance).upcase
+      asmcode << asm("E8#{call_target}", "  call #{code_label}")
+      asmcode << asm("50", "  push ax")
+      asmcode << asm("C3", "  ret")
+      asmcode << asm()
+      
+      @dispatcher_offset = dispatcher_offset + code_offset["dispatch_obj_method"]
+      
+      asmcode
     end
     
     public
@@ -165,24 +212,28 @@ puts "Resolving class '#{symbol.name}', index: #{symbol.index}"
       @library_code = buff[head_size...-1]
     end
     def link(codeset)
-      build_class_hierarchy codeset
-puts @classes.inspect
-      build_cls_method_dispatcher
-      build_obj_method_dispatcher
-      
       main_code = codeset.main_code + Elang::Utils::Converter.hex_to_bin("CD20")
       libs_code = @library_code
       subs_code = codeset.subs_code
       libs_size = libs_code.length
       subs_size = subs_code.length
+      head_size = (libs_size + subs_size) > 0 ? 5 : 0
       
-      if (libs_size + subs_size) > 0
-        head_code = hex2bin("E9" + Elang::Utils::Converter.int_to_whex_be(libs_size + subs_size))
-      else
-        head_code = ""
-      end
+      build_class_hierarchy codeset
+puts
+puts "classes:"
+puts @classes.inspect
+      build_cls_method_dispatcher
+      asmcode = build_obj_method_dispatcher(head_size + libs_size, subs_size)
+      mapper_method = asmcode.instructions.map{|x|x.to_s}.join("\r\n")
+      puts
+      puts "*** OBJECT METHOD MAPPER ***"
+      puts mapper_method
+      puts
       
-      head_size = head_code.length
+      main_offset = @code_origin + head_size + libs_size + subs_size + asmcode.code.length
+      jump_target = Elang::Utils::Converter.int_to_whex_be(main_offset)
+      head_code = hex2bin("B8#{jump_target}50C3")
       
       if libs_size > 0
         @system_functions.each do |k,v|
@@ -197,9 +248,9 @@ puts @classes.inspect
       end
       
       resolve_references :subs, subs_code, codeset.symbol_refs, head_size + libs_size
-      resolve_references :main, main_code, codeset.symbol_refs, head_size + libs_size + subs_size
+      resolve_references :main, main_code, codeset.symbol_refs, head_size + libs_size + subs_size + asmcode.code.length
       
-      head_code + libs_code + subs_code + main_code
+      head_code + libs_code + subs_code + asmcode.code + main_code
     end
   end
 end

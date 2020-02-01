@@ -1,5 +1,191 @@
 ; written by Heryudi Praja
 
+mem_block_init:
+  ; input: offset, size, output: ax = address of first block
+  push bp
+  mov bp, sp
+  push ax
+  push bx
+  mov bx, [bp + 4]
+  mov ax, [bp + 6]
+  cmp ax, 10
+  jc _mem_block_init_done
+  sub ax, 8
+  mov [bx + 2], ax      ; data size
+  mov ax, 0ffffh
+  mov [bx + 4], ax      ; prev block
+  mov [bx + 6], ax      ; next block
+  xor ax, ax
+  mov [bx], ax          ; flag
+_mem_block_init_done:
+  pop bx
+  pop ax
+  pop bp
+  ret 4
+  
+  
+mem_find_free_block:
+  ; input: first block, size; output ax: address
+  push bp
+  mov bp, sp
+  push bx
+  mov bx, [bp + 4]
+_mem_find_free_block_check_current_block:
+  mov ax, [bx]
+  test ax, ax
+  jnz _mem_find_free_block_block_checked
+  mov ax, [bx + 2]
+  cmp ax, [bp + 6]
+  jc _mem_find_free_block_block_checked
+  mov ax, bx
+  jmp _mem_find_free_block_done
+_mem_find_free_block_block_checked:
+  mov bx, [bx + 6]
+  cmp bx, 0ffffh
+  jnz _mem_find_free_block_check_current_block
+  mov ax, bx
+_mem_find_free_block_done:
+  pop bx
+  pop bp
+  ret 4
+  
+  
+mem_split_block:
+  ; input: block, size
+  push bp
+  mov bp, sp
+  push ax
+  push bx
+  push si
+  mov bx, [bp + 4]
+  mov ax, [bx + 2]
+  sub ax, [bp + 6]
+  sub ax, 10
+  jc _mem_splittable_block_done
+  mov ax, [bp + 6]
+  add ax, 8
+  add ax, bx
+  mov si, ax
+  xor ax, ax
+  mov [si], ax
+  mov ax, [bx + 2]
+  sub ax, [bp + 6]
+  sub ax, 8
+  mov [si + 2], ax
+  mov [si + 4], bx
+  mov ax, [bx + 6]
+  mov [si + 6], ax
+  mov ax, [bp + 6]
+  mov [bx + 2], ax
+  mov [bx + 6], si
+_mem_splittable_block_done:
+  pop si
+  pop bx
+  pop ax
+  pop bp
+  ret 4
+  
+  
+mem_merge_free_block:
+  ; input: block
+  push bp
+  mov bp, sp
+  push ax
+  push bx
+  push si
+  mov bx, [bp + 4]
+  xor ax, ax
+  cmp ax, [bx]
+  jnz _mem_merge_free_block_done
+_mem_merge_free_block_find_head:
+  mov si, [bx + 4]
+  cmp si, 0ffffh
+  jz _mem_merge_free_block_do_merge
+  mov ax, [si]
+  test ax, ax
+  jnz _mem_merge_free_block_do_merge
+  mov bx, si
+  jmp _mem_merge_free_block_find_head
+_mem_merge_free_block_do_merge:
+  mov si, [bx + 6]
+  cmp si, 0ffffh
+  jz _mem_merge_free_block_done
+  mov ax, [si]
+  test ax, ax
+  jnz _mem_merge_free_block_done
+  mov ax, [bx + 2]
+  add ax, [si + 2]
+  add ax, 8
+  mov [bx + 2], ax
+  mov ax, [si + 6]
+  mov [bx + 6], ax
+  mov bx, si
+  jmp _mem_merge_free_block_do_merge
+_mem_merge_free_block_done:
+  pop si
+  pop bx
+  pop ax
+  pop bp
+  ret 2
+  
+  
+mem_alloc:
+  ; input: first_block, size; output: ax=address
+  push bp
+  mov bp, sp
+  push bx
+  mov ax, [bp + 6]
+  push ax
+  mov ax, [bp + 4]
+  push ax
+  call mem_find_free_block
+  cmp ax, 0ffffh
+  jz _mem_alloc_done
+  mov bx, ax
+  mov ax, [bp + 6]
+  push ax
+  push bx
+  call mem_split_block
+  mov ax, 1
+  mov [bx], ax
+  mov ax, bx
+_mem_alloc_done:
+  pop bx
+  pop bp
+  ret 4
+  
+  
+mem_dealloc:
+  ; input: block
+  push bp
+  mov bp, sp
+  push ax
+  push bx
+  mov bx, [bp + 4]
+  mov ax, [bx]
+  test ax, ax
+  jz _mem_dealloc_done
+  xor ax, ax
+  mov [bx], ax
+  push bx
+  call mem_merge_free_block
+_mem_dealloc_done:
+  pop bx
+  pop ax
+  pop bp
+  ret 2
+  
+  
+mem_get_data_offset:
+  ; input: block; output: ax
+  push bp
+  mov bp, sp
+  mov ax, [bp + 4]
+  add ax, 8
+  pop bp
+  ret 2
+  
+  
 _cbw:
   push bp
   mov bp, sp
@@ -8,10 +194,12 @@ _cbw:
   pop bp
   ret 2
   
+  
 _int_pack:
   shl ax, 1
   or ax, 1
   ret
+  
   
 _int_unpack:
   shr ax, 1
@@ -20,6 +208,7 @@ _int_unpack:
   or ax, 8000h
 _int_unpack_done:
   ret
+  
   
 _int_add:
   push bp
@@ -36,6 +225,7 @@ _int_add:
   pop bp
   ret 4
   
+  
 _int_subtract:
   push bp
   mov bp, sp
@@ -50,6 +240,7 @@ _int_subtract:
   pop cx
   pop bp
   ret 4
+  
   
 _int_multiply:
   push bp
@@ -69,6 +260,7 @@ _int_multiply:
   pop bp
   ret 4
   
+  
 _int_divide:
   push bp
   mov bp, sp
@@ -87,6 +279,7 @@ _int_divide:
   pop bp
   ret 4
   
+  
 _int_and:
   push bp
   mov bp, sp
@@ -101,6 +294,7 @@ _int_and:
   pop cx
   pop bp
   ret 4
+  
   
 _int_or:
   push bp
@@ -117,6 +311,7 @@ _int_or:
   pop bp
   ret 4
   
+  
 _get_obj_var:
   ; input: object, var-index
   push bp
@@ -130,6 +325,7 @@ _get_obj_var:
   pop si
   pop bp
   ret
+  
   
 _set_obj_var:
   ; input: object, var-index, value
@@ -148,6 +344,7 @@ _set_obj_var:
   pop bp
   ret
   
+  
 _putchr:
   ; input: int = 10, ah = 14, al = character code, bh = page number (text mode), bl = foreground pixel (graphic mode)
   push ax
@@ -158,6 +355,7 @@ _putchr:
   pop bx
   pop ax
   ret
+  
   
 _print:
   ; input: offset, length
@@ -186,6 +384,7 @@ _puts_done:
   pop bp
   ret 4
   
+  
 _puts:
   ; input: str object
   ; string structure:
@@ -202,7 +401,8 @@ _puts:
   call _print
   pop bp
   ret 2
-
+  
+  
 _getch:
   mov ah, 8
   int 21h

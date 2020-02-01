@@ -34,6 +34,9 @@ obj_method_2_2:
   mov ax, 8004h
   ret
   
+find_obj_method_address:
+  ret
+  
 dispatch_obj_method:
   ; args: object, method-id, args-count, *args
   push bp
@@ -45,8 +48,7 @@ dispatch_obj_method:
   mov si, [bp + 4]
   mov ax, [si]
   pop si
-  ; get handler address based on object type and method id
-  ; store the result in ax
+  call find_obj_method_address
   push ax
   ret
   

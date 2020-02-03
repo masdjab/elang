@@ -12,6 +12,7 @@ require './compiler/scope'
 require './compiler/symbol_ref'
 require './compiler/ast_node'
 require './compiler/codeset'
+require './compiler/codeset_tool'
 require './utils/converter'
 
 
@@ -19,17 +20,22 @@ module Elang
   class CodeGenerator
     SYS_FUNCTIONS = 
       {
-        :_int_pack    => SystemFunction.new("_int_pack"), 
-        :_int_unpack  => SystemFunction.new("_int_unpack"), 
-        :plus         => SystemFunction.new("_int_add"), 
-        :minus        => SystemFunction.new("_int_subtract"), 
-        :star         => SystemFunction.new("_int_multiply"), 
-        :slash        => SystemFunction.new("_int_divide"), 
-        :and          => SystemFunction.new("_int_and"), 
-        :or           => SystemFunction.new("_int_or"), 
-        :get_obj_var  => SystemFunction.new("_get_obj_var"), 
-        :set_obj_var  => SystemFunction.new("_set_obj_var"), 
-        :send_to_obj  => SystemFunction.new("_send_to_object")
+        :_int_pack            => SystemFunction.new("_int_pack"), 
+        :_int_unpack          => SystemFunction.new("_int_unpack"), 
+        :plus                 => SystemFunction.new("_int_add"), 
+        :minus                => SystemFunction.new("_int_subtract"), 
+        :star                 => SystemFunction.new("_int_multiply"), 
+        :slash                => SystemFunction.new("_int_divide"), 
+        :and                  => SystemFunction.new("_int_and"), 
+        :or                   => SystemFunction.new("_int_or"), 
+        :get_obj_var          => SystemFunction.new("_get_obj_var"), 
+        :set_obj_var          => SystemFunction.new("_set_obj_var"), 
+        :send_to_obj          => SystemFunction.new("_send_to_object"), 
+        :mem_block_init       => SystemFunction.new("mem_block_init"), 
+        :mem_alloc            => SystemFunction.new("mem_alloc"), 
+        :mem_dealloc          => SystemFunction.new("mem_dealloc"), 
+        :mem_get_data_offset  => SystemFunction.new("mem_get_data_offset"), 
+        :alloc_object         => SystemFunction.new("alloc_object")
       }
     
     attr_reader :symbols, :symbol_refs
@@ -44,6 +50,9 @@ module Elang
     end
     def hex2bin(h)
       Elang::Utils::Converter.hex_to_bin(h)
+    end
+    def intobj(value)
+      (value << 1) | 1
     end
     def make_int(value)
       (value << 1) | (value < 0 ? 0x8000 : 0) | 1
@@ -84,8 +93,33 @@ module Elang
     def append_code(code)
       @codeset.append_code code
     end
-    def intobj(value)
-      (value << 1) | 1
+    def define_system_variables
+      names = ["first_block", "dynamic_area"]
+      scope = Scope.new
+      names.each{|n|@codeset.symbols.add Variable.new(scope, n)}
+    end
+    def init_main_code
+      heap_size = 0x8000
+      
+      hsz_value = Utils::Converter.int_to_whex_be(heap_size)
+      
+      init_cmnd = 
+        [
+          "B8#{hsz_value}50",     # push size
+          "B8000050",             # push offset
+          "E80000",               # call mem_block_init
+          "A30000"                # mov [first_block], ax
+        ]
+      
+      symbols = @codeset.symbols.items
+      dynamic_area = symbols.find{|x|x.is_a?(Variable) && (x.name == "dynamic_area") && x.scope.root?}
+      first_block = symbols.find{|x|x.is_a?(Variable) && (x.name == "first_block") && x.scope.root?}
+      
+      add_variable_ref dynamic_area, code_len + 5
+      add_function_ref SYS_FUNCTIONS[:mem_block_init], code_len + 9
+      add_variable_ref first_block, code_len + 12
+      
+      append_code hex2bin(init_cmnd.join)
     end
     def invoke_num_method(meth_name)
       add_function_ref SYS_FUNCTIONS[meth_name], code_len + 1
@@ -136,9 +170,11 @@ module Elang
       append_code hex2bin("A10000")
     end
     def get_variable(name)
+      active_scope = current_scope
+      
       if name == "nil"
         append_code hex2bin("B80000")
-      elsif (symbol = @codeset.symbols.find_nearest(active_scope = current_scope, name)).nil?
+      elsif (symbol = @codeset.symbols.find_nearest(active_scope, name)).nil?
         raise "Cannot get value from '#{name}' , symbol not defined in scope '#{active_scope.to_s}'"
       elsif symbol.is_a?(FunctionParameter)
         # mov ax, [bp - n]
@@ -152,10 +188,8 @@ module Elang
           raise "Class #{active_scope.cls} is not defined"
         else
           add_variable_ref symbol, code_len + 1
-          #(todo)#push self
-          #add_variable_ref _self, code_len + 5
           add_function_ref SYS_FUNCTIONS[:get_obj_var], code_len + 9
-          append_code hex2bin("B8000050B8000050E80000")
+          append_code hex2bin("B80000508B460450E80000")
         end
       elsif symbol.is_a?(ClassVariable)
         # #(todo)#fix binary command
@@ -187,10 +221,8 @@ module Elang
           raise "Class #{active_scope.cls} is not defined"
         else
           add_variable_ref symbol, code_len + 2
-          #(todo)#push self
-          #add_variable_ref _self, code_len + 6
           add_function_ref SYS_FUNCTIONS[:set_obj_var], code_len + 10
-          append_code hex2bin("50B8000050B8000050E80000")
+          append_code hex2bin("50B80000508B460450E80000")
         end
       elsif symbol.is_a?(ClassVariable)
         ## #(todo)#fix binary command
@@ -234,29 +266,8 @@ module Elang
       invoke_num_method node[0].type
     end
     def handle_assignment(node)
-      left_var = node[1]
-      var_name = left_var.text
-      active_scope = current_scope
-      
-      if !left_var.is_a?(Elang::AstNode) || (left_var.type != :identifier)
-        raise "Left operand for assignment must be a symbol, #{left_var.inspect} given"
-      end
-      
-      if (receiver = @codeset.symbols.find_nearest(active_scope, var_name)).nil?
-        if var_name.index("@@") == 0
-          # #(todo)#class variable
-          receiver = register_class_variable(var_name)
-        elsif var_name.index("@") == 0
-          # instance variable
-          receiver = register_instance_variable(var_name)
-        else
-          # local variable
-          receiver = register_local_variable(var_name)
-        end
-      end
-      
       prepare_operand node[2]
-      set_variable var_name
+      set_variable node[1].text
     end
     def handle_function_def(node)
       active_scope = current_scope
@@ -291,10 +302,10 @@ module Elang
         append_code hex2bin("81C4" + Elang::Utils::Converter.int_to_whex_be(variable_count * 2))
       end
       
-      # pop bp
-      append_code hex2bin("5D")
-      
       if active_scope.cls.nil?
+        # pop bp
+        append_code hex2bin("5D")
+        
         # ret [n]
         hex_code = (params_count > 0 ? "C2#{Elang::Utils::Converter.int_to_whex_be(params_count * 2).upcase}" : "C3")
         append_code hex2bin(hex_code)
@@ -305,7 +316,6 @@ module Elang
       leave_scope
     end
     def handle_function_call(node)
-      # push ax; call target
       func_name = node[0].text
       
       if SYS_FUNCTIONS.key?(func_name.to_sym)
@@ -329,8 +339,19 @@ module Elang
       func_args = node[3] ? node[3] : []
       
       if func_name == "new"
-        #(todo)#Class.new
-        append_code hex2bin("B80000")
+        if (cls = @codeset.symbols.items.find{|x|x.is_a?(Class) && (x.name == rcvr_name)}).nil?
+          raise "Class '#{rcvr_name}' not defined"
+        else
+          ct = CodesetTool.new(@codeset)
+          iv = ct.get_instance_variables(cls)
+          sz = Utils::Converter.int_to_whex_rev(iv.count)
+          ci = Utils::Converter.int_to_whex_rev(CodesetTool.create_class_id(cls.index))
+          fb = @codeset.symbols.find_nearest(active_scope, "first_block")
+          hc = "B8#{sz}50B8#{ci}50A1000050E80000"
+          add_variable_ref fb, code_len + 9
+          add_function_ref SYS_FUNCTIONS[:alloc_object], code_len + 13
+          append_code hex2bin(hc)
+        end
       else
         prepare_arguments func_args
         
@@ -353,7 +374,7 @@ module Elang
           raise "Undefined symbol '#{rcvr_name}' in scope '#{active_scope.to_s}'"
         else
           add_variable_ref receiver, code_len + 1
-          append_code hex2bin("B8000050")
+          append_code hex2bin("A1000050")
         end
         
         # call _send_to_object
@@ -457,6 +478,27 @@ puts "handle_send #{rcvr_name}, #{func_name}, [#{func_args.map{|x|x.text}.join("
                 leave_scope
               end
             end
+          elsif first_node.type == :assign
+            left_var = node[1]
+            var_name = left_var.text
+            active_scope = current_scope
+            
+            if !left_var.is_a?(Elang::AstNode) || (left_var.type != :identifier)
+              raise "Left operand for assignment must be a symbol, #{left_var.inspect} given"
+            end
+            
+            if (receiver = @codeset.symbols.find_nearest(active_scope, var_name)).nil?
+              if var_name.index("@@") == 0
+                # #(todo)#class variable
+                receiver = register_class_variable(var_name)
+              elsif var_name.index("@") == 0
+                # instance variable
+                receiver = register_instance_variable(var_name)
+              else
+                # local variable
+                receiver = register_local_variable(var_name)
+              end
+            end
           end
         else
           raise "This branch is not expected to be executed (2). node: #{node.inspect}"
@@ -470,6 +512,8 @@ puts "handle_send #{rcvr_name}, #{func_name}, [#{func_args.map{|x|x.text}.join("
       @scope_stack = []
       @codeset = CodeSet.new
       detect_names nodes
+      define_system_variables
+      init_main_code
       handle_any nodes
       @codeset
     end

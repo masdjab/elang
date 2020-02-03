@@ -61,7 +61,7 @@ mem_split_block:
   mov ax, [bx + 2]
   sub ax, [bp + 6]
   sub ax, 10
-  jc _mem_splittable_block_done
+  jc _mem_split_block_done
   mov ax, [bp + 6]
   add ax, 8
   add ax, bx
@@ -78,7 +78,7 @@ mem_split_block:
   mov ax, [bp + 6]
   mov [bx + 2], ax
   mov [bx + 6], si
-_mem_splittable_block_done:
+_mem_split_block_done:
   pop si
   pop bx
   pop ax
@@ -181,9 +181,39 @@ mem_get_data_offset:
   push bp
   mov bp, sp
   mov ax, [bp + 4]
+  cmp ax, 0ffffh
+  jz _mem_get_data_offset_done
   add ax, 8
+_mem_get_data_offset_done:
   pop bp
   ret 2
+  
+  
+alloc_object:
+  ; input: first_block, class id, instance variable count
+  push bp
+  mov bp, sp
+  push bx
+  mov ax, [bp + 8]
+  add ax, 1
+  shl ax, 1
+  push ax
+  mov ax, [bp + 4]
+  push ax
+  call mem_alloc
+  cmp ax, 0ffffh
+  jz _alloc_object_done
+  push ax
+  call mem_get_data_offset
+  push ax
+  mov bx, ax
+  mov ax, [bp + 6]
+  mov [bx], ax
+  pop ax
+_alloc_object_done:
+  pop bx
+  pop bp
+  ret 6
   
   
 _cbw:
@@ -319,12 +349,13 @@ _get_obj_var:
   push si
   mov si, [bp + 4]
   mov ax, [bp + 6]
+  add ax, 1
   shl ax, 1
   add si, ax
   mov ax, [si]
   pop si
   pop bp
-  ret
+  ret 4
   
   
 _set_obj_var:
@@ -334,7 +365,8 @@ _set_obj_var:
   push ax
   push si
   mov si, [bp + 4]
-  add ax, [bp + 6]
+  mov ax, [bp + 6]
+  add ax, 1
   shl ax, 1
   add si, ax
   mov ax, [bp + 8]
@@ -342,7 +374,7 @@ _set_obj_var:
   pop si
   pop ax
   pop bp
-  ret
+  ret 6
   
   
 _putchr:

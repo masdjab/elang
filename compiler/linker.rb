@@ -37,7 +37,8 @@ module Elang
               resolve_value = (symbol.index - 1) * 2
               code[ref.location, 2] = Utils::Converter.int_to_word(resolve_value)
             elsif symbol.is_a?(FunctionParameter)
-              resolve_value = (symbol.index + 2) * 2
+              arg_offset = symbol.scope.cls ? 3 : 0
+              resolve_value = (arg_offset + symbol.index + 2) * 2
               code[ref.location, 1] = Utils::Converter.int_to_byte(resolve_value)
             elsif symbol.is_a?(Variable)
               resolve_value = (symbol.index - 1) * 2
@@ -110,7 +111,7 @@ puts "Resolving class '#{symbol.name}', index: #{symbol.index}"
         
         cls[:i_funs].each do |f|
           func_address = Utils::Converter.int_to_whex_rev(@code_origin + subs_offset + f[:offset]).upcase
-          asmcode << asm("83F8" + Utils::Converter.int_to_bhex_rev(f[:id]) + "7503", "  cmp ax, #{f[:id]}; jnz + 2")
+          asmcode << asm("83F8" + Utils::Converter.int_to_bhex_rev(f[:id]) + "7504", "  cmp ax, #{f[:id]}; jnz + 2")
           asmcode << asm("B8#{func_address}C3", "  mov ax, #{key.downcase}_obj_#{f[:name]}; ret")
         end
         
@@ -261,7 +262,7 @@ puts @classes.inspect
         ds_offset = ds_offset + pad_count
       end
       
-      init_code[3, 2] = Utils::Converter.int_to_word(ds_offset >> 4)
+      init_code[3, 2] = Utils::Converter.int_to_word((ds_offset + @code_origin) >> 4)
       
       
       main_offset = @code_origin + head_size + libs_size + subs_size + dispatcher_size

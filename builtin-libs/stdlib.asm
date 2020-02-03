@@ -1,6 +1,6 @@
 dw code
 
-dw 15
+dw 17
 
 dw mem_block_init, 14
   db "mem_block_init"
@@ -8,6 +8,10 @@ dw mem_alloc, 9
   db "mem_alloc"
 dw mem_dealloc, 11
   db "mem_dealloc"
+dw mem_get_data_offset, 19
+  db "mem_get_data_offset"
+dw alloc_object, 12
+  db "alloc_object"
 dw _int_pack, 9
   db "_int_pack"
 dw _int_unpack, 11

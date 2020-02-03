@@ -1,13 +1,14 @@
 module Elang
   class CodesetTool
     ROOT_CLASSES = ["Integer", "NilClass", "TrueClass", "FalseClass", "Object"]
+    BASE_CLASS_ID = 5
     BASE_FUNCTION_ID = 1
     
     def initialize(codeset)
       @codeset = codeset
     end
-    def create_class_id(original_id)
-      original_id + 5
+    def self.create_class_id(original_id)
+      BASE_CLASS_ID + original_id
     end
     def get_function_names
       if @functions.nil?
@@ -15,6 +16,9 @@ module Elang
       end
       
       @functions
+    end
+    def get_global_variables
+      @codeset.symbols.items.select{|s|s.is_a?(Variable) && s.scope.root?}
     end
     def get_instance_variables(cls)
       if cls.parent
@@ -43,7 +47,7 @@ module Elang
           if !classes.key?(s.name)
             classes[s.name] = 
               {
-                :clsid  => create_class_id(s.index), 
+                :clsid  => self.class.create_class_id(s.index), 
                 :parent => s.parent, 
                 :i_vars => get_instance_variables(s), 
                 :i_funs => get_instance_methods(s)

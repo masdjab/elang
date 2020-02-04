@@ -5,6 +5,8 @@ require './compiler/assembly_code_builder'
 
 module Elang
   class Linker
+    HEAP_SIZE = 0x8000
+    
     private
     def initialize
       @code_origin = 0x100
@@ -27,54 +29,30 @@ module Elang
       
       code
     end
-    def resolve_references(type, code, refs, origin)
-      if !code.empty?
-        refs.each do |ref|
-          if ref.code_type == type
-            symbol = ref.symbol
-            
-            if symbol.is_a?(Constant)
-              resolve_value = (symbol.index - 1) * 2
-              code[ref.location, 2] = Utils::Converter.int_to_word(resolve_value)
-            elsif symbol.is_a?(FunctionParameter)
-              arg_offset = symbol.scope.cls ? 3 : 0
-              resolve_value = (arg_offset + symbol.index + 2) * 2
-              code[ref.location, 1] = Utils::Converter.int_to_byte(resolve_value)
-            elsif symbol.is_a?(Variable)
-              resolve_value = (symbol.index - 1) * 2
-              code[ref.location, 2] = Utils::Converter.int_to_word(resolve_value)
-            elsif symbol.is_a?(InstanceVariable)
-              if (clsinfo = @classes[symbol.scope.cls]).nil?
-                raise "Cannot find class '#{symbol.scope.cls}' in class info list"
-              elsif (index = clsinfo[:i_vars].index(symbol.name)).nil?
-                raise "Cannot find instance variable '#{symbol.name}' in '#{symbol.scope.cls}' class info"
-              else
-                code[ref.location, 2] = Utils::Converter.int_to_word(index)
-              end
-            elsif symbol.is_a?(Function)
-              resolve_value = symbol.offset - (origin + ref.location + 2)
-              code[ref.location, 2] = Utils::Converter.int_to_word(resolve_value)
-            elsif symbol.is_a?(SystemFunction)
-              if symbol.name == "_send_to_object"
-                resolve_value = @dispatcher_offset - (origin + ref.location + 2)
-                code[ref.location, 2] = Utils::Converter.int_to_word(resolve_value)
-              elsif sys_function = @system_functions[symbol.name.to_s]
-                resolve_value = sys_function[:offset] - (origin + ref.location + 2)
-                code[ref.location, 2] = Utils::Converter.int_to_word(resolve_value)
-              else
-                raise "Undefined system function '#{symbol.name}'"
-              end
-            elsif symbol.is_a?(FunctionId)
-              resolve_value = @function_names.index(symbol.name) + 1
-              code[ref.location, 2] = Utils::Converter.int_to_word(resolve_value)
-            elsif symbol.is_a?(Class)
-puts "Resolving class '#{symbol.name}', index: #{symbol.index}"
-            else
-              raise "Cannot resolve reference to symbol of type '#{symbol.class}'"
-            end
-          end
-        end
-      end
+    def build_code_initializer(codeset)
+      rv_heap_size = Utils::Converter.int_to_whex_be(HEAP_SIZE)
+      
+      init_cmnd = 
+        [
+          "8CC8",                     # mov ax, cs
+          "050000",                   # add ax, 0
+          "8ED0",                     # mov ss, ax
+          "8ED8",                     # mov ds, ax
+          "B8#{rv_heap_size}50",      # push heap_size
+          "B8000050",                 # push dynamic_area
+          "E80000",                   # call mem_block_init
+          "A30000"                    # mov [first_block], ax
+        ]
+      
+      root_scope = Scope.new
+      first_block = codeset.symbols.items.find{|x|x.is_a?(Variable) && x.scope.root? && (x.name == "first_block")}
+      dynamic_area = codeset.symbols.items.find{|x|x.is_a?(Variable) && x.scope.root? && (x.name == "dynamic_area")}
+      
+      codeset.symbol_refs << VariableRef.new(dynamic_area, root_scope, 14, :init)
+      codeset.symbol_refs << FunctionRef.new(SystemFunction.new("mem_block_init"), root_scope, 18, :init)
+      codeset.symbol_refs << VariableRef.new(first_block, root_scope, 21, :init)
+      
+      hex2bin init_cmnd.join
     end
     def build_class_hierarchy(codeset)
       cs_tool = CodesetTool.new(codeset)
@@ -198,6 +176,55 @@ puts "Resolving class '#{symbol.name}', index: #{symbol.index}"
       
       asmcode
     end
+    def resolve_references(type, code, refs, origin)
+      if !code.empty?
+        refs.each do |ref|
+          if ref.code_type == type
+            symbol = ref.symbol
+            
+            if symbol.is_a?(Constant)
+              resolve_value = (symbol.index - 1) * 2
+              code[ref.location, 2] = Utils::Converter.int_to_word(resolve_value)
+            elsif symbol.is_a?(FunctionParameter)
+              arg_offset = symbol.scope.cls ? 3 : 0
+              resolve_value = (arg_offset + symbol.index + 2) * 2
+              code[ref.location, 1] = Utils::Converter.int_to_byte(resolve_value)
+            elsif symbol.is_a?(Variable)
+              resolve_value = (symbol.index - 1) * 2
+              code[ref.location, 2] = Utils::Converter.int_to_word(resolve_value)
+            elsif symbol.is_a?(InstanceVariable)
+              if (clsinfo = @classes[symbol.scope.cls]).nil?
+                raise "Cannot find class '#{symbol.scope.cls}' in class info list"
+              elsif (index = clsinfo[:i_vars].index(symbol.name)).nil?
+                raise "Cannot find instance variable '#{symbol.name}' in '#{symbol.scope.cls}' class info"
+              else
+                code[ref.location, 2] = Utils::Converter.int_to_word(index)
+              end
+            elsif symbol.is_a?(Function)
+              resolve_value = symbol.offset - (origin + ref.location + 2)
+              code[ref.location, 2] = Utils::Converter.int_to_word(resolve_value)
+            elsif symbol.is_a?(SystemFunction)
+              if symbol.name == "_send_to_object"
+                resolve_value = @dispatcher_offset - (origin + ref.location + 2)
+                code[ref.location, 2] = Utils::Converter.int_to_word(resolve_value)
+              elsif sys_function = @system_functions[symbol.name.to_s]
+                resolve_value = sys_function[:offset] - (origin + ref.location + 2)
+                code[ref.location, 2] = Utils::Converter.int_to_word(resolve_value)
+              else
+                raise "Undefined system function '#{symbol.name}'"
+              end
+            elsif symbol.is_a?(FunctionId)
+              resolve_value = @function_names.index(symbol.name) + 1
+              code[ref.location, 2] = Utils::Converter.int_to_word(resolve_value)
+            elsif symbol.is_a?(Class)
+puts "Resolving class '#{symbol.name}', index: #{symbol.index}"
+            else
+              raise "Cannot resolve reference to symbol of type '#{symbol.class}' => #{ref.inspect}"
+            end
+          end
+        end
+      end
+    end
     
     public
     def load_library(libfile)
@@ -244,14 +271,7 @@ puts @classes.inspect
       puts
       
       
-      init_cmnd = 
-        [
-          "8CC8",     # mov ax, cs
-          "050000",   # add ax, 0
-          "8ED0",     # mov ss, ax
-          "8ED8"      # mov ds, ax
-        ]
-      init_code = hex2bin(init_cmnd.join)
+      init_code = build_code_initializer(codeset)
       init_size = init_code.length
       ds_offset = head_size + libs_size + subs_size + dispatcher_size + init_size + main_size
       
@@ -281,6 +301,7 @@ puts @classes.inspect
       end
       
       resolve_references :subs, subs_code, codeset.symbol_refs, head_size + libs_size
+      resolve_references :init, init_code, codeset.symbol_refs, head_size + libs_size + subs_size + dispatcher_size
       resolve_references :main, main_code, codeset.symbol_refs, head_size + libs_size + subs_size + dispatcher_size + init_size
       
       head_code + libs_code + subs_code + dispatcher_code + init_code + main_code

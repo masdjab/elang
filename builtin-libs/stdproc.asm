@@ -1,5 +1,7 @@
 ; written by Heryudi Praja
 
+FAILED                    EQU 0ffffh
+
 mem_block_init:
   ; input: offset, size, output: ax = address of first block
   push bp
@@ -12,7 +14,7 @@ mem_block_init:
   jc _mem_block_init_done
   sub ax, 8
   mov [bx + 2], ax      ; data size
-  mov ax, 0ffffh
+  mov ax, FAILED
   mov [bx + 4], ax      ; prev block
   mov [bx + 6], ax      ; next block
   xor ax, ax
@@ -41,7 +43,7 @@ _mem_find_free_block_check_current_block:
   jmp _mem_find_free_block_done
 _mem_find_free_block_block_checked:
   mov bx, [bx + 6]
-  cmp bx, 0ffffh
+  cmp bx, FAILED
   jnz _mem_find_free_block_check_current_block
   mov ax, bx
 _mem_find_free_block_done:
@@ -99,7 +101,7 @@ mem_merge_free_block:
   jnz _mem_merge_free_block_done
 _mem_merge_free_block_find_head:
   mov si, [bx + 4]
-  cmp si, 0ffffh
+  cmp si, FAILED
   jz _mem_merge_free_block_do_merge
   mov ax, [si]
   test ax, ax
@@ -108,7 +110,7 @@ _mem_merge_free_block_find_head:
   jmp _mem_merge_free_block_find_head
 _mem_merge_free_block_do_merge:
   mov si, [bx + 6]
-  cmp si, 0ffffh
+  cmp si, FAILED
   jz _mem_merge_free_block_done
   mov ax, [si]
   test ax, ax
@@ -139,7 +141,7 @@ mem_alloc:
   mov ax, [bp + 4]
   push ax
   call mem_find_free_block
-  cmp ax, 0ffffh
+  cmp ax, FAILED
   jz _mem_alloc_done
   mov bx, ax
   mov ax, [bp + 6]
@@ -181,7 +183,7 @@ mem_get_data_offset:
   push bp
   mov bp, sp
   mov ax, [bp + 4]
-  cmp ax, 0ffffh
+  cmp ax, FAILED
   jz _mem_get_data_offset_done
   add ax, 8
 _mem_get_data_offset_done:
@@ -201,7 +203,7 @@ alloc_object:
   mov ax, [bp + 4]
   push ax
   call mem_alloc
-  cmp ax, 0ffffh
+  cmp ax, FAILED
   jz _alloc_object_done
   push ax
   call mem_get_data_offset

@@ -55,6 +55,9 @@ class TestCodeGenerator < Test::Unit::TestCase
   def bin(h)
     Elang::Utils::Converter.hex_to_bin(h)
   end
+  def sysvar_count
+    Elang::CodeGenerator::SYS_VARIABLES.count
+  end
   def symbols
     @code_generator.symbols
   end
@@ -75,7 +78,7 @@ class TestCodeGenerator < Test::Unit::TestCase
         bin("B80500A30000"), 
         ""
       )
-    assert_equal 1, codeset.symbols.count
+    assert_equal sysvar_count + 1, codeset.symbols.count
   end
   def test_simple_numeric_operation
     # mov ax, 01h; mov cx, 02h; add ax, cx; mov mynum, ax
@@ -175,7 +178,7 @@ class TestCodeGenerator < Test::Unit::TestCase
         "", 
         bin("5589E5B80B00894600B805008946005DC20400")
       )
-    assert_equal 5, codeset.symbols.count
+    assert_equal sysvar_count + 5, codeset.symbols.count
     assert_equal "echo", codeset.symbols.items[0].name
     assert_equal "x", codeset.symbols.items[1].name
     assert_equal "y", codeset.symbols.items[2].name
@@ -242,8 +245,8 @@ class TestCodeGenerator < Test::Unit::TestCase
         [asn,idt("y"), num("3")], 
         [dot,idt("p1"),idt("multiply_by_two"),[idt("x"), idt("y")]]
       ], 
-      bin("B8000050A1000050E80000A30000B80500A30000B80700A30000A1000050A1000050B8000050A1000050E80000"), 
-      bin("5589E58B4600508B460050E800005DC20800")
+      bin("B8000050B8050050A1000050E80000A30000B80500A30000B80700A30000A1000050A1000050B8020050B8000050A1000050E80000"), 
+      bin("8B4600508B460050E80000C3")
   end
   def test_function_local_var
     # root function local var
@@ -278,7 +281,7 @@ class TestCodeGenerator < Test::Unit::TestCase
         ]
       ], 
       "", 
-      bin("5589E5B805008946008B460050E800005DC20600")
+      bin("B805008946008B460050E80000C3")
   end
   def test_instance_variable
     # instance function local var
@@ -302,7 +305,7 @@ class TestCodeGenerator < Test::Unit::TestCase
         ]
       ], 
       "", 
-      bin("5589E58B460050B8000050B8000050E800005DC206005589E5B8000050B8000050E800005DC20400")
+      bin("8B460050B80000508B460450E80000C3B80000508B460450E80000C3")
   end
   def test_class_definition
     codeset = 

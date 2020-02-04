@@ -37,6 +37,8 @@ module Elang
         :mem_get_data_offset  => SystemFunction.new("mem_get_data_offset"), 
         :alloc_object         => SystemFunction.new("alloc_object")
       }
+      
+    SYS_VARIABLES = ["first_block", "dynamic_area"]
     
     attr_reader :symbols, :symbol_refs
     
@@ -94,32 +96,8 @@ module Elang
       @codeset.append_code code
     end
     def define_system_variables
-      names = ["first_block", "dynamic_area"]
       scope = Scope.new
-      names.each{|n|@codeset.symbols.add Variable.new(scope, n)}
-    end
-    def init_main_code
-      heap_size = 0x8000
-      
-      hsz_value = Utils::Converter.int_to_whex_be(heap_size)
-      
-      init_cmnd = 
-        [
-          "B8#{hsz_value}50",     # push size
-          "B8000050",             # push offset
-          "E80000",               # call mem_block_init
-          "A30000"                # mov [first_block], ax
-        ]
-      
-      symbols = @codeset.symbols.items
-      dynamic_area = symbols.find{|x|x.is_a?(Variable) && (x.name == "dynamic_area") && x.scope.root?}
-      first_block = symbols.find{|x|x.is_a?(Variable) && (x.name == "first_block") && x.scope.root?}
-      
-      add_variable_ref dynamic_area, code_len + 5
-      add_function_ref SYS_FUNCTIONS[:mem_block_init], code_len + 9
-      add_variable_ref first_block, code_len + 12
-      
-      append_code hex2bin(init_cmnd.join)
+      SYS_VARIABLES.each{|n|@codeset.symbols.add Variable.new(scope, n)}
     end
     def invoke_num_method(meth_name)
       add_function_ref SYS_FUNCTIONS[meth_name], code_len + 1
@@ -349,6 +327,7 @@ module Elang
           fb = @codeset.symbols.find_nearest(active_scope, "first_block")
           hc = "B8#{sz}50B8#{ci}50A1000050E80000"
           add_variable_ref fb, code_len + 9
+          #add_variable_ref SYS_VARIABLES[:first_block], code_len + 9
           add_function_ref SYS_FUNCTIONS[:alloc_object], code_len + 13
           append_code hex2bin(hc)
         end
@@ -513,7 +492,6 @@ puts "handle_send #{rcvr_name}, #{func_name}, [#{func_args.map{|x|x.text}.join("
       @codeset = CodeSet.new
       detect_names nodes
       define_system_variables
-      init_main_code
       handle_any nodes
       @codeset
     end

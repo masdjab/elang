@@ -136,6 +136,15 @@ module Elang
             end
           end
         end
+      elsif name_node.text == "<"
+        if (node = fetcher.fetch).nil?
+          raise_error node, "Expected '<<', found '<'"
+        elsif node.text != "<"
+          raise_error node, "Expected '<<', found '<'"
+        else
+          name_node.type = :identifier
+          name_node.text += node.text
+        end
       elsif name_node.type == :identifier
         if node = fetcher.element
           if "?!=".index(node.text)

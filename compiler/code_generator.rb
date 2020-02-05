@@ -137,6 +137,7 @@ module Elang
     def get_string_object(text)
       if (symbol = @codeset.symbols.find_string(text)).nil?
         symbol = Elang::Constant.new(current_scope, Elang::Constant.generate_name, text)
+        @codeset.symbols.add symbol
       end
       
       add_constant_ref symbol, code_len + 1

@@ -15,6 +15,8 @@ module Elang
       @function_names = []
       @library_code = ""
       @dispatcher_offset = 0
+      @string_constants = {}
+      @cons_data_size = 0
     end
     def hex2bin(h)
       Utils::Converter.hex_to_bin(h)
@@ -28,6 +30,36 @@ module Elang
       end
       
       code
+    end
+    def build_string_constants(codeset)
+      cons = {}
+      offs = 0
+      
+      codeset.symbols.items.each do |s|
+        if s.is_a?(Constant)
+          text = s.value
+          
+          if (text[0] == text[-1]) && ("\"'".index(text[0]))
+            text = text[1...-1]
+          end
+          
+          lgth = text.length
+          cons[s.name] = {text: text, length: lgth, offset: offs}
+          offs = offs + lgth + 2
+        end
+      end
+      
+      cons
+    end
+    def build_constant_data(constants)
+      cons = ""
+      
+      constants.each do |k,v|
+        lgth = Utils::Converter.int_to_word(v[:length])
+        cons << "#{lgth}#{v[:text]}"
+      end
+      
+      cons
     end
     def build_code_initializer(codeset)
       rv_heap_size = Utils::Converter.int_to_whex_be(HEAP_SIZE)
@@ -183,14 +215,14 @@ module Elang
             symbol = ref.symbol
             
             if symbol.is_a?(Constant)
-              resolve_value = (symbol.index - 1) * 2
+              resolve_value = @string_constants[symbol.name][:offset]
               code[ref.location, 2] = Utils::Converter.int_to_word(resolve_value)
             elsif symbol.is_a?(FunctionParameter)
               arg_offset = symbol.scope.cls ? 3 : 0
               resolve_value = (arg_offset + symbol.index + 2) * 2
               code[ref.location, 1] = Utils::Converter.int_to_byte(resolve_value)
             elsif symbol.is_a?(Variable)
-              resolve_value = (symbol.index - 1) * 2
+              resolve_value = @cons_data_size + ((symbol.index - 1) * 2)
               code[ref.location, 2] = Utils::Converter.int_to_word(resolve_value)
             elsif symbol.is_a?(InstanceVariable)
               if (clsinfo = @classes[symbol.scope.cls]).nil?
@@ -256,6 +288,10 @@ puts "Resolving class '#{symbol.name}', index: #{symbol.index}"
       subs_size = subs_code.length
       main_size = main_code.length
       
+      @string_constants = build_string_constants(codeset)
+      cons_data = align_code(build_constant_data(@string_constants), 16)
+      @cons_data_size = cons_size = cons_data.length
+      
       build_class_hierarchy codeset
 puts
 puts "classes:"
@@ -304,7 +340,7 @@ puts @classes.inspect
       resolve_references :init, init_code, codeset.symbol_refs, head_size + libs_size + subs_size + dispatcher_size
       resolve_references :main, main_code, codeset.symbol_refs, head_size + libs_size + subs_size + dispatcher_size + init_size
       
-      head_code + libs_code + subs_code + dispatcher_code + init_code + main_code
+      head_code + libs_code + subs_code + dispatcher_code + init_code + main_code + cons_data
     end
   end
 end

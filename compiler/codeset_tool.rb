@@ -1,14 +1,16 @@
 module Elang
   class CodesetTool
-    ROOT_CLASSES = ["Integer", "NilClass", "TrueClass", "FalseClass", "Object"]
-    BASE_CLASS_ID = 5
-    BASE_FUNCTION_ID = 1
-    
     def initialize(codeset)
       @codeset = codeset
     end
-    def self.create_class_id(original_id)
-      BASE_CLASS_ID + original_id
+    def self.create_class_id(cls)
+      if cls.name == Class::CLS_NAME_INTEGER
+        raise "Integer doesn't have class id"
+      elsif Class::ROOT_CLASS_IDS.key?(cls.name)
+        Class::ROOT_CLASS_IDS[cls.name]
+      else
+        Class::USER_CLASS_ID_BASE + (cls.index * 2)
+      end
     end
     def get_function_names
       if @functions.nil?
@@ -37,7 +39,7 @@ module Elang
       
       @codeset.symbols.items
         .select{|x|x.is_a?(Function) && (x.scope.cls == cls.name) && x.receiver.nil?}
-        .map{|x|{id: BASE_FUNCTION_ID + functions.index(x.name), name: x.name, offset: x.offset}}
+        .map{|x|{id: Function::BASE_FUNCTION_ID + functions.index(x.name), name: x.name, offset: x.offset}}
     end
     def get_classes_hierarchy
       classes = {}
@@ -47,7 +49,7 @@ module Elang
           if !classes.key?(s.name)
             classes[s.name] = 
               {
-                :clsid  => self.class.create_class_id(s.index), 
+                :clsid  => self.class.create_class_id(s), 
                 :parent => s.parent, 
                 :i_vars => get_instance_variables(s), 
                 :i_funs => get_instance_methods(s)

@@ -120,8 +120,31 @@ module Elang
       
       if (name_node = fetcher.fetch).nil?
         raise_error node, "Incomplete function definition"
-      elsif name_node.type != :identifier
-        raise_error node, "Expected function name"
+      elsif name_node.text == "["
+        if (node = fetcher.fetch).nil?
+          raise_error node, "Expected ']'"
+        elsif node.text != "]"
+          raise_error node, "Expected ']'"
+        else
+          name_node.type = :identifier
+          name_node.text += node.text
+          
+          if node = fetcher.element
+            if node.text == "="
+              node = fetcher.fetch
+              name_node.text += node.text
+            end
+          end
+        end
+      elsif name_node.type == :identifier
+        if node = fetcher.element
+          if "?!=".index(node.text)
+            node = fetcher.fetch
+            name_node.text += node.text
+          end
+        end
+      else
+        raise_error name_node, "Expected function name"
       end
       
       rcvr_node = nil

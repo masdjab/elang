@@ -245,7 +245,7 @@ class TestCodeGenerator < Test::Unit::TestCase
         [asn,idt("y"), num("3")], 
         [dot,idt("p1"),idt("multiply_by_two"),[idt("x"), idt("y")]]
       ], 
-      bin("B8000050B8050050A1000050E80000A30000B80500A30000B80700A30000A1000050A1000050B8020050B8000050A1000050E80000"), 
+      bin("B8000050B80B0050A1000050E80000A30000B80500A30000B80700A30000A1000050A1000050B8020050B8000050A1000050E80000"), 
       bin("8B4600508B460050E80000C3")
   end
   def test_function_local_var

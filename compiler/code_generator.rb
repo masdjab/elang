@@ -85,13 +85,6 @@ module Elang
     def add_function_id_ref(symbol, location)
       @codeset.symbol_refs << FunctionIdRef.new(symbol, current_scope, location, code_type)
     end
-    def get_string_constant(str)
-      if (symbol = @codeset.symbols.find_str(str)).nil?
-        symbol = Elang::Constant.new(current_scope, Elang::Constant.generate_name, str)
-      end
-      
-      symbol
-    end
     def append_code(code)
       @codeset.append_code code
     end
@@ -141,10 +134,13 @@ module Elang
       value_hex = Elang::Utils::Converter.int_to_whex_be(make_int(number)).upcase
       append_code hex2bin("B8" + value_hex)
     end
-    def get_string_object(name)
-      # mov reg, str
-      str = get_string_constant(node.text)
-      add_constant_ref str, code_len + 1
+    def get_string_object(text)
+      if (symbol = @codeset.symbols.find_string(text)).nil?
+        symbol = Elang::Constant.new(current_scope, Elang::Constant.generate_name, text)
+      end
+      
+      add_constant_ref symbol, code_len + 1
+      # mov reg, symbol
       append_code hex2bin("A10000")
     end
     def get_variable(name)

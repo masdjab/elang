@@ -1,6 +1,7 @@
 module Elang
   class AstNode
-    attr_reader :row, :col, :type, :text
+    attr_reader   :row, :col
+    attr_accessor :type, :text
     
     def initialize(row, col, type, text)
       @row = row

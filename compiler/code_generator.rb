@@ -237,11 +237,19 @@ module Elang
       end
     end
     def handle_expression(node)
-      prepare_operand node[2]
-      append_code hex2bin("50")
-      prepare_operand node[1]
-      append_code hex2bin("50")
-      invoke_num_method node[0].type
+      if node.is_a?(Array)
+        if node.count > 1
+          prepare_operand node[2]
+          append_code hex2bin("50")
+          prepare_operand node[1]
+          append_code hex2bin("50")
+          invoke_num_method node[0].type
+        else
+          prepare_operand node[0]
+        end
+      else
+        prepare_operand node
+      end
     end
     def handle_assignment(node)
       prepare_operand node[2]
@@ -323,11 +331,10 @@ module Elang
           ct = CodesetTool.new(@codeset)
           iv = ct.get_instance_variables(cls)
           sz = Utils::Converter.int_to_whex_rev(iv.count)
-          ci = Utils::Converter.int_to_whex_rev(CodesetTool.create_class_id(cls.index))
+          ci = Utils::Converter.int_to_whex_rev(CodesetTool.create_class_id(cls))
           fb = @codeset.symbols.find_nearest(active_scope, "first_block")
           hc = "B8#{sz}50B8#{ci}50A1000050E80000"
           add_variable_ref fb, code_len + 9
-          #add_variable_ref SYS_VARIABLES[:first_block], code_len + 9
           add_function_ref SYS_FUNCTIONS[:alloc_object], code_len + 13
           append_code hex2bin(hc)
         end
@@ -405,8 +412,10 @@ puts "handle_send #{rcvr_name}, #{func_name}, [#{func_args.map{|x|x.text}.join("
                   handle_function_call node
                 end
               end
+            #else
+            #  raise "Unexpected node type #{first_node.type.inspect} in #{first_node.inspect}"
             else
-              raise "Unexpected node type #{first_node.type.inspect} in #{first_node.inspect}"
+              handle_expression node
             end
           end
         else

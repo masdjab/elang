@@ -1,5 +1,7 @@
 module Elang
   class Function
+    BASE_FUNCTION_ID = 1
+    
     @@index = 0
     
     attr_accessor :offset

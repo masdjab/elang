@@ -8,21 +8,24 @@ class Wagu
   def value=(v)
     @value = v
   end
+  def <<(v)
+    1
+  end
   def [](index)
     #@value[index]
-    1
+    2
   end
   def []=(index, v)
     #@value[index] = v
-    2
+    3
   end
   def empty!
     #@value = []
-    3
+    4
   end
   def empty?
     #@value.empty?
-    4
+    5
   end
 end
 

@@ -35,7 +35,9 @@ module Elang
         :mem_alloc            => SystemFunction.new("mem_alloc"), 
         :mem_dealloc          => SystemFunction.new("mem_dealloc"), 
         :mem_get_data_offset  => SystemFunction.new("mem_get_data_offset"), 
-        :alloc_object         => SystemFunction.new("alloc_object")
+        :alloc_object         => SystemFunction.new("alloc_object"), 
+        :load_str             => SystemFunction.new("load_str"), 
+        :puts                 => SystemFunction.new("puts")
       }
       
     SYS_VARIABLES = ["first_block", "dynamic_area"]
@@ -135,14 +137,30 @@ module Elang
       append_code hex2bin("B8" + value_hex)
     end
     def get_string_object(text)
+      active_scope = current_scope
+      
       if (symbol = @codeset.symbols.find_string(text)).nil?
-        symbol = Elang::Constant.new(current_scope, Elang::Constant.generate_name, text)
+        symbol = Elang::Constant.new(active_scope, Elang::Constant.generate_name, text)
         @codeset.symbols.add symbol
       end
       
+      hex_code = 
+        [
+          "BE0000",       # mov si, string constant
+          "8B4400",       # mov ax, [si]
+          "83C602",       # add si, 2
+          "5056",         # push ax; push si
+          "A1000050",     # mov ax, first_block; push ax
+          "E80000",       # call load_str
+        ]
+      
+      fb = @codeset.symbols.find_nearest(active_scope, "first_block")
+      
       add_constant_ref symbol, code_len + 1
-      # mov reg, symbol
-      append_code hex2bin("A10000")
+      add_variable_ref fb, code_len + 12
+      add_function_ref SYS_FUNCTIONS[:load_str], code_len + 16
+      
+      append_code hex2bin(hex_code.join)
     end
     def get_variable(name)
       active_scope = current_scope
@@ -424,7 +442,7 @@ puts "handle_send #{rcvr_name}, #{func_name}, [#{func_args.map{|x|x.text}.join("
       nodes.each do |node|
         if node.is_a?(Array)
           if (first_node = node[0]).is_a?(Array)
-            raise "This branch is not expected to be executed (1)"
+            #raise "This branch is not expected to be executed (1) => node: #{first_node.inspect}"
             detect_names first_node
           elsif first_node.type == :identifier
             if first_node.text == "def"

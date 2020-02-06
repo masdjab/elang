@@ -83,6 +83,26 @@ EOS
   end
   def test_multiline_complex_expression
     source = <<EOS
+class String
+end
+
+a = "Hello world..."
+b = "This is just a simple text."
+
+puts(a)
+EOS
+    
+    check_expression \
+      source, 
+      [
+        ["class","String",nil,[]], 
+        ["=","a","Hello world..."], 
+        ["=","b","This is just a simple text."], 
+        ["puts", ["a"]]
+      ]
+    
+    
+    source = <<EOS
 # function usage example
 def display(info, add_new_line = false)
   puts info

@@ -1,5 +1,3 @@
-class String
-end
-
-a = "Hello world..."
-b = "This is just a simple text."
+a = "Hello world... "
+puts(a)
+puts("Elang now can print text!!!")

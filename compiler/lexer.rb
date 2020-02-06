@@ -223,6 +223,8 @@ module Elang
             if !last_node.nil? && (last_node.type == :identifier)
               if current.first.is_a?(AstNode) && (current.first.type == :dot)
                 current << fetch_expression(fetcher)
+              elsif current.count == 1
+                current << fetch_expression(fetcher)
               else
                 modified = [current.pop, fetch_expression(fetcher)]
                 current << modified

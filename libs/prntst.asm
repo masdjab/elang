@@ -5,18 +5,24 @@ jmp main
 include 'stdproc.asm'
 
 main:
-  mov cx, 100
 _main_print_rep:
-  mov ax, [m1size]
-  push ax
-  mov ax, m1text
+  mov ax, string1
   push ax
   call _puts
-  loop _main_print_rep
+  
+  mov ax, string2
+  push ax
+  call _puts
   
   mov ah, 8
   int 21h
   int 20h
+  
+  
+m1size    dw 15
+m1text    db 'Hello world... '
+m2size    dw 15
+m2text    db 'Simple text...'
 
-m1size  dw 15
-m1text  db 'Hello world... '
+string1   dw 10, 15, m1text
+string2   dw 10, 15, m2text

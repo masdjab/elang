@@ -1,6 +1,15 @@
 ; written by Heryudi Praja
 
-FAILED                    EQU 0ffffh
+NO_MORE                   EQU 0ffffh
+
+CLS_ID_NULL               EQU 0
+CLS_ID_FALSE              EQU 2
+CLS_ID_TRUE               EQU 4
+CLS_ID_OBJECT             EQU 6
+CLS_ID_ENUMERATOR         EQU 8
+CLS_ID_STRING             EQU 10
+CLS_ID_ARRAY              EQU 12
+
 
 mem_block_init:
   ; input: offset, size, output: ax = address of first block
@@ -14,7 +23,7 @@ mem_block_init:
   jc _mem_block_init_done
   sub ax, 8
   mov [bx + 2], ax      ; data size
-  mov ax, FAILED
+  mov ax, NO_MORE
   mov [bx + 4], ax      ; prev block
   mov [bx + 6], ax      ; next block
   xor ax, ax
@@ -43,7 +52,7 @@ _mem_find_free_block_check_current_block:
   jmp _mem_find_free_block_done
 _mem_find_free_block_block_checked:
   mov bx, [bx + 6]
-  cmp bx, FAILED
+  cmp bx, NO_MORE
   jnz _mem_find_free_block_check_current_block
   mov ax, bx
 _mem_find_free_block_done:
@@ -101,7 +110,7 @@ mem_merge_free_block:
   jnz _mem_merge_free_block_done
 _mem_merge_free_block_find_head:
   mov si, [bx + 4]
-  cmp si, FAILED
+  cmp si, NO_MORE
   jz _mem_merge_free_block_do_merge
   mov ax, [si]
   test ax, ax
@@ -110,7 +119,7 @@ _mem_merge_free_block_find_head:
   jmp _mem_merge_free_block_find_head
 _mem_merge_free_block_do_merge:
   mov si, [bx + 6]
-  cmp si, FAILED
+  cmp si, NO_MORE
   jz _mem_merge_free_block_done
   mov ax, [si]
   test ax, ax
@@ -141,7 +150,7 @@ mem_alloc:
   mov ax, [bp + 4]
   push ax
   call mem_find_free_block
-  cmp ax, FAILED
+  cmp ax, NO_MORE
   jz _mem_alloc_done
   mov bx, ax
   mov ax, [bp + 6]
@@ -183,12 +192,51 @@ mem_get_data_offset:
   push bp
   mov bp, sp
   mov ax, [bp + 4]
-  cmp ax, FAILED
+  cmp ax, NO_MORE
   jz _mem_get_data_offset_done
   add ax, 8
 _mem_get_data_offset_done:
   pop bp
   ret 2
+  
+  
+mem_copy:
+  ; input: source, dest, length
+  push bp
+  mov bp, sp
+  push es
+  push ax
+  push cx
+  push si
+  push di
+  push ds
+  pop es
+  mov si, [bp + 4]
+  mov di, [bp + 6]
+  mov cx, [bp + 8]
+  test cx, cx
+  jz _mem_copy_done
+  cld
+  cmp si, di
+  jz _mem_copy_done
+  jnc _mem_copy_start
+  std
+  mov ax, cx
+  dec ax
+  add si, ax
+  add di, ax
+_mem_copy_start:
+  lodsb
+  stosb
+  loop _mem_copy_start
+_mem_copy_done:
+  pop di
+  pop si
+  pop cx
+  pop ax
+  pop es
+  pop bp
+  ret 6
   
   
 alloc_object:
@@ -203,7 +251,7 @@ alloc_object:
   mov ax, [bp + 4]
   push ax
   call mem_alloc
-  cmp ax, FAILED
+  cmp ax, NO_MORE
   jz _alloc_object_done
   push ax
   call mem_get_data_offset
@@ -214,6 +262,33 @@ alloc_object:
   pop ax
 _alloc_object_done:
   pop bx
+  pop bp
+  ret 6
+  
+  
+load_str:
+  ; input: first_block, offset, length; output: ax
+  ; string structure:
+  ; - class id
+  ; - string length
+  ; - buffer location
+  push bp
+  mov bp, sp
+  push si
+  mov ax, 2                 ; instance_variable count
+  push ax
+  mov ax, CLS_ID_STRING     ; class_id
+  push ax
+  mov ax, [bp + 4]          ; first_block
+  push ax
+  call alloc_object
+  mov si, ax
+  mov ax, [bp + 8]
+  mov [si + 2], ax
+  mov ax, [bp + 6]
+  mov [si + 4], ax
+  mov ax, si
+  pop si
   pop bp
   ret 6
   
@@ -421,10 +496,6 @@ _puts_done:
   
 _puts:
   ; input: str object
-  ; string structure:
-  ; - class id
-  ; - string length
-  ; - buffer location
   push bp
   mov bp, sp
   mov bx, [bp + 4]

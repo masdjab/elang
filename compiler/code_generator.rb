@@ -381,7 +381,6 @@ module Elang
         # call _send_to_object
         add_function_ref SYS_FUNCTIONS[:send_to_obj], code_len + 1
         append_code hex2bin("E80000")
-puts "handle_send #{rcvr_name}, #{func_name}, [#{func_args.map{|x|x.text}.join(", ")}]"
       end
     end
     def handle_class_def(nodes)

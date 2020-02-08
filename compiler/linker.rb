@@ -249,7 +249,7 @@ module Elang
               resolve_value = @function_names.index(symbol.name) + 1
               code[ref.location, 2] = Utils::Converter.int_to_word(resolve_value)
             elsif symbol.is_a?(Class)
-puts "Resolving class '#{symbol.name}', index: #{symbol.index}"
+#puts "Resolving class '#{symbol.name}', index: #{symbol.index}"
             else
               raise "Cannot resolve reference to symbol of type '#{symbol.class}' => #{ref.inspect}"
             end
@@ -293,18 +293,18 @@ puts "Resolving class '#{symbol.name}', index: #{symbol.index}"
       @cons_data_size = cons_size = cons_data.length
       
       build_class_hierarchy codeset
-puts
-puts "classes:"
-puts @classes.inspect
+#puts
+#puts "classes:"
+#puts @classes.inspect
       build_cls_method_dispatcher
       asm = build_obj_method_dispatcher(head_size + libs_size, subs_size)
       dispatcher_code = align_code(asm.code, 16)
       dispatcher_size = dispatcher_code.length
       mapper_method = asm.instructions.map{|x|x.to_s}.join("\r\n")
-      puts
-      puts "*** OBJECT METHOD MAPPER ***"
-      puts mapper_method
-      puts
+#      puts
+#      puts "*** OBJECT METHOD MAPPER ***"
+#      puts mapper_method
+#      puts
       
       
       init_code = build_code_initializer(codeset)

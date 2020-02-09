@@ -37,11 +37,16 @@ module Elang
         :mem_get_data_offset  => SystemFunction.new("mem_get_data_offset"), 
         :alloc_object         => SystemFunction.new("alloc_object"), 
         :load_str             => SystemFunction.new("load_str"), 
+        :str_length           => SystemFunction.new("str_length"), 
+        :str_lcase            => SystemFunction.new("str_lcase"), 
+        :str_ucase            => SystemFunction.new("str_ucase"), 
+        :str_append           => SystemFunction.new("str_append"), 
+        :str_substr           => SystemFunction.new("str_substr"), 
         :print                => SystemFunction.new("print"), 
         :puts                 => SystemFunction.new("puts")
       }
       
-    SYS_VARIABLES = ["dynamic_area"]
+    SYS_VARIABLES = ["first_block", "dynamic_area"]
     
     attr_reader :symbols, :symbol_refs
     
@@ -151,14 +156,14 @@ module Elang
           "8B4400",       # mov ax, [si]
           "83C602",       # add si, 2
           "5056",         # push ax; push si
-          "B8000050",     # mov ax, dynamic_area
+          "A1000050",     # mov ax, first_block; push ax
           "E80000",       # call load_str
         ]
       
-      da = @codeset.symbols.find_nearest(active_scope, "dynamic_area")
+      fb = @codeset.symbols.find_nearest(active_scope, "first_block")
       
       add_constant_ref symbol, code_len + 1
-      add_variable_ref da, code_len + 12
+      add_variable_ref fb, code_len + 12
       add_function_ref SYS_FUNCTIONS[:load_str], code_len + 16
       
       append_code hex2bin(hex_code.join)
@@ -168,6 +173,12 @@ module Elang
       
       if name == "nil"
         append_code hex2bin("B80000")
+      elsif name == "self"
+        if active_scope.cls.nil?
+          raise "Symbol 'self' accessed outside class"
+        else
+          append_code hex2bin("8B4604")
+        end
       elsif (symbol = @codeset.symbols.find_nearest(active_scope, name)).nil?
         raise "Cannot get value from '#{name}' , symbol not defined in scope '#{active_scope.to_s}'"
       elsif symbol.is_a?(FunctionParameter)
@@ -348,20 +359,20 @@ module Elang
           iv = ct.get_instance_variables(cls)
           sz = Utils::Converter.int_to_whex_rev(iv.count)
           ci = Utils::Converter.int_to_whex_rev(CodesetTool.create_class_id(cls))
-          da = @codeset.symbols.find_nearest(active_scope, "dynamic_area")
+          fb = @codeset.symbols.find_nearest(active_scope, "first_block")
           hc = "B8#{sz}50B8#{ci}50A1000050E80000"
           
-          add_variable_ref da, code_len + 9
+          add_variable_ref fb, code_len + 9
           add_function_ref SYS_FUNCTIONS[:alloc_object], code_len + 13
           append_code hex2bin(hc)
         end
       else
         prepare_arguments func_args
         
-        #push args count
+        # push args count
         append_code hex2bin("B8" + Utils::Converter.int_to_whex_rev(func_args.count) + "50")
         
-        #(todo)#push object method id
+        # push object method id
         function_id = FunctionId.new(current_scope, func_name)
         add_function_id_ref function_id, code_len + 1
         append_code hex2bin("B8000050")

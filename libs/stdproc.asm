@@ -214,6 +214,16 @@ _mem_get_data_offset_done:
   ret 2
   
   
+mem_get_container_block:
+  ; input object; output: ax
+  push bp
+  mov bp, sp
+  mov ax, [bp + 4]
+  sub ax, 8
+  pop bp
+  ret 2
+  
+  
 mem_copy:
   ; input: source, dest, length
   push bp
@@ -334,6 +344,44 @@ _alloc_object_done:
   ret 6
   
   
+create_str:
+  ; input: first_block, length; output: ax=str object or zero if fail
+  push bp
+  mov bp, sp
+  push si
+  mov ax, [bp + 6]
+  push ax
+  mov ax, [bp + 4]
+  push ax
+  call mem_alloc
+  cmp ax, NO_MORE
+  jnz _create_str_alloc_success
+  mov ax, CLS_ID_NULL
+  jmp _create_str_failed
+_create_str_alloc_success:
+  push ax
+  call mem_get_data_offset
+  mov si, ax
+  mov ax, 2                 ; instance_variable count
+  push ax
+  mov ax, CLS_ID_STRING     ; class_id
+  push ax
+  mov ax, [bp + 4]          ; first_block
+  push ax
+  call alloc_object
+  cmp ax, NO_MORE
+  jz _create_str_failed
+  xchg si, ax
+  mov [si + 4], ax
+  mov ax, [bp + 6]
+  mov [si + 2], ax
+  mov ax, si
+_create_str_failed:
+  pop si
+  pop bp
+  ret 4
+  
+  
 load_str:
   ; input: first_block, offset, length; output: ax
   ; string structure:
@@ -347,39 +395,219 @@ load_str:
   push ax
   mov ax, [bp + 4]
   push ax
-  call mem_alloc
-  cmp ax, NO_MORE
-  jnz _load_str_data_alloc_success
-  xor ax, ax
-  jmp _load_str_failed
-_load_str_data_alloc_success:
-  push ax
-  call mem_get_data_offset
+  call create_str
+  cmp ax, CLS_ID_NULL
+  jz _load_str_failed
   mov si, ax
   mov ax, [bp + 8]
   push ax
-  push si
+  mov ax, [si + 4]
+  push ax
   mov ax, [bp + 6]
   push ax
   call mem_copy
-  mov ax, 2                 ; instance_variable count
-  push ax
-  mov ax, CLS_ID_STRING     ; class_id
-  push ax
-  mov ax, [bp + 4]          ; first_block
-  push ax
-  call alloc_object
-  cmp ax, NO_MORE
-  jz _load_str_failed
-  xchg si, ax
-  mov [si + 4], ax
-  mov ax, [bp + 8]
-  mov [si + 2], ax
   mov ax, si
 _load_str_failed:
   pop si
   pop bp
   ret 6
+  
+  
+str_length:
+  ; input: str; output: ax
+  push bp
+  mov bp, sp
+  push bx
+  mov bx, [bp + 4]
+  mov ax, [bx + 2]
+  pop bx
+  pop bp
+  ret 2
+  
+str_copy:
+  ; input first_block, str; output: ax
+  ; create a copy of existing string
+  push bp
+  mov bp, sp
+  push si
+  push di
+  mov si, [bp + 6]
+  mov ax, [si + 2]
+  push ax
+  mov ax, [bp + 4]
+  push ax
+  call create_str
+  cmp ax, CLS_ID_NULL
+  jz _str_copy_failed
+  mov di, ax
+  mov ax, [si + 2]
+  push ax
+  mov ax, [di + 4]
+  push ax
+  mov ax, [si + 4]
+  push ax
+  call mem_copy
+  mov ax, di
+_str_copy_failed:
+  pop di
+  pop si
+  pop bp
+  ret 4
+  
+  
+str_append:
+  ; input: first_block, str1, str2; output: ax=new str or zero if fail
+  push bp
+  mov bp, sp
+  push cx
+  push bx
+  push si
+  push di
+  mov si, [bp + 6]
+  mov di, [bp + 8]
+  mov cx, [si + 2]
+  add cx, [di + 2]
+  push cx
+  mov ax, [bp + 4]
+  push ax
+  call create_str
+  cmp ax, CLS_ID_NULL
+  jz _str_append_failed
+  mov bx, ax
+  mov ax, [si + 2]
+  push ax
+  mov ax, [bx + 4]
+  push ax
+  mov ax, [si + 4]
+  push ax
+  call mem_copy
+  mov ax, [di + 2]
+  push ax
+  mov ax, [bx + 4]
+  add ax, [si + 2]
+  push ax
+  mov ax, [di + 4]
+  push ax
+  call mem_copy
+  mov ax, bx
+_str_append_failed:
+  pop di
+  pop si
+  pop bx
+  pop cx
+  pop bp
+  ret 6
+  
+  
+str_substr:
+  ; input: first_block, str, offset, size; output: ax
+  push bp
+  mov bp, sp
+  push si
+  push di
+  mov ax, [bp + 10]
+  push ax
+  mov ax, [bp + 4]
+  push ax
+  call create_str
+  cmp ax, CLS_ID_NULL
+  jz _str_substr_failed
+  mov di, ax
+  mov si, [bp + 6]
+  mov ax, [bp + 10]
+  push ax
+  mov ax, [di + 4]
+  push ax
+  mov ax, [si + 4]
+  add ax, [bp + 8]
+  push ax
+  call mem_copy
+  mov ax, di
+_str_substr_failed:
+  pop di
+  pop si
+  pop bp
+  ret 8
+  
+  
+str_lcase:
+  ; input: first_block, str; output: ax
+  push bp
+  mov bp, sp
+  push cx
+  push bx
+  push si
+  mov ax, [bp + 6]
+  push ax
+  mov ax, [bp + 4]
+  push ax
+  call str_copy
+  cmp ax, CLS_ID_NULL
+  jz _str_lcase_done
+  mov bx, ax
+  mov cx, [bx +  2]
+  test cx, cx
+  jz _str_lcase_processed
+  mov si, [bx + 4]
+_str_lcase_loop:
+  mov al, [si]
+  cmp al, 41h
+  jc _str_lcase_skip_char
+  cmp al, 5ah
+  jg _str_lcase_skip_char
+  add al, 20h
+  mov [si], al
+  inc si
+_str_lcase_skip_char:
+  loop _str_lcase_loop
+_str_lcase_processed:
+  mov ax, bx
+_str_lcase_done:
+  pop si
+  pop bx
+  pop cx
+  pop bp
+  ret 4
+  
+  
+str_ucase:
+  ; input: first_block, str; output: ax
+  push bp
+  mov bp, sp
+  push cx
+  push bx
+  push si
+  mov ax, [bp + 6]
+  push ax
+  mov ax, [bp + 4]
+  push ax
+  call str_copy
+  cmp ax, CLS_ID_NULL
+  jz _str_ucase_done
+  mov bx, ax
+  mov cx, [bx +  2]
+  test cx, cx
+  jz _str_ucase_processsed
+  mov si, [bx + 4]
+_str_ucase_loop:
+  mov al, [si]
+  cmp al, 61h
+  jc _str_ucase_skip_char
+  cmp al, 7ah
+  jg _str_ucase_skip_char
+  sub al, 20h
+  mov [si], al
+  inc si
+_str_ucase_skip_char:
+  loop _str_ucase_loop
+_str_ucase_processsed:
+  mov ax, bx
+_str_ucase_done:
+  pop si
+  pop bx
+  pop cx
+  pop bp
+  ret 4
   
   
 _cbw:
@@ -613,12 +841,25 @@ _set_obj_var:
   
   
 _putchr:
-  ; input: int = 10, ah = 14, al = character code, bh = page number (text mode), bl = foreground pixel (graphic mode)
+  ; input: al = character code
+  ; config: int = 10, ah = 14, bh = page number (text mode), bl = foreground pixel (graphic mode)
   push ax
   push bx
   mov ah, 14
   xor bx, bx
   int 10h
+  pop bx
+  pop ax
+  ret
+  
+  
+_putline:
+  push ax
+  push bx
+  mov al, 13
+  call _putchr
+  mov al, 10
+  call _putchr
   pop bx
   pop ax
   ret

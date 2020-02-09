@@ -1,6 +1,6 @@
 dw code
 
-dw 24
+dw 29
 
 dw mem_block_init, 14
   db "mem_block_init"
@@ -46,6 +46,16 @@ dw _set_obj_var, 12
   db "_set_obj_var"
 dw load_str, 8
   db "load_str"
+dw str_length, 10
+  db "str_length"
+dw str_lcase, 9
+  db "str_lcase"
+dw str_ucase, 9
+  db "str_ucase"
+dw str_append, 10
+  db "str_append"
+dw str_substr, 10
+  db "str_substr"
 dw _puts, 4
   db "puts"
 dw _getch, 5

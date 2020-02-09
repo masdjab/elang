@@ -37,6 +37,7 @@ module Elang
         :mem_get_data_offset  => SystemFunction.new("mem_get_data_offset"), 
         :alloc_object         => SystemFunction.new("alloc_object"), 
         :load_str             => SystemFunction.new("load_str"), 
+        :print                => SystemFunction.new("print"), 
         :puts                 => SystemFunction.new("puts")
       }
       

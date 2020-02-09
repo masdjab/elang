@@ -1,6 +1,6 @@
 dw code
 
-dw 29
+dw 30
 
 dw mem_block_init, 14
   db "mem_block_init"
@@ -56,6 +56,8 @@ dw str_append, 10
   db "str_append"
 dw str_substr, 10
   db "str_substr"
+dw _print, 5
+  db "print"
 dw _puts, 4
   db "puts"
 dw _getch, 5

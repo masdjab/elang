@@ -23,7 +23,6 @@ main:
   mov ax, [str_mista]
   push ax
   call _puts
-  call _putline
   
   ; create string kenly
   mov si, text_kenly
@@ -39,7 +38,6 @@ main:
   mov ax, [str_kenly]
   push ax
   call _puts
-  call _putline
   
   ; merge mista and kenly
   mov ax, [str_kenly]
@@ -54,7 +52,6 @@ main:
   mov ax, [str_merged]
   push ax
   call _puts
-  call _putline
   
   ; mistakenly.lcase
   mov ax, [str_merged]
@@ -67,7 +64,6 @@ main:
   mov ax, [str_lower]
   push ax
   call _puts
-  call _putline
   
   ; mistakenly.ucase
   mov ax, [str_lower]
@@ -80,7 +76,6 @@ main:
   mov ax, [str_upper]
   push ax
   call _puts
-  call _putline
   
   ; mistakenly.substr(3, 5)
   mov ax, 5
@@ -97,7 +92,6 @@ main:
   mov ax, [str_part]
   push ax
   call _puts
-  call _putline
   
   int 20h
   

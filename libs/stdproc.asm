@@ -865,7 +865,7 @@ _putline:
   ret
   
   
-_print:
+_putstr:
   ; input: offset, length
   push bp
   mov bp, sp
@@ -876,15 +876,15 @@ _print:
   mov si, [bp + 4]
   mov cx, [bp + 6]
   test cx, cx
-  jz _puts_done
+  jz _putstr_done
   cld
   mov ah, 14
   xor bx, bx
-_puts_repeat:
+_putstr_repeat:
   lodsb
   int 10h
-  loop _puts_repeat
-_puts_done:
+  loop _putstr_repeat
+_putstr_done:
   pop si
   pop bx
   pop cx
@@ -893,19 +893,36 @@ _puts_done:
   ret 4
   
   
-_puts:
+_print:
   ; input: str object
   push bp
   mov bp, sp
+  push ax
+  push bx
   mov bx, [bp + 4]
   mov ax, [bx + 2]    ; length
   push ax
   mov ax, [bx + 4]    ; buffer location
   push ax
-  call _print
+  call _putstr
+  pop bx
+  pop ax
   pop bp
   ret 2
   
+  
+_puts:
+  ; input: str object
+  push bp
+  mov bp, sp
+  push ax
+  mov ax, [bp + 4]
+  push ax
+  call _print
+  call _putline
+  pop ax
+  pop bp
+  ret 2
   
 _getch:
   mov ah, 8

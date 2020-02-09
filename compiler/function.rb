@@ -1,6 +1,9 @@
 module Elang
   class Function
-    BASE_FUNCTION_ID = 1
+    PREDEFINED_FUNCTION_NAMES =
+      [
+        "initialize", "nil?", "to_s", "_get_byte_at", "_set_byte_at", "_get_word_at", "_set_word_at"
+      ]
     
     @@index = 0
     

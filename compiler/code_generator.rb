@@ -40,7 +40,7 @@ module Elang
         :puts                 => SystemFunction.new("puts")
       }
       
-    SYS_VARIABLES = ["first_block", "dynamic_area"]
+    SYS_VARIABLES = ["dynamic_area"]
     
     attr_reader :symbols, :symbol_refs
     
@@ -150,14 +150,14 @@ module Elang
           "8B4400",       # mov ax, [si]
           "83C602",       # add si, 2
           "5056",         # push ax; push si
-          "A1000050",     # mov ax, first_block; push ax
+          "B8000050",     # mov ax, dynamic_area
           "E80000",       # call load_str
         ]
       
-      fb = @codeset.symbols.find_nearest(active_scope, "first_block")
+      da = @codeset.symbols.find_nearest(active_scope, "dynamic_area")
       
       add_constant_ref symbol, code_len + 1
-      add_variable_ref fb, code_len + 12
+      add_variable_ref da, code_len + 12
       add_function_ref SYS_FUNCTIONS[:load_str], code_len + 16
       
       append_code hex2bin(hex_code.join)
@@ -347,9 +347,10 @@ module Elang
           iv = ct.get_instance_variables(cls)
           sz = Utils::Converter.int_to_whex_rev(iv.count)
           ci = Utils::Converter.int_to_whex_rev(CodesetTool.create_class_id(cls))
-          fb = @codeset.symbols.find_nearest(active_scope, "first_block")
+          da = @codeset.symbols.find_nearest(active_scope, "dynamic_area")
           hc = "B8#{sz}50B8#{ci}50A1000050E80000"
-          add_variable_ref fb, code_len + 9
+          
+          add_variable_ref da, code_len + 9
           add_function_ref SYS_FUNCTIONS[:alloc_object], code_len + 13
           append_code hex2bin(hc)
         end

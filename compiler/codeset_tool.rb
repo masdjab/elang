@@ -4,7 +4,7 @@ module Elang
       @codeset = codeset
     end
     def self.create_class_id(cls)
-      if cls.name == Class::CLS_NAME_INTEGER
+      if cls.name == "Integer"
         raise "Integer doesn't have class id"
       elsif Class::ROOT_CLASS_IDS.key?(cls.name)
         Class::ROOT_CLASS_IDS[cls.name]
@@ -14,7 +14,9 @@ module Elang
     end
     def get_function_names
       if @functions.nil?
-        @functions = @codeset.symbols.items.select{|x|x.is_a?(Function)}.map{|x|x.name}.uniq
+        predefined = Function::PREDEFINED_FUNCTION_NAMES
+        func_names = @codeset.symbols.items.select{|x|x.is_a?(Function)}.map{|x|x.name}.uniq
+        @functions = predefined + (func_names - predefined)
       end
       
       @functions
@@ -39,7 +41,7 @@ module Elang
       
       @codeset.symbols.items
         .select{|x|x.is_a?(Function) && (x.scope.cls == cls.name) && x.receiver.nil?}
-        .map{|x|{id: Function::BASE_FUNCTION_ID + functions.index(x.name), name: x.name, offset: x.offset}}
+        .map{|x|{id: functions.index(x.name), name: x.name, offset: x.offset}}
     end
     def get_classes_hierarchy
       classes = {}

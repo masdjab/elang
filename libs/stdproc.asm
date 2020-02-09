@@ -1,14 +1,23 @@
 ; written by Heryudi Praja
 
 NO_MORE                   EQU 0ffffh
+FAILED                    EQU 0ffffh
 
 CLS_ID_NULL               EQU 0
 CLS_ID_FALSE              EQU 2
 CLS_ID_TRUE               EQU 4
 CLS_ID_OBJECT             EQU 6
 CLS_ID_ENUMERATOR         EQU 8
-CLS_ID_STRING             EQU 10
-CLS_ID_ARRAY              EQU 12
+CLS_ID_ARRAY              EQU 10
+CLS_ID_STRING             EQU 12
+
+METHOD_ID_INITIALIZE      EQU 1
+METHOD_ID_IS_NULL         EQU 2
+METHOD_ID_TO_STRING       EQU 3
+METHOD_ID_GET_BYTE_AT     EQU 4
+METHOD_ID_SET_BYTE_AT     EQU 5
+METHOD_ID_GET_WORD_AT     EQU 6
+METHOD_ID_SET_WORD_AT     EQU 7
 
 
 mem_block_init:
@@ -146,6 +155,11 @@ mem_alloc:
   mov bp, sp
   push bx
   mov ax, [bp + 6]
+  test ax, 1
+  jz _mem_alloc_size_aligned
+  inc ax
+  mov [bp + 6], ax
+_mem_alloc_size_aligned:
   push ax
   mov ax, [bp + 4]
   push ax
@@ -239,6 +253,60 @@ _mem_copy_done:
   ret 6
   
   
+mem_resize:
+  ; input: first_block, target_block, new_size; output: ax
+  push bp
+  mov bp, sp
+  push cx
+  push bx
+  mov ax, [bp + 8]
+  test ax, 1
+  jz _mem_resize_new_size_aligned
+  inc ax
+  mov [bp + 8], ax
+_mem_resize_new_size_aligned:
+  mov bx, [bp + 6]
+  mov ax, [bx + 2]
+  cmp ax, [bp + 8]
+  jz _mem_resize_done
+  jnc _mem_resize_expand
+_mem_resize_shrink:
+  mov ax, [bp + 8]
+  push ax
+  mov ax, [bp + 6]
+  push ax
+  call mem_split_block
+  mov ax, [bp + 6]
+  jmp _mem_resize_done
+_mem_resize_expand:
+  mov ax, [bp + 8]
+  push ax
+  mov ax, [bp + 4]
+  push ax
+  call mem_alloc
+  cmp ax, NO_MORE
+  jz _mem_resize_done
+  push ax
+  mov cx, [bx + 2]
+  push cx
+  push ax
+  call mem_get_data_offset
+  push ax
+  push bx
+  call mem_get_data_offset
+  push ax
+  call mem_copy
+  mov ax, [bp + 6]
+  push ax
+  call mem_dealloc
+  pop ax
+_mem_resize_done:
+  pop bx
+  pop cx
+  pop bp
+  ret 6
+  
+  
 alloc_object:
   ; input: first_block, class id, instance variable count
   push bp
@@ -275,6 +343,25 @@ load_str:
   push bp
   mov bp, sp
   push si
+  mov ax, [bp + 8]
+  push ax
+  mov ax, [bp + 4]
+  push ax
+  call mem_alloc
+  cmp ax, NO_MORE
+  jnz _load_str_data_alloc_success
+  xor ax, ax
+  jmp _load_str_failed
+_load_str_data_alloc_success:
+  push ax
+  call mem_get_data_offset
+  mov si, ax
+  mov ax, [bp + 8]
+  push ax
+  push si
+  mov ax, [bp + 6]
+  push ax
+  call mem_copy
   mov ax, 2                 ; instance_variable count
   push ax
   mov ax, CLS_ID_STRING     ; class_id
@@ -282,24 +369,95 @@ load_str:
   mov ax, [bp + 4]          ; first_block
   push ax
   call alloc_object
-  mov si, ax
+  cmp ax, NO_MORE
+  jz _load_str_failed
+  xchg si, ax
+  mov [si + 4], ax
   mov ax, [bp + 8]
   mov [si + 2], ax
-  mov ax, [bp + 6]
-  mov [si + 4], ax
   mov ax, si
+_load_str_failed:
   pop si
   pop bp
   ret 6
   
   
 _cbw:
+  ; input: value; output: ax
   push bp
   mov bp, sp
   mov ax, [bp + 4]
   cbw
   pop bp
   ret 2
+  
+  
+_cwb:
+  ; input: vlaue; output: ax
+  push bp
+  mov bp, sp
+  mov ax, [bp + 4]
+  xor ah, ah
+  pop bp
+  ret 2
+  
+  
+_get_byte_at:
+  ; input: offset, index; output: al
+  push bp
+  mov bp, sp
+  push si
+  mov si, [bp + 4]
+  add si, [bp + 6]
+  mov al, [si]
+  pop si
+  pop bp
+  ret 4
+  
+  
+_set_byte_at:
+  ; input: offset, index, value
+  push bp
+  mov bp, sp
+  push ax
+  push si
+  mov si, [bp + 4]
+  add si, [bp + 6]
+  mov ax, [bp + 8]
+  mov [si], al
+  pop si
+  pop ax
+  pop bp
+  ret 6
+  
+  
+_get_word_at:
+  ; input: offset, index; output: ax
+  push bp
+  mov bp, sp
+  push si
+  mov si, [bp + 4]
+  add si, [bp + 6]
+  mov ax, [si]
+  pop si
+  pop bp
+  ret 4
+  
+  
+_set_word_at:
+  ; input: offset, index, value
+  push bp
+  mov bp, sp
+  push ax
+  push si
+  mov si, [bp + 4]
+  add si, [bp + 6]
+  mov ax, [bp + 8]
+  mov [si], ax
+  pop si
+  pop ax
+  pop bp
+  ret 6
   
   
 _int_pack:

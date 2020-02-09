@@ -72,14 +72,17 @@ module Elang
           "8ED8",                     # mov ds, ax
           "B8#{rv_heap_size}50",      # push heap_size
           "B8000050",                 # push dynamic_area
-          "E80000"                    # call mem_block_init
+          "E80000",                   # call mem_block_init
+          "A30000"                    # mov [first_block], ax
         ]
       
       root_scope = Scope.new
+      first_block = codeset.symbols.items.find{|x|x.is_a?(Variable) && x.scope.root? && (x.name == "first_block")}
       dynamic_area = codeset.symbols.items.find{|x|x.is_a?(Variable) && x.scope.root? && (x.name == "dynamic_area")}
       
       codeset.symbol_refs << VariableRef.new(dynamic_area, root_scope, 14, :init)
       codeset.symbol_refs << FunctionRef.new(SystemFunction.new("mem_block_init"), root_scope, 18, :init)
+      codeset.symbol_refs << VariableRef.new(first_block, root_scope, 21, :init)
       
       hex2bin init_cmnd.join
     end
@@ -243,7 +246,7 @@ module Elang
                 raise "Undefined system function '#{symbol.name}'"
               end
             elsif symbol.is_a?(FunctionId)
-              resolve_value = @function_names.index(symbol.name) + 1
+              resolve_value = @function_names.index(symbol.name)
               code[ref.location, 2] = Utils::Converter.int_to_word(resolve_value)
             elsif symbol.is_a?(Class)
 #puts "Resolving class '#{symbol.name}', index: #{symbol.index}"

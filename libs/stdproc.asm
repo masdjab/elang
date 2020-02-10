@@ -557,8 +557,8 @@ _str_lcase_loop:
   jg _str_lcase_skip_char
   add al, 20h
   mov [si], al
-  inc si
 _str_lcase_skip_char:
+  inc si
   loop _str_lcase_loop
 _str_lcase_processed:
   mov ax, bx
@@ -597,8 +597,8 @@ _str_ucase_loop:
   jg _str_ucase_skip_char
   sub al, 20h
   mov [si], al
-  inc si
 _str_ucase_skip_char:
+  inc si
   loop _str_ucase_loop
 _str_ucase_processsed:
   mov ax, bx

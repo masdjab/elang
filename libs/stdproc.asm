@@ -557,8 +557,8 @@ _str_lcase_loop:
   jg _str_lcase_skip_char
   add al, 20h
   mov [si], al
-  inc si
 _str_lcase_skip_char:
+  inc si
   loop _str_lcase_loop
 _str_lcase_processed:
   mov ax, bx
@@ -597,8 +597,8 @@ _str_ucase_loop:
   jg _str_ucase_skip_char
   sub al, 20h
   mov [si], al
-  inc si
 _str_ucase_skip_char:
+  inc si
   loop _str_ucase_loop
 _str_ucase_processsed:
   mov ax, bx
@@ -689,18 +689,26 @@ _set_word_at:
   
   
 _int_pack:
+  ; input: value; output: ax
+  push bp
+  mov bp, sp
   shl ax, 1
   or ax, 1
-  ret
+  pop bp
+  ret 2
   
   
 _int_unpack:
+  ; input: value; output: ax
+  push bp
+  mov bp, sp
   shr ax, 1
   test ax, 4000h
   jz _int_unpack_done
   or ax, 8000h
 _int_unpack_done:
-  ret
+  pop bp
+  ret 2
   
   
 _int_add:
@@ -708,11 +716,14 @@ _int_add:
   mov bp, sp
   push cx
   mov ax, [bp + 6]
+  push ax
   call _int_unpack
   mov cx, ax
   mov ax, [bp + 4]
+  push ax
   call _int_unpack
   add ax, cx
+  push ax
   call _int_pack
   pop cx
   pop bp
@@ -724,11 +735,14 @@ _int_subtract:
   mov bp, sp
   push cx
   mov ax, [bp + 6]
+  push ax
   call _int_unpack
   mov cx, ax
   mov ax, [bp + 4]
+  push ax
   call _int_unpack
   sub ax, cx
+  push ax
   call _int_pack
   pop cx
   pop bp
@@ -742,11 +756,14 @@ _int_multiply:
   push dx
   xor dx, dx
   mov ax, [bp + 6]
+  push ax
   call _int_unpack
   mov cx, ax
   mov ax, [bp + 4]
+  push ax
   call _int_unpack
   imul cx
+  push ax
   call _int_pack
   pop dx
   pop cx
@@ -761,11 +778,14 @@ _int_divide:
   push dx
   xor dx, dx
   mov ax, [bp + 6]
+  push ax
   call _int_unpack
   mov cx, ax
   mov ax, [bp + 4]
+  push ax
   call _int_unpack
   idiv cx
+  push ax
   call _int_pack
   pop dx
   pop cx
@@ -778,11 +798,14 @@ _int_and:
   mov bp, sp
   push cx
   mov ax, [bp + 6]
+  push ax
   call _int_unpack
   mov cx, ax
   mov ax, [bp + 4]
+  push ax
   call _int_unpack
   and ax, cx
+  push ax
   call _int_pack
   pop cx
   pop bp
@@ -794,11 +817,14 @@ _int_or:
   mov bp, sp
   push cx
   mov ax, [bp + 6]
+  push ax
   call _int_unpack
   mov cx, ax
   mov ax, [bp + 4]
+  push ax
   call _int_unpack
   or ax, cx
+  push ax
   call _int_pack
   pop cx
   pop bp
@@ -925,8 +951,13 @@ _puts:
   ret 2
   
 _getch:
+  ; input: none; output: ax
+  push bp
+  mov bp, sp
   mov ah, 8
   int 21h
   cbw
+  push ax
   call _int_pack
-  ret
+  pop bp
+  ret 2

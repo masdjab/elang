@@ -1,15 +1,15 @@
 class String
   def lcase
-    str_lcase(first_block, self)
+    str_lcase(self)
   end
   def ucase
-    str_ucase(first_block, self)
+    str_ucase(self)
   end
   def append(str)
-    str_append(first_block, self, str)
+    str_append(self, str)
   end
   def substr(pos, len)
-    str_substr(first_block, self, _int_unpack(pos), _int_unpack(len))
+    str_substr(self, _int_unpack(pos), _int_unpack(len))
   end
 end
 

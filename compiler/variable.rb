@@ -1,5 +1,7 @@
 module Elang
   class Variable
+    RESERVED_VARIABLE_COUNT = 1
+    
     @@index = 0
     
     attr_reader :scope, :name, :index

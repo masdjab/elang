@@ -1,13 +1,25 @@
 org 100h
-jmp main
+
+mov ax, main
+push ax
+ret
+
 include 'stdproc.asm'
 
 main:
+  mov ax, data_here
+  shr ax, 4
+  mov cx, cs
+  add ax, cx
+  mov ds, ax
+  mov ss, ax
+  
   mov ax, 8000h
   push ax
   mov ax, dynamic_area
   push ax
   call mem_block_init
+  mov [FIRST_BLOCK], ax
   
   ; create string mista
   mov si, text_mista
@@ -15,8 +27,6 @@ main:
   add si, 2
   push ax
   push si
-  mov ax, dynamic_area
-  push ax
   call load_str
   mov [str_mista], ax
   
@@ -30,8 +40,6 @@ main:
   add si, 2
   push ax
   push si
-  mov ax, dynamic_area
-  push ax
   call load_str
   mov [str_kenly], ax
   
@@ -44,8 +52,6 @@ main:
   push ax
   mov ax, [str_mista]
   push ax
-  mov ax, dynamic_area
-  push ax
   call str_append
   mov [str_merged], ax
   
@@ -56,8 +62,6 @@ main:
   ; mistakenly.lcase
   mov ax, [str_merged]
   push ax
-  mov ax, dynamic_area
-  push ax
   call str_lcase
   mov [str_lower], ax
   
@@ -67,8 +71,6 @@ main:
   
   ; mistakenly.ucase
   mov ax, [str_lower]
-  push ax
-  mov ax, dynamic_area
   push ax
   call str_ucase
   mov [str_upper], ax
@@ -84,8 +86,6 @@ main:
   push ax
   mov ax, [str_upper]
   push ax
-  mov ax, dynamic_area
-  push ax
   call str_substr
   mov [str_part], ax
   
@@ -96,6 +96,16 @@ main:
   int 20h
   
 
+virtual
+  align 16
+  a = $ - $$
+end virtual
+db a dup 0
+
+data_here:
+
+org 0
+reserved_1      dw 0
 text_mista      db 5, 0, 'MISTA'
 text_kenly      db 5, 0, 'KENLY'
 

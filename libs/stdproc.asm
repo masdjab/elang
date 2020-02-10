@@ -19,6 +19,8 @@ METHOD_ID_SET_BYTE_AT     EQU 5
 METHOD_ID_GET_WORD_AT     EQU 6
 METHOD_ID_SET_WORD_AT     EQU 7
 
+FIRST_BLOCK               EQU 0
+
 
 mem_block_init:
   ; input: offset, size, output: ax = address of first block
@@ -45,17 +47,17 @@ _mem_block_init_done:
   
   
 mem_find_free_block:
-  ; input: first block, size; output ax: address
+  ; input: size; output ax: address
   push bp
   mov bp, sp
   push bx
-  mov bx, [bp + 4]
+  mov bx, [FIRST_BLOCK]
 _mem_find_free_block_check_current_block:
   mov ax, [bx]
   test ax, ax
   jnz _mem_find_free_block_block_checked
   mov ax, [bx + 2]
-  cmp ax, [bp + 6]
+  cmp ax, [bp + 4]
   jc _mem_find_free_block_block_checked
   mov ax, bx
   jmp _mem_find_free_block_done
@@ -67,7 +69,7 @@ _mem_find_free_block_block_checked:
 _mem_find_free_block_done:
   pop bx
   pop bp
-  ret 4
+  ret 2
   
   
 mem_split_block:
@@ -150,24 +152,22 @@ _mem_merge_free_block_done:
   
   
 mem_alloc:
-  ; input: first_block, size; output: ax=address
+  ; input: size; output: ax=address
   push bp
   mov bp, sp
   push bx
-  mov ax, [bp + 6]
+  mov ax, [bp + 4]
   test ax, 1
   jz _mem_alloc_size_aligned
   inc ax
-  mov [bp + 6], ax
+  mov [bp + 4], ax
 _mem_alloc_size_aligned:
-  push ax
-  mov ax, [bp + 4]
   push ax
   call mem_find_free_block
   cmp ax, NO_MORE
   jz _mem_alloc_done
   mov bx, ax
-  mov ax, [bp + 6]
+  mov ax, [bp + 4]
   push ax
   push bx
   call mem_split_block
@@ -177,7 +177,7 @@ _mem_alloc_size_aligned:
 _mem_alloc_done:
   pop bx
   pop bp
-  ret 4
+  ret 2
   
   
 mem_dealloc:
@@ -264,34 +264,32 @@ _mem_copy_done:
   
   
 mem_resize:
-  ; input: first_block, target_block, new_size; output: ax
+  ; input: target_block, new_size; output: ax
   push bp
   mov bp, sp
   push cx
   push bx
-  mov ax, [bp + 8]
+  mov ax, [bp + 6]
   test ax, 1
   jz _mem_resize_new_size_aligned
   inc ax
-  mov [bp + 8], ax
+  mov [bp + 6], ax
 _mem_resize_new_size_aligned:
-  mov bx, [bp + 6]
+  mov bx, [bp + 4]
   mov ax, [bx + 2]
-  cmp ax, [bp + 8]
+  cmp ax, [bp + 6]
   jz _mem_resize_done
   jnc _mem_resize_expand
 _mem_resize_shrink:
-  mov ax, [bp + 8]
-  push ax
   mov ax, [bp + 6]
-  push ax
-  call mem_split_block
-  mov ax, [bp + 6]
-  jmp _mem_resize_done
-_mem_resize_expand:
-  mov ax, [bp + 8]
   push ax
   mov ax, [bp + 4]
+  push ax
+  call mem_split_block
+  mov ax, [bp + 4]
+  jmp _mem_resize_done
+_mem_resize_expand:
+  mov ax, [bp + 6]
   push ax
   call mem_alloc
   cmp ax, NO_MORE
@@ -306,7 +304,7 @@ _mem_resize_expand:
   call mem_get_data_offset
   push ax
   call mem_copy
-  mov ax, [bp + 6]
+  mov ax, [bp + 4]
   push ax
   call mem_dealloc
   pop ax
@@ -314,19 +312,17 @@ _mem_resize_done:
   pop bx
   pop cx
   pop bp
-  ret 6
+  ret 4
   
   
 alloc_object:
-  ; input: first_block, class id, instance variable count
+  ; input: class id, instance variable count
   push bp
   mov bp, sp
   push bx
-  mov ax, [bp + 8]
+  mov ax, [bp + 6]
   add ax, 1
   shl ax, 1
-  push ax
-  mov ax, [bp + 4]
   push ax
   call mem_alloc
   cmp ax, NO_MORE
@@ -335,22 +331,20 @@ alloc_object:
   call mem_get_data_offset
   push ax
   mov bx, ax
-  mov ax, [bp + 6]
+  mov ax, [bp + 4]
   mov [bx], ax
   pop ax
 _alloc_object_done:
   pop bx
   pop bp
-  ret 6
+  ret 4
   
   
 create_str:
-  ; input: first_block, length; output: ax=str object or zero if fail
+  ; input: length; output: ax=str object or zero if fail
   push bp
   mov bp, sp
   push si
-  mov ax, [bp + 6]
-  push ax
   mov ax, [bp + 4]
   push ax
   call mem_alloc
@@ -366,24 +360,22 @@ _create_str_alloc_success:
   push ax
   mov ax, CLS_ID_STRING     ; class_id
   push ax
-  mov ax, [bp + 4]          ; first_block
-  push ax
   call alloc_object
   cmp ax, NO_MORE
   jz _create_str_failed
   xchg si, ax
   mov [si + 4], ax
-  mov ax, [bp + 6]
+  mov ax, [bp + 4]
   mov [si + 2], ax
   mov ax, si
 _create_str_failed:
   pop si
   pop bp
-  ret 4
+  ret 2
   
   
 load_str:
-  ; input: first_block, offset, length; output: ax
+  ; input: offset, length; output: ax
   ; string structure:
   ; - class id
   ; - string length
@@ -391,26 +383,24 @@ load_str:
   push bp
   mov bp, sp
   push si
-  mov ax, [bp + 8]
-  push ax
-  mov ax, [bp + 4]
+  mov ax, [bp + 6]
   push ax
   call create_str
   cmp ax, CLS_ID_NULL
   jz _load_str_failed
   mov si, ax
-  mov ax, [bp + 8]
+  mov ax, [bp + 6]
   push ax
   mov ax, [si + 4]
   push ax
-  mov ax, [bp + 6]
+  mov ax, [bp + 4]
   push ax
   call mem_copy
   mov ax, si
 _load_str_failed:
   pop si
   pop bp
-  ret 6
+  ret 4
   
   
 str_length:
@@ -425,16 +415,14 @@ str_length:
   ret 2
   
 str_copy:
-  ; input first_block, str; output: ax
+  ; input str; output: ax
   ; create a copy of existing string
   push bp
   mov bp, sp
   push si
   push di
-  mov si, [bp + 6]
+  mov si, [bp + 4]
   mov ax, [si + 2]
-  push ax
-  mov ax, [bp + 4]
   push ax
   call create_str
   cmp ax, CLS_ID_NULL
@@ -452,24 +440,22 @@ _str_copy_failed:
   pop di
   pop si
   pop bp
-  ret 4
+  ret 2
   
   
 str_append:
-  ; input: first_block, str1, str2; output: ax=new str or zero if fail
+  ; input: str1, str2; output: ax=new str or zero if fail
   push bp
   mov bp, sp
   push cx
   push bx
   push si
   push di
-  mov si, [bp + 6]
-  mov di, [bp + 8]
+  mov si, [bp + 4]
+  mov di, [bp + 6]
   mov cx, [si + 2]
   add cx, [di + 2]
   push cx
-  mov ax, [bp + 4]
-  push ax
   call create_str
   cmp ax, CLS_ID_NULL
   jz _str_append_failed
@@ -496,30 +482,28 @@ _str_append_failed:
   pop bx
   pop cx
   pop bp
-  ret 6
+  ret 4
   
   
 str_substr:
-  ; input: first_block, str, offset, size; output: ax
+  ; input: str, offset, size; output: ax
   push bp
   mov bp, sp
   push si
   push di
-  mov ax, [bp + 10]
-  push ax
-  mov ax, [bp + 4]
+  mov ax, [bp + 8]
   push ax
   call create_str
   cmp ax, CLS_ID_NULL
   jz _str_substr_failed
   mov di, ax
-  mov si, [bp + 6]
-  mov ax, [bp + 10]
+  mov si, [bp + 4]
+  mov ax, [bp + 8]
   push ax
   mov ax, [di + 4]
   push ax
   mov ax, [si + 4]
-  add ax, [bp + 8]
+  add ax, [bp + 6]
   push ax
   call mem_copy
   mov ax, di
@@ -527,18 +511,16 @@ _str_substr_failed:
   pop di
   pop si
   pop bp
-  ret 8
+  ret 6
   
   
 str_lcase:
-  ; input: first_block, str; output: ax
+  ; input: str; output: ax
   push bp
   mov bp, sp
   push cx
   push bx
   push si
-  mov ax, [bp + 6]
-  push ax
   mov ax, [bp + 4]
   push ax
   call str_copy
@@ -567,18 +549,16 @@ _str_lcase_done:
   pop bx
   pop cx
   pop bp
-  ret 4
+  ret 2
   
   
 str_ucase:
-  ; input: first_block, str; output: ax
+  ; input: str; output: ax
   push bp
   mov bp, sp
   push cx
   push bx
   push si
-  mov ax, [bp + 6]
-  push ax
   mov ax, [bp + 4]
   push ax
   call str_copy
@@ -607,7 +587,7 @@ _str_ucase_done:
   pop bx
   pop cx
   pop bp
-  ret 4
+  ret 2
   
   
 _cbw:
@@ -621,7 +601,7 @@ _cbw:
   
   
 _cwb:
-  ; input: vlaue; output: ax
+  ; input: value; output: ax
   push bp
   mov bp, sp
   mov ax, [bp + 4]

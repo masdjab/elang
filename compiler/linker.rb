@@ -5,7 +5,8 @@ require './compiler/assembly_code_builder'
 
 module Elang
   class Linker
-    HEAP_SIZE = 0x8000
+    HEAP_SIZE   = 0x8000
+    FIRST_BLOCK = 0
     
     private
     def initialize
@@ -31,9 +32,9 @@ module Elang
       
       code
     end
-    def build_string_constants(codeset)
+    def build_string_constants(codeset, offset)
       cons = {}
-      offs = 0
+      offs = offset
       
       codeset.symbols.items.each do |s|
         if s.is_a?(Constant)
@@ -62,7 +63,11 @@ module Elang
       cons
     end
     def build_code_initializer(codeset)
+      variable_count = codeset.symbols.items.select{|x|x.is_a?(Variable) && x.scope.root?}.count
       rv_heap_size = Utils::Converter.int_to_whex_be(HEAP_SIZE)
+      dynamic_area = (variable_count) * 2 + @cons_data_size
+      first_block_adr = Utils::Converter.int_to_whex_be(FIRST_BLOCK)
+      dynamic_area_adr = Utils::Converter.int_to_whex_be(dynamic_area)
       
       init_cmnd = 
         [
@@ -71,19 +76,13 @@ module Elang
           "8ED0",                     # mov ss, ax
           "8ED8",                     # mov ds, ax
           "B8#{rv_heap_size}50",      # push heap_size
-          "B8000050",                 # push dynamic_area
+          "B8#{dynamic_area_adr}50",  # push dynamic_area
           "E80000",                   # call mem_block_init
-          "A30000"                    # mov [first_block], ax
+          "A3#{first_block_adr}"      # mov [first_block], ax
         ]
       
       root_scope = Scope.new
-      first_block = codeset.symbols.items.find{|x|x.is_a?(Variable) && x.scope.root? && (x.name == "first_block")}
-      dynamic_area = codeset.symbols.items.find{|x|x.is_a?(Variable) && x.scope.root? && (x.name == "dynamic_area")}
-      
-      codeset.symbol_refs << VariableRef.new(dynamic_area, root_scope, 14, :init)
       codeset.symbol_refs << FunctionRef.new(SystemFunction.new("mem_block_init"), root_scope, 18, :init)
-      codeset.symbol_refs << VariableRef.new(first_block, root_scope, 21, :init)
-      
       hex2bin init_cmnd.join
     end
     def build_class_hierarchy(codeset)
@@ -288,8 +287,9 @@ module Elang
       subs_size = subs_code.length
       main_size = main_code.length
       
-      @string_constants = build_string_constants(codeset)
-      cons_data = align_code(build_constant_data(@string_constants), 16)
+      reserved_code = 0.chr * (2 * Variable::RESERVED_VARIABLE_COUNT)
+      @string_constants = build_string_constants(codeset, reserved_code.length)
+      cons_data = align_code(reserved_code + build_constant_data(@string_constants), 16)
       @cons_data_size = cons_size = cons_data.length
       
       build_class_hierarchy codeset

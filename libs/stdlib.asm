@@ -52,8 +52,8 @@ dw str_lcase, 9
   db "str_lcase"
 dw str_ucase, 9
   db "str_ucase"
-dw str_append, 10
-  db "str_append"
+dw str_concat, 10
+  db "str_concat"
 dw str_substr, 10
   db "str_substr"
 dw _print, 5

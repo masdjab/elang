@@ -443,7 +443,7 @@ _str_copy_failed:
   ret 2
   
   
-str_append:
+str_concat:
   ; input: str1, str2; output: ax=new str or zero if fail
   push bp
   mov bp, sp
@@ -458,7 +458,7 @@ str_append:
   push cx
   call create_str
   cmp ax, CLS_ID_NULL
-  jz _str_append_failed
+  jz _str_concat_failed
   mov bx, ax
   mov ax, [si + 2]
   push ax
@@ -476,7 +476,7 @@ str_append:
   push ax
   call mem_copy
   mov ax, bx
-_str_append_failed:
+_str_concat_failed:
   pop di
   pop si
   pop bx

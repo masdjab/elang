@@ -5,8 +5,8 @@ class String
   def ucase
     str_ucase(self)
   end
-  def append(str)
-    str_append(self, str)
+  def concat(str)
+    str_concat(self, str)
   end
   def substr(pos, len)
     str_substr(self, _int_unpack(pos), _int_unpack(len))
@@ -17,7 +17,7 @@ end
 puts("* Test merge string")
 a = "MisTa"
 b = "KeNlY"
-c = a.append(b)
+c = a.concat(b)
 puts(c)
 puts("")
 

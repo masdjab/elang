@@ -23,7 +23,7 @@ FIRST_BLOCK               EQU 0
 
 
 mem_block_init:
-  ; input: offset, size, output: ax = address of first block
+  ; input: offset, size; output: none
   push bp
   mov bp, sp
   push ax
@@ -82,7 +82,8 @@ mem_split_block:
   mov bx, [bp + 4]
   mov ax, [bx + 2]
   sub ax, [bp + 6]
-  sub ax, 10
+  jc _mem_split_block_done
+  sub ax, 8
   jc _mem_split_block_done
   mov ax, [bp + 6]
   add ax, 8
@@ -100,6 +101,11 @@ mem_split_block:
   mov ax, [bp + 6]
   mov [bx + 2], ax
   mov [bx + 6], si
+  mov ax, si
+  mov si, [si + 6]
+  cmp si, NO_MORE
+  jz _mem_split_block_done
+  mov [si + 4], ax
 _mem_split_block_done:
   pop si
   pop bx
@@ -116,8 +122,8 @@ mem_merge_free_block:
   push bx
   push si
   mov bx, [bp + 4]
-  xor ax, ax
-  cmp ax, [bx]
+  mov ax, [bx]
+  test ax, ax
   jnz _mem_merge_free_block_done
 _mem_merge_free_block_find_head:
   mov si, [bx + 4]
@@ -141,7 +147,8 @@ _mem_merge_free_block_do_merge:
   mov [bx + 2], ax
   mov ax, [si + 6]
   mov [bx + 6], ax
-  mov bx, si
+  mov si, ax
+  mov [si + 4], bx
   jmp _mem_merge_free_block_do_merge
 _mem_merge_free_block_done:
   pop si
@@ -279,7 +286,7 @@ _mem_resize_new_size_aligned:
   mov ax, [bx + 2]
   cmp ax, [bp + 6]
   jz _mem_resize_done
-  jnc _mem_resize_expand
+  jc _mem_resize_expand
 _mem_resize_shrink:
   mov ax, [bp + 6]
   push ax

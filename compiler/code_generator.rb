@@ -41,6 +41,7 @@ module Elang
         :str_lcase            => SystemFunction.new("str_lcase"), 
         :str_ucase            => SystemFunction.new("str_ucase"), 
         :str_concat           => SystemFunction.new("str_concat"), 
+        :str_append           => SystemFunction.new("str_append"), 
         :str_substr           => SystemFunction.new("str_substr"), 
         :print                => SystemFunction.new("print"), 
         :puts                 => SystemFunction.new("puts")

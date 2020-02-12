@@ -1,6 +1,6 @@
 dw code
 
-dw 30
+dw 31
 
 dw mem_block_init, 14
   db "mem_block_init"
@@ -54,6 +54,8 @@ dw str_ucase, 9
   db "str_ucase"
 dw str_concat, 10
   db "str_concat"
+dw str_append, 10
+  db "str_append"
 dw str_substr, 10
   db "str_substr"
 dw _print, 5

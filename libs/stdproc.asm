@@ -23,7 +23,7 @@ FIRST_BLOCK               EQU 0
 
 
 mem_block_init:
-  ; input: offset, size, output: ax = address of first block
+  ; input: offset, size; output: none
   push bp
   mov bp, sp
   push ax
@@ -82,7 +82,8 @@ mem_split_block:
   mov bx, [bp + 4]
   mov ax, [bx + 2]
   sub ax, [bp + 6]
-  sub ax, 10
+  jc _mem_split_block_done
+  sub ax, 8
   jc _mem_split_block_done
   mov ax, [bp + 6]
   add ax, 8
@@ -100,6 +101,11 @@ mem_split_block:
   mov ax, [bp + 6]
   mov [bx + 2], ax
   mov [bx + 6], si
+  mov ax, si
+  mov si, [si + 6]
+  cmp si, NO_MORE
+  jz _mem_split_block_done
+  mov [si + 4], ax
 _mem_split_block_done:
   pop si
   pop bx
@@ -116,8 +122,8 @@ mem_merge_free_block:
   push bx
   push si
   mov bx, [bp + 4]
-  xor ax, ax
-  cmp ax, [bx]
+  mov ax, [bx]
+  test ax, ax
   jnz _mem_merge_free_block_done
 _mem_merge_free_block_find_head:
   mov si, [bx + 4]
@@ -141,7 +147,8 @@ _mem_merge_free_block_do_merge:
   mov [bx + 2], ax
   mov ax, [si + 6]
   mov [bx + 6], ax
-  mov bx, si
+  mov si, ax
+  mov [si + 4], bx
   jmp _mem_merge_free_block_do_merge
 _mem_merge_free_block_done:
   pop si
@@ -250,9 +257,8 @@ mem_copy:
   add si, ax
   add di, ax
 _mem_copy_start:
-  lodsb
-  stosb
-  loop _mem_copy_start
+  rep
+  movsb
 _mem_copy_done:
   pop di
   pop si
@@ -278,22 +284,21 @@ _mem_resize_new_size_aligned:
   mov bx, [bp + 4]
   mov ax, [bx + 2]
   cmp ax, [bp + 6]
-  jz _mem_resize_done
-  jnc _mem_resize_expand
+  jz _mem_resize_fail
+  jc _mem_resize_expand
 _mem_resize_shrink:
   mov ax, [bp + 6]
   push ax
   mov ax, [bp + 4]
   push ax
   call mem_split_block
-  mov ax, [bp + 4]
-  jmp _mem_resize_done
+  jmp _mem_resize_fail
 _mem_resize_expand:
   mov ax, [bp + 6]
   push ax
   call mem_alloc
   cmp ax, NO_MORE
-  jz _mem_resize_done
+  jz _mem_resize_fail
   push ax
   mov cx, [bx + 2]
   push cx
@@ -308,6 +313,9 @@ _mem_resize_expand:
   push ax
   call mem_dealloc
   pop ax
+  jmp _mem_resize_done
+_mem_resize_fail:
+  mov ax, [bp + 4]
 _mem_resize_done:
   pop bx
   pop cx
@@ -588,6 +596,84 @@ _str_ucase_done:
   pop cx
   pop bp
   ret 2
+  
+  
+str_append:
+  ; input: dst, src; output: none
+  push bp
+  mov bp, sp
+  push ax
+  push cx
+  push bx
+  push si
+  push di
+  mov si, [bp + 4]
+  mov di, [bp + 6]
+  mov bx, [si + 4]
+  mov cx, [si + 2]
+  add cx, [di + 2]
+  cmp cx, [bx - 6]
+  ja _str_append_relocate
+_str_append_in_place:
+  mov ax, [di + 2]
+  push ax
+  mov ax, [si + 4]
+  add ax, [si + 2]
+  push ax
+  mov ax, [di + 4]
+  push ax
+  call mem_copy
+  mov [si + 2], cx
+  jmp _str_append_done
+_str_append_relocate:
+  mov cx, [si + 2]
+  add cx, [di + 2]
+  mov ax, cx
+  shr ax, 1
+  add ax, cx
+  push ax
+  call mem_alloc
+  cmp ax, CLS_ID_NULL
+  jz _str_append_done
+  push ax
+  call mem_get_data_offset
+  mov bx, ax
+  mov ax, [si + 2]
+  push ax
+  push bx
+  mov ax, [si + 4]
+  push ax
+  call mem_copy
+  mov ax, [di + 2]
+  push ax
+  mov ax, bx
+  add ax, [si + 2]
+  push ax
+  mov ax, [di + 4]
+  push ax
+  call mem_copy
+  mov ax, [si + 4]
+  sub ax, 8
+  push ax
+  call mem_dealloc
+  mov [si + 2], cx
+  mov [si + 4], bx
+_str_append_done:
+  pop di
+  pop si
+  pop bx
+  pop cx
+  pop ax
+  pop bp
+  ret 4
+  
+  
+str_strip:
+str_reverse:
+str_truncate:
+str_shift:
+str_prepend:
+str_insert:
   
   
 _cbw:

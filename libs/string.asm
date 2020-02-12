@@ -21,46 +21,84 @@ main:
   call mem_block_init
   mov [FIRST_BLOCK], ax
   
-  ; create string mista
-  mov si, text_mista
+  ; create string com
+  mov si, text_com
   mov ax, [si]
   add si, 2
   push ax
   push si
   call load_str
-  mov [str_mista], ax
+  mov [str_com], ax
   
-  mov ax, [str_mista]
+  mov ax, [str_com]
   push ax
   call _puts
   
-  ; create string kenly
-  mov si, text_kenly
+  ; create string put
+  mov si, text_put
   mov ax, [si]
   add si, 2
   push ax
   push si
   call load_str
-  mov [str_kenly], ax
+  mov [str_put], ax
   
-  mov ax, [str_kenly]
+  mov ax, [str_put]
   push ax
   call _puts
   
-  ; merge mista and kenly
-  mov ax, [str_kenly]
+  ; create string ing
+  mov si, text_ing
+  mov ax, [si]
+  add si, 2
   push ax
-  mov ax, [str_mista]
+  push si
+  call load_str
+  mov [str_ing], ax
+  
+  mov ax, [str_ing]
+  push ax
+  call _puts
+  
+  ; concat com and put
+  mov ax, [str_put]
+  push ax
+  mov ax, [str_com]
+  push ax
+  call str_concat
+  mov [str_merged1], ax
+  
+  mov ax, [str_merged1]
+  push ax
+  call _puts
+  
+  ; append put and ing to com
+  mov si, text_com
+  mov ax, [si]
+  add si, 2
+  push ax
+  push si
+  call load_str
+  mov [str_merged2], ax
+  
+  mov ax, [str_put]
+  push ax
+  mov ax, [str_merged2]
   push ax
   call str_append
-  mov [str_merged], ax
   
-  mov ax, [str_merged]
+  mov ax, [str_ing]
+  push ax
+  mov ax, [str_merged2]
+  push ax
+  call str_append
+  
+  mov ax, [str_merged2]
   push ax
   call _puts
   
-  ; mistakenly.lcase
-  mov ax, [str_merged]
+  ; computing.lcase
+  mov ax, [str_merged2]
   push ax
   call str_lcase
   mov [str_lower], ax
@@ -69,7 +107,7 @@ main:
   push ax
   call _puts
   
-  ; mistakenly.ucase
+  ; computing.ucase
   mov ax, [str_lower]
   push ax
   call str_ucase
@@ -79,7 +117,7 @@ main:
   push ax
   call _puts
   
-  ; mistakenly.substr(3, 5)
+  ; computing.substr(3, 5)
   mov ax, 5
   push ax
   mov ax, 3
@@ -106,12 +144,15 @@ data_here:
 
 org 0
 reserved_1      dw 0
-text_mista      db 5, 0, 'MISTA'
-text_kenly      db 5, 0, 'KENLY'
+text_com        db 3, 0, 'COM'
+text_put        db 3, 0, 'PUT'
+text_ing        db 3, 0, 'ING', 0
 
-str_mista       dw 0
-str_kenly       dw 0
-str_merged      dw 0
+str_com         dw 0
+str_put         dw 0
+str_ing         dw 0
+str_merged1     dw 0
+str_merged2     dw 0
 str_lower       dw 0
 str_upper       dw 0
 str_part        dw 0

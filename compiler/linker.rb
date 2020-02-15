@@ -143,6 +143,15 @@ module Elang
       code_offset[code_label] = asmcode.code.length
       asmcode << asm("", "#{code_label}:")
       
+      # add integer class
+      if @classes.key?("Integer")
+        asmcode << asm("A90100", "  test ax, 1")
+        jump_distance = code_offset["method_selector_integer"] - (asmcode.code.length + 4)
+        jump_target = Utils::Converter.int_to_whex_rev(jump_distance).upcase
+        asmcode << asm("0F84#{jump_target}", "  jz method_selector_integer")
+      end
+      
+      # add non integer classes
       @classes.each do |key, cls|
         if clsid = cls[:clsid]
           asmcode << asm("83F8" + Utils::Converter.int_to_bhex_rev(cls[:clsid]).upcase, "  cmp ax, #{cls[:clsid]}")

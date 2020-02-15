@@ -29,8 +29,6 @@ main:
   push si
   call load_str
   mov [str_com], ax
-  
-  mov ax, [str_com]
   push ax
   call _puts
   
@@ -42,8 +40,6 @@ main:
   push si
   call load_str
   mov [str_put], ax
-  
-  mov ax, [str_put]
   push ax
   call _puts
   
@@ -55,8 +51,6 @@ main:
   push si
   call load_str
   mov [str_ing], ax
-  
-  mov ax, [str_ing]
   push ax
   call _puts
   
@@ -66,9 +60,6 @@ main:
   mov ax, [str_com]
   push ax
   call str_concat
-  mov [str_merged1], ax
-  
-  mov ax, [str_merged1]
   push ax
   call _puts
   
@@ -79,41 +70,29 @@ main:
   push ax
   push si
   call load_str
-  mov [str_merged2], ax
-  
+  mov cx, ax
   mov ax, [str_put]
   push ax
-  mov ax, [str_merged2]
-  push ax
+  push cx
   call str_append
-  
   mov ax, [str_ing]
   push ax
-  mov ax, [str_merged2]
-  push ax
+  push cx
   call str_append
-  
-  mov ax, [str_merged2]
-  push ax
+  push cx
   call _puts
   
   ; computing.lcase
-  mov ax, [str_merged2]
-  push ax
+  push cx
   call str_lcase
-  mov [str_lower], ax
-  
-  mov ax, [str_lower]
+  mov cx, ax
   push ax
   call _puts
   
   ; computing.ucase
-  mov ax, [str_lower]
-  push ax
+  push cx
   call str_ucase
-  mov [str_upper], ax
-  
-  mov ax, [str_upper]
+  mov cx, ax
   push ax
   call _puts
   
@@ -122,12 +101,46 @@ main:
   push ax
   mov ax, 3
   push ax
-  mov ax, [str_upper]
-  push ax
+  push cx
   call str_substr
-  mov [str_part], ax
+  mov bx, ax
+  push ax
+  call _puts
   
-  mov ax, [str_part]
+  ; putin.reverse
+  mov ax, [bx + 2]
+  push ax
+  mov ax, [bx + 4]
+  push ax
+  call mem_reverse
+  push bx
+  call _puts
+  mov ax, bx
+  
+  ; nitup.reverse
+  push ax
+  call str_reverse
+  push ax
+  call _puts
+  
+  ; int.to_h8
+  mov ax, 89h
+  push ax
+  call _int_to_h8
+  push ax
+  call _print
+  
+  ; int.to_h16
+  mov ax, 0cdefh
+  push ax
+  call _int_to_h16
+  push ax
+  call _puts
+  
+  ; int.to_s
+  mov ax, 0ffffh
+  push ax
+  call _int_to_s
   push ax
   call _puts
   
@@ -147,14 +160,8 @@ reserved_1      dw 0
 text_com        db 3, 0, 'COM'
 text_put        db 3, 0, 'PUT'
 text_ing        db 3, 0, 'ING', 0
-
 str_com         dw 0
 str_put         dw 0
 str_ing         dw 0
-str_merged1     dw 0
-str_merged2     dw 0
-str_lower       dw 0
-str_upper       dw 0
-str_part        dw 0
 
 dynamic_area:

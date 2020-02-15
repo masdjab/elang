@@ -1150,6 +1150,10 @@ _putstr:
   mov cx, [bp + 6]
   test cx, cx
   jz _putstr_done
+  cmp cx, 200
+  jc _putstr_char_limited
+  mov cx, 200
+_putstr_char_limited:
   cld
   mov ah, 14
   xor bx, bx

@@ -200,24 +200,24 @@ class TestCodeGenerator < Test::Unit::TestCase
     codeset = 
       check_code_result \
         [
-          [idt("def"),nil,idt("multiply_by_two"),fnp("x"),[]], 
-          [idt("multiply_by_two"),[num("3")]]
+          [idt("def"),nil,idt("multiply_by_two1"),fnp("x"),[]], 
+          [idt("multiply_by_two1"),[num("3")]]
         ], 
         bin("B8070050E80000"), 
         bin("5589E55DC20200")
     functions = codeset.symbols.items.select{|x|x.is_a?(Elang::Function)}
     assert_equal 1, functions.count
-    assert_equal "multiply_by_two", functions[0].name
+    assert_equal "multiply_by_two1", functions[0].name
   end
   def test_function_parameter
     # root function parameter
     # mov ax, [bp - 0]; push ax; call multiply_by_two
     check_code_result \
       [
-        [idt("def"),nil,idt("multiply_by_two"),fnp("x", "y"),[]], 
+        [idt("def"),nil,idt("multiply_by_two2"),fnp("x", "y"),[]], 
         [asn, idt("x"), num("2")], 
         [asn, idt("y"), num("3")], 
-        [idt("multiply_by_two"),[idt("x"), idt("y")]]
+        [dot,nil,idt("multiply_by_two2"),[idt("x"), idt("y")]]
       ], 
       bin("B80500A30000B80700A30000A1000050A1000050E80000"), 
       bin("5589E55DC20400")
@@ -230,9 +230,9 @@ class TestCodeGenerator < Test::Unit::TestCase
           idt("class"),idt("Math"),nil, 
           [
             [
-              idt("def"),nil,idt("multiply_by_two"),fnp("x", "y"),
+              idt("def"),nil,idt("multiply_by_two3"),fnp("x", "y"),
               [
-                [idt("multiply_by_two"),[idt("x"), idt("y")]]
+                [dot,nil,idt("multiply_by_two3"),[idt("x"), idt("y")]]
               ]
             ]
           ]
@@ -240,10 +240,10 @@ class TestCodeGenerator < Test::Unit::TestCase
         [asn,idt("p1"), [dot, idt("Math"), idt("new"), []]], 
         [asn,idt("x"), num("2")], 
         [asn,idt("y"), num("3")], 
-        [dot,idt("p1"),idt("multiply_by_two"),[idt("x"), idt("y")]]
+        [dot,idt("p1"),idt("multiply_by_two3"),[idt("x"), idt("y")]]
       ], 
       bin("B8000050B80B0050E80000A30000B80500A30000B80700A30000A1000050A1000050B8020050B8000050A1000050E80000"), 
-      bin("8B4600508B460050E80000C3")
+      bin("8B4600508B460050B8020050B80000508B460450E80000C3")
   end
   def test_function_local_var
     # root function local var
@@ -251,10 +251,10 @@ class TestCodeGenerator < Test::Unit::TestCase
     check_code_result \
       [
         [
-          idt("def"),nil,idt("multiply_by_two"),fnp("x"),
+          idt("def"),nil,idt("multiply_by_two4"),fnp("x"),
           [
             [asn,idt("a"),num("2")], 
-            [idt("multiply_by_two"),[idt("a")]]
+            [idt("multiply_by_two4"),[idt("a")]]
           ]
         ]
       ], 
@@ -268,10 +268,10 @@ class TestCodeGenerator < Test::Unit::TestCase
         [idt("class"),idt("Math"),nil, 
           [
             [
-              idt("def"),nil,idt("multiply_by_two"),fnp("x"),
+              idt("def"),nil,idt("multiply_by_two5"),fnp("x"),
               [
                 [asn,idt("a"),num("2")], 
-                [idt("multiply_by_two"),[idt("a")]]
+                [idt("multiply_by_two5"),[idt("a")]]
               ]
             ]
           ]
@@ -308,14 +308,34 @@ class TestCodeGenerator < Test::Unit::TestCase
     codeset = 
       generate_code \
         [
-          [idt("class"), idt("Integer"), idt("nil"), []], 
-          [idt("class"), idt("TrueClass"), idt("nil"), []], 
-          [idt("class"), idt("FalseClass"), idt("nil"), []]
+          [idt("class"), idt("Integer"), nil, []], 
+          [idt("class"), idt("TrueClass"), nil, []], 
+          [idt("class"), idt("FalseClass"), nil, []]
         ]
     
     classes = codeset.symbols.items.select{|x|x.is_a?(Elang::Class)}
     assert_equal 3, classes.count
     assert_equal [], classes.map{|x|x.name} - ["Integer", "TrueClass", "FalseClass"]
+    
+    
+    check_code_result \
+      [
+        [idt("def"), nil, idt("i2s"), [idt("v")], []], 
+        [idt("def"), nil, idt("iunpack"), [idt("v")], []], 
+        [
+          idt("class"), idt("Integer"), nil, 
+          [
+            [
+              idt("def"), nil, idt("to_s"), [], 
+              [
+                [dot,nil,idt("i2s"), [[dot,nil,idt("iunpack"), [num("8")]]]]
+              ]
+            ]
+          ]
+        ]
+      ], 
+      "", 
+      bin("5589E55DC202005589E55DC20200B8110050E8000050E80000C3")
   end
   def test_class_function_call
     #(todo)#test_class_function_call

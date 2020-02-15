@@ -37,11 +37,11 @@ class TestLexer < Test::Unit::TestCase
       #"[[=,x,[+,[*,[+,32,p],[/,[*,[&,[-,5,4],q],r],s]],1]]]"
     check_expression \
       "x = (32 + p * (5 - sqrt(4))) & (q * r / s + 1)", 
-      "[[=,x,[&,[+,32,[*,p,[-,5,[sqrt,[4]]]]],[*,q,[+,[/,r,s],1]]]]]"
+      "[[=,x,[&,[+,32,[*,p,[-,5,[.,nil,sqrt,[4]]]]],[*,q,[+,[/,r,s],1]]]]]"
     
     check_expression \
       "x = mid(text, sqrt(2), 4)", 
-      "[[=,x,[mid,[text,[sqrt,[2]],4]]]]"
+      "[[=,x,[.,nil,mid,[text,[.,nil,sqrt,[2]],4]]]]"
     
     check_expression \
       "x = 2\r\ny = 3\r\n", 
@@ -53,15 +53,15 @@ class TestLexer < Test::Unit::TestCase
     
     check_expression \
       "def hitung(text)\r\nx = mid(text, sqrt(2), 4)\r\nend", 
-      "[[def,nil,hitung,[text],[[=,x,[mid,[text,[sqrt,[2]],4]]]]]]"
+      "[[def,nil,hitung,[text],[[=,x,[.,nil,mid,[text,[.,nil,sqrt,[2]],4]]]]]]"
     
     check_expression \
       "def hitung(text)\r\nx = mid(text, sqrt(2), 4)\r\nend", 
-      [["def",nil,"hitung",["text"],[["=","x",["mid",["text",["sqrt",["2"]],"4"]]]]]]
+      [["def",nil,"hitung",["text"],[["=","x",[".",nil,"mid",["text",[".",nil,"sqrt",["2"]],"4"]]]]]]
     
     check_expression \
       "def self.hitung(text)\r\nx = mid(text, sqrt(2), 4)\r\nend", 
-      [["def","self","hitung",["text"],[["=","x",["mid",["text",["sqrt",["2"]],"4"]]]]]]
+      [["def","self","hitung",["text"],[["=","x",[".",nil,"mid",["text",[".",nil,"sqrt",["2"]],"4"]]]]]]
   end
   def test_multiline_expression
     # check_expression "x = 32 + 5\nputs x\n", "[=,x,[+,32,5]]"
@@ -78,7 +78,7 @@ EOS
       source, 
       [
         ["def",nil,"tambah",["a","b"],[["+","a","b"]]], 
-        ["=","a",["tambah",["4","3"]]]
+        ["=","a",[".",nil,"tambah",["4","3"]]]
       ]
   end
   def test_multiline_complex_expression
@@ -98,7 +98,7 @@ EOS
         ["class","String",nil,[]], 
         ["=","a","Hello world..."], 
         ["=","b","This is just a simple text."], 
-        ["puts", ["a"]]
+        [".",nil,"puts", ["a"]]
       ]
     
     
@@ -124,6 +124,32 @@ show a
 EOS
   end
   def test_methods
+    source = <<EOS
+class Integer
+  def to_s
+    _int_to_s(_int_unpack(8))
+  end
+end
+EOS
+    
+    #(todo)#fix this bug
+    check_expression \
+      source, 
+      [
+        [
+          "class", "Integer", nil, 
+          [
+            [
+              "def", nil, "to_s", [], 
+              [
+                [".",nil,"_int_to_s", [[".",nil,"_int_unpack", ["8"]]]]
+              ]
+            ]
+          ]
+        ]
+      ]
+    
+    
     source = <<EOS
 class Person
   def get_name
@@ -174,6 +200,16 @@ EOS
           ]
         ], 
         ["test_person"]
+      ]
+    
+    source = <<EOS
+x = p1.get(0).phone.substr(0, 2)
+EOS
+    
+    check_expression \
+      source, 
+      [
+        ["=", "x", [".", [".", [".", "p1", "get", ["0"]], "phone"], "substr", ["0", "2"]]]
       ]
   end
 end

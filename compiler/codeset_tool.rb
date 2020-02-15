@@ -5,7 +5,7 @@ module Elang
     end
     def self.create_class_id(cls)
       if cls.name == "Integer"
-        raise "Integer doesn't have class id"
+        nil
       elsif Class::ROOT_CLASS_IDS.key?(cls.name)
         Class::ROOT_CLASS_IDS[cls.name]
       else

@@ -144,11 +144,13 @@ module Elang
       asmcode << asm("", "#{code_label}:")
       
       @classes.each do |key, cls|
-        asmcode << asm("83F8" + Utils::Converter.int_to_bhex_rev(cls[:clsid]).upcase, "  cmp ax, #{cls[:clsid]}")
-        code_label = "method_selector_#{key.downcase}"
-        jump_distance = code_offset[code_label] - (asmcode.code.length + 4)
-        jump_target = Utils::Converter.int_to_whex_rev(jump_distance).upcase
-        asmcode << asm("0F84#{jump_target}", "  jz #{code_label}")
+        if clsid = cls[:clsid]
+          asmcode << asm("83F8" + Utils::Converter.int_to_bhex_rev(cls[:clsid]).upcase, "  cmp ax, #{cls[:clsid]}")
+          code_label = "method_selector_#{key.downcase}"
+          jump_distance = code_offset[code_label] - (asmcode.code.length + 4)
+          jump_target = Utils::Converter.int_to_whex_rev(jump_distance).upcase
+          asmcode << asm("0F84#{jump_target}", "  jz #{code_label}")
+        end
       end
       
       code_label = "handle_invalid_class_id"

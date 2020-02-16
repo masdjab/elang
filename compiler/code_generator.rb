@@ -50,7 +50,7 @@ module Elang
         :puts                 => SystemFunction.new("puts")
       }
       
-    attr_reader :symbols, :symbol_refs
+    attr_reader :code_lines, :symbols, :symbol_refs
     
     private
     def initialize
@@ -359,13 +359,13 @@ module Elang
           append_code hex2bin(hc)
         end
       else
-        func_sym = @codeset.symbols.find_nearest(active_scope, func_name)
-        
-        if func_sym.nil? && SYS_FUNCTIONS.key?(func_name.to_sym)
-          func_sym = SYS_FUNCTIONS[func_name.to_sym]
-        end
-        
         if rcvr_name.nil?
+          func_sym = @codeset.symbols.find_nearest(active_scope, func_name)
+          
+          if func_sym.nil? && SYS_FUNCTIONS.key?(func_name.to_sym)
+            func_sym = SYS_FUNCTIONS[func_name.to_sym]
+          end
+          
           if active_scope.cls.nil?
             is_obj_method = false
           elsif func_sym.nil?
@@ -542,7 +542,8 @@ module Elang
     end
     
     public
-    def generate_code(nodes)
+    def generate_code(nodes, code_lines = [])
+      @code_lines = code_lines
       @scope_stack = []
       @scope_stack = []
       @codeset = CodeSet.new

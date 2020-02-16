@@ -37,6 +37,8 @@ module Elang
     LETTERS = "abcdefghijklmnopqrstuvwxyz"
     IDENTIFIER = "#{LETTERS}#{NUMBERS}_"
     
+    attr_reader :code_lines
+    
     def initialize
       @fetcher = FetcherV2.new("")
       @code_lines = []
@@ -47,19 +49,6 @@ module Elang
       else
         {row: 0, col: 0}
       end
-    end
-    def _detect_lines(code)
-      pos = 0
-      row = 1
-      lines = []
-      
-      code.lines.each do |line|
-        lines << {row: row, min: pos, max: pos + line.length - 1}
-        row += 1
-        pos += line.length
-      end
-      
-      lines
     end
     def _set_line_numbers(tokens)
       tokens.each do |token|
@@ -304,9 +293,22 @@ module Elang
       char = @fetcher.fetch
       _raw_token(cpos, punct_types.fetch(char, :punct), char)
     end
+    def detect_lines(code)
+      pos = 0
+      row = 1
+      lines = []
+      
+      code.lines.each do |line|
+        lines << {row: row, min: pos, max: pos + line.length - 1, text: line}
+        row += 1
+        pos += line.length
+      end
+      
+      lines
+    end
     def parse(code)
       @fetcher = FetcherV2.new(code)
-      @code_lines = _detect_lines(code)
+      @code_lines = detect_lines(code)
       raw_tokens = []
       
       while char = @fetcher.element

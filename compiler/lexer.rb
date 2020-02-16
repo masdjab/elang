@@ -1,3 +1,4 @@
+require './compiler/parsing_error'
 require './compiler/ast_node'
 
 module Elang
@@ -17,6 +18,8 @@ module Elang
         dot:    6
       }
     
+    attr_reader :code_lines
+    
     private
     def optimize(tokens)
       loop do
@@ -34,63 +37,72 @@ module Elang
       
       tokens.reject{|x|[:whitespace, :comment].include?(x.type)}
     end
-    def raise_error(node, msg)
-      rowcol_info = node ? " at #{node.row}, #{node.col}" : ""
-      raise "Error#{rowcol_info}: #{msg}"
+    def raize(msg, node = nil)
+      raise ParsingError.new(msg, node, @code_lines)
     end
     def fetch_end(fetcher)
       if (func_end = fetcher.fetch).nil?
-        raise_error fetcher.last, "Expected 'end' 1"
+        raize "Expected 'end' 1", fetcher.last
       elsif func_end.type != :identifier
-        raise_error func_end, "Expected 'end' 2"
+        raize "Expected 'end' 2", func_end
       elsif func_end.text != "end"
-        raise_error func_end, "Expected 'end' 3"
+        raize "Expected 'end' 3", func_end
       end
       
       func_end
     end
     def fetch_function_params(fetcher)
-      params = []
+      lbrk = fetcher.element
       
-      rbreak_found = false
-      
-      if (lbrk = fetcher.fetch).nil?
-        raise_error lbrk, "Expected '('"
-      elsif lbrk.type != :lbrk
-        raise_error lbrk, "Expected '('"
-      end
-      
-      while node = fetcher.fetch
-        if node.type == :identifier
-          params << node
-        elsif node.type == :comma
-          # do nothing
-        elsif node.type == :rbrk
-          rbreak_found = true
-          break
-        else
-          raise_error node, "Expected parameter name"
+      if lbrk.nil?
+        []
+      elsif [:cr, :lf, :crlf, :dot].include?(lbrk.type)
+        []
+      elsif lbrk.type == :lbrk
+        params = []
+        rbrk = nil
+        lbrk = fetcher.fetch
+        
+        while node = fetcher.element
+          if node.type == :identifier
+            nn = fetcher.next
+            
+            if !nn.nil? && [:dot, :lbrk].include?(nn.type)
+              params << node = fetch_function_call(fetcher)
+            else
+              params << node = fetcher.fetch
+            end
+          elsif [:number, :string].include?(node.type)
+            params << node = fetcher.fetch
+          elsif node.type == :comma
+            node = fetcher.fetch
+          elsif node.type == :rbrk
+            rbrk = node = fetcher.fetch
+            break
+          else
+            raize "Expected identifier, comma, or rbreak, #{node.type.inspect} found", node
+          end
         end
+        
+        if rbrk.nil?
+          raize "Expected ')'", node 
+        end
+        
+        params
       end
-      
-      if !rbreak_found
-        raise_error node, "Expected ')'"
-      end
-      
-      params
     end
     def fetch_class_def(fetcher)
       if (identifier = fetcher.fetch).type != :identifier
-        raise_error identifier, "Class definition must start with 'class'"
+        raize "Class definition must start with 'class'", identifier
       elsif identifier.text != "class"
-        raise_error identifier, "Class definition must start with 'class'"
+        raize "Class definition must start with 'class'", identifier
       end
       
       classname = ""
       if (name_node = fetcher.fetch).nil?
-        raise_error node, "Incomplete class definition"
+        raize "Incomplete class definition", node
       elsif name_node.type != :identifier
-        raise_error node, "Expected class name"
+        raize "Expected class name", node
       else
         class_name = name_node.text
       end
@@ -99,9 +111,9 @@ module Elang
       if (test_node = fetcher.element).text == "<"
         x = fetcher.fetch
         if (super_node = fetcher.fetch).nil?
-          raise_error "Expected superclass name"
+          raize "Expected superclass name"
         elsif super_node.type != :identifier
-          raise_error "Expected superclass name"
+          raize "Expected superclass name"
         end
       end
       
@@ -113,18 +125,18 @@ module Elang
     end
     def fetch_function_def(fetcher)
       if (identifier = fetcher.fetch).type != :identifier
-        raise_error identifier, "Function definition must start with 'def'"
+        raize "Function definition must start with 'def'", identifier
       elsif identifier.text != "def"
-        raise_error identifier, "Function definition must start with 'def'"
+        raize "Function definition must start with 'def'", identifier
       end
       
       if (name_node = fetcher.fetch).nil?
-        raise_error node, "Incomplete function definition"
+        raize "Incomplete function definition", node
       elsif name_node.text == "["
         if (node = fetcher.fetch).nil?
-          raise_error node, "Expected ']'"
+          raize "Expected ']'", node
         elsif node.text != "]"
-          raise_error node, "Expected ']'"
+          raize "Expected ']'", node
         else
           name_node.type = :identifier
           name_node.text += node.text
@@ -138,9 +150,9 @@ module Elang
         end
       elsif name_node.text == "<"
         if (node = fetcher.fetch).nil?
-          raise_error node, "Expected '<<', found '<'"
+          raize "Expected '<<', found '<'", node
         elsif node.text != "<"
-          raise_error node, "Expected '<<', found '<'"
+          raize "Expected '<<', found '<'", node
         else
           name_node.type = :identifier
           name_node.text += node.text
@@ -153,7 +165,7 @@ module Elang
           end
         end
       else
-        raise_error name_node, "Expected function name"
+        raize "Expected function name", name_node
       end
       
       rcvr_node = nil
@@ -161,14 +173,14 @@ module Elang
         node1 = fetcher.fetch
         node2 = fetcher.fetch
         if node2.type != :identifier
-          raise_error node2, "Expected function name"
+          raize "Expected function name", node2
         else
           rcvr_node, name_node = name_node, node2
         end
       end
       
       if (node = fetcher.element).nil?
-        raise_error node, "Expected function body"
+        raize "Expected function body", node
       else
         if node.type == :lbrk
           # fetch function arguments
@@ -184,10 +196,18 @@ module Elang
       
       [identifier, rcvr_node, name_node, args_node, body_node]
     end
-    def fetch_function_call(fetcher, text = nil)
-      func_name = fetcher.fetch
-      lft_break = fetcher.fetch
-      [AstNode.new(func_name.row, func_name.col, :dot, "."), nil, func_name, fetch_expression(fetcher)]
+    def fetch_function_call(fetcher)
+      first_node = fetcher.fetch
+      name_node = first_node
+      rcvr_node = nil
+      
+      if (dn = fetcher.element) && (dn.type == :dot)
+        dn = fetcher.fetch
+        fn = fetcher.fetch
+        rcvr_node, name_node = name_node, fn
+      end
+      
+      [AstNode.new(first_node.row, first_node.col, :dot, "."), rcvr_node, name_node, fetch_function_params(fetcher)]
     end
     def fetch_expression(fetcher)
       parent = nil
@@ -264,6 +284,8 @@ module Elang
             sexp << fetch_function_def(fetcher)
           elsif node.text == "end"
             break
+          elsif (dot = fetcher.next) && (dot.type == :dot)
+            sexp << fetch_function_call(fetcher)
           elsif (lbrk = fetcher.next) && (lbrk.type == :lbrk)
             sexp << fetch_function_call(fetcher)
           else
@@ -271,6 +293,8 @@ module Elang
           end
         elsif [:lf, :cr, :crlf].include?(node.type)
           fetcher.fetch
+        elsif node.type == :rbrk
+          break
         else
           sexp << fetch_expression(fetcher)
         end
@@ -280,32 +304,29 @@ module Elang
     end
     
     public
-    def self.sexp_display(sexp_array)
-      temp = 
-        sexp_array.map do |x|
-          if x.is_a?(Array)
-            self.sexp_display x
-          elsif x.is_a?(AstNode)
-            if x.type == :string
-              x.text[1...-1]
-            else
-              x.text
-            end
-          elsif x.nil?
-            "nil"
-          elsif x.is_a?(String)
-            x
-          else
-            x.inspect
-          end
+    def self.sexp_display(sexp)
+      if sexp.nil?
+        "nil"
+      elsif sexp.is_a?(Array)
+        temp = sexp.map{|x|sexp_display(x)}
+        "[" + temp.join(",") + "]"
+      elsif sexp.is_a?(AstNode)
+        if sexp.type == :string
+          sexp.text[1...-1]
+        else
+          sexp.text
         end
-      
-      "[" + temp.join(",") + "]"
+      elsif sexp.is_a?(String)
+        sexp
+      else
+        sexp.inspect
+      end
     end
-    def to_sexp_array(tokens)
+    def to_sexp_array(tokens, code_lines = [])
+      @code_lines = code_lines
       tokens = optimize(tokens)
       nodes = tokens.map{|x|AstNode.new(x.row, x.col, x.type, x.text)}
-      fetch_sexp(FetcherV2.new(nodes))
+      nodes = fetch_sexp(FetcherV2.new(nodes))
     end
   end
 end

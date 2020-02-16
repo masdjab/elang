@@ -2,13 +2,15 @@ require './compiler/symbols'
 
 module Elang
   class CodeSet
-    attr_reader :symbols, :symbol_refs, :main_code, :subs_code, :code_branch
+    attr_reader   :symbols, :symbol_refs, :main_code, :subs_code, :code_branch
+    attr_accessor :code_lines
     
     def initialize
       @symbols = Symbols.new
       @symbol_refs = []
       @main_code = ""
       @subs_code = ""
+      @code_lines = []
       
       enter_subs
       leave_subs

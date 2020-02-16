@@ -17,12 +17,14 @@ module Elang
     def compile(source)
       parser = Elang::Parser.new
       tokens = parser.parse(source)
+      clines = parser.code_lines
       
       lexer = Elang::Lexer.new
-      nodes = lexer.to_sexp_array(tokens)
+      nodes = lexer.to_sexp_array(tokens, clines)
       
       codegen = Elang::CodeGenerator.new
-      codeset = codegen.generate_code(nodes)
+      codeset = codegen.generate_code(nodes, clines)
+      codeset.code_lines = clines
       
       codeset
     end

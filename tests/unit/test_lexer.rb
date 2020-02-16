@@ -9,7 +9,7 @@ class TestLexer < Test::Unit::TestCase
   end
   def check_expression(expression, expected)
     tokens = @parser.parse(expression)
-    ast_nodes = @lexer.to_sexp_array(tokens)
+    ast_nodes = @lexer.to_sexp_array(tokens, @parser.code_lines)
     display = Elang::Lexer.sexp_display(ast_nodes)
     
     if expected.is_a?(Array)
@@ -79,6 +79,23 @@ EOS
       [
         ["def",nil,"tambah",["a","b"],[["+","a","b"]]], 
         ["=","a",[".",nil,"tambah",["4","3"]]]
+      ]
+      
+      
+    source = <<EOS
+puts(3, 5)
+puts(_int_pack(2))
+d = "COMPUTING"
+puts(d.substr(4, 6))
+EOS
+    
+    check_expression \
+      source, 
+      [
+        [".",nil,"puts",[3,5]], 
+        [".",nil,"puts",[[".",nil,"_int_pack",[2]]]], 
+        ["=","d","COMPUTING"], 
+        [".",nil,"puts",[[".","d","substr",[4,6]]]]
       ]
   end
   def test_multiline_complex_expression
@@ -168,7 +185,7 @@ end
 
 def test_person
   p1 = Person.new
-  p1.set_name "Bowo"
+  p1.set_name("Bowo")
   a = p1.get_name
   b = Person.set_person_name(p1, "Agus")
   c = Person.get_person_name(p1)
@@ -185,7 +202,7 @@ EOS
             [
               ["def",nil,"get_name",[],[["@name"]]],
               ["def",nil,"set_name",["v"],[["=","@name","v"]]],
-              ["def","self","get_person_name",["person"],[[".","person","get_name"]]],
+              ["def","self","get_person_name",["person"],[[".","person","get_name",[]]]],
               ["def","self","set_person_name",["person","name"],[[".","person","set_name",["name"]]]]
             ]
         ], 
@@ -193,7 +210,7 @@ EOS
           "def",nil,"test_person",[],
           [
             ["=","p1",[".","Person","new"]], 
-            [".","p1","set_name","Bowo"], 
+            [".","p1","set_name",["Bowo"]], 
             ["=","a",[".","p1","get_name"]], 
             ["=","b",[".","Person","set_person_name",["p1","Agus"]]], 
             ["=","c",[".","Person","get_person_name",["p1"]]]

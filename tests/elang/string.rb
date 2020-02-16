@@ -29,25 +29,20 @@ puts("")
 # test String.append
 puts("* Test String.append")
 d = "Com"
-d.append(b)
-d.append(c)
-puts(d)
+puts(d.append(b.append(c)))
 puts("")
 
 # test String.lcase
 puts("* Test lcase")
-d = d.lcase
-puts(d)
+puts(d.lcase)
 puts("")
 
 # test String.ucase
 puts("* Test ucase")
-d = d.ucase
-puts(d)
+puts(d.ucase)
 puts("")
 
 # test String.substr
 puts("* Test substr")
-d = d.substr(3, 5)
-puts(d)
-puts("")
+d = "COMPUTING"
+puts(d.substr(3, 5))

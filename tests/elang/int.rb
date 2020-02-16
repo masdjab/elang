@@ -7,7 +7,7 @@ class Integer
   end
 end
 
-a = 2875
+a = 2800
 a = a + 5
 b = a.to_s
 puts(b)

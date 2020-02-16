@@ -7,8 +7,9 @@ class Integer
   end
 end
 
-a = 2880
-b = a.to_h
+a = 2875
+a = a + 5
+b = a.to_s
 puts(b)
-c = a.to_s
+c = a.to_h
 puts(c)

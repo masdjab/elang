@@ -1,14 +1,12 @@
 require './compiler/parser'
 require './compiler/lexer'
 
-source = <<EOS
-class String
+    source = <<EOS
+def tambah(a, b)
+  a + b
 end
 
-a = "Hello world..."
-b = "This is just a simple text."
-
-puts(a)
+a = tambah(4, 3)
 EOS
 
 tokens = Elang::Parser.new.parse(source)

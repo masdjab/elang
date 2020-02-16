@@ -269,6 +269,36 @@ _mem_copy_done:
   ret 6
   
   
+mem_reverse:
+  ; input: offset, length; output: none
+  push bp
+  mov bp, sp
+  push ax
+  push cx
+  push si
+  push di
+  mov cx, [bp + 6]
+  mov si, [bp + 4]
+  mov di, si
+  add di, cx
+  dec di
+_mem_reverse_loop:
+  mov al, [si]
+  mov ah, [di]
+  mov [di], al
+  mov [si], ah
+  inc si
+  dec di
+  cmp si, di
+  jb _mem_reverse_loop
+  pop di
+  pop si
+  pop cx
+  pop ax
+  pop bp
+  ret 4
+  
+  
 mem_resize:
   ; input: target_block, new_size; output: ax
   push bp
@@ -668,8 +698,44 @@ _str_append_done:
   ret 4
   
   
-str_strip:
 str_reverse:
+  ; input: str object; output: ax
+  push bp
+  mov bp, sp
+  push cx
+  push bx
+  push si
+  push di
+  mov si, [bp + 4]
+  mov ax, [si + 2]
+  push ax
+  call create_str
+  mov bx, ax
+  mov cx, [si + 2]
+  test cx, cx
+  jz _str_reverse_done
+  mov ax, [si + 4]
+  add ax, cx
+  dec ax
+  mov si, ax
+  mov di, [bx + 4]
+_str_reverse_copy:
+  mov al, [si]
+  mov [di], al
+  dec si
+  inc di
+  loop _str_reverse_copy
+_str_reverse_done:
+  mov ax, bx
+  pop di
+  pop si
+  pop bx
+  pop cx
+  pop bp
+  ret 2
+  
+  
+str_strip:
 str_truncate:
 str_shift:
 str_prepend:
@@ -897,6 +963,121 @@ _int_or:
   ret 4
   
   
+_nible_to_h:
+  ; input: al; output: al
+  and al, 0fh
+  add al, 30h
+  cmp al, 3ah
+  jc _nible_to_h_done
+  add al, 7
+_nible_to_h_done:
+  ret
+  
+  
+_byte_to_h:
+  ; input: al; output: ax
+  mov ah, al
+  call _nible_to_h
+  xchg ah, al
+  shr al, 4
+  call _nible_to_h
+  xchg ah, al
+  ret
+  
+  
+_int_to_h8:
+  ; input: int; output: ax
+  push bp
+  mov bp, sp
+  push bx
+  push si
+  mov ax, 2
+  push ax
+  call create_str
+  mov bx, ax
+  mov si, [bx + 4]
+  mov ax, [bp + 4]
+  call _byte_to_h
+  xchg ah, al
+  mov [si], ax
+  mov ax, bx
+  pop si
+  pop bx
+  pop bp
+  ret 2
+  
+  
+_int_to_h16:
+  ; input: int; output: ax
+  push bp
+  mov bp, sp
+  push bx
+  push si
+  mov ax, 4
+  push ax
+  call create_str
+  mov bx, ax
+  mov si, [bx + 4]
+  mov ax, [bp + 4]
+  push ax
+  call _byte_to_h
+  xchg ah, al
+  mov [si + 2], ax
+  pop ax
+  xchg ah, al
+  call _byte_to_h
+  xchg ah, al
+  mov [si + 0], ax
+  mov ax, bx
+  pop si
+  pop bx
+  pop bp
+  ret 2
+  
+  
+_int_to_s:
+  ; input: int; output: ax
+  push bp
+  mov bp, sp
+  push cx
+  push dx
+  push bx
+  push di
+  mov ax, 6
+  push ax
+  call create_str
+  mov bx, ax
+  xor ax, ax
+  mov [bx + 2], ax
+  mov di, [bx + 4]
+  mov ax, [bp + 4]
+  mov cx, 10
+_int_to_s_loop:
+  xor dx, dx
+  div cx
+  push ax
+  mov al, dl
+  call _nible_to_h
+  mov [di], al
+  inc di
+  inc word [bx + 2]
+  pop ax
+  test ax, ax
+  jnz _int_to_s_loop
+  mov ax, [bx + 2]
+  push ax
+  mov ax, [bx + 4]
+  push ax
+  call mem_reverse
+  mov ax, bx
+  pop di
+  pop bx
+  pop dx
+  pop cx
+  pop bp
+  ret 2
+  
+  
 _get_obj_var:
   ; input: object, var-index
   push bp
@@ -969,6 +1150,10 @@ _putstr:
   mov cx, [bp + 6]
   test cx, cx
   jz _putstr_done
+  cmp cx, 200
+  jc _putstr_char_limited
+  mov cx, 200
+_putstr_char_limited:
   cld
   mov ah, 14
   xor bx, bx

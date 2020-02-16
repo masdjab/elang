@@ -184,11 +184,10 @@ module Elang
       
       [identifier, rcvr_node, name_node, args_node, body_node]
     end
-    def fetch_function_args(fetcher)
-      #(todo)#fetch function args
-    end
-    def fetch_function_call(fetcher)
-      #(todo)#fetch function call
+    def fetch_function_call(fetcher, text = nil)
+      func_name = fetcher.fetch
+      lft_break = fetcher.fetch
+      [AstNode.new(func_name.row, func_name.col, :dot, "."), nil, func_name, fetch_expression(fetcher)]
     end
     def fetch_expression(fetcher)
       parent = nil
@@ -219,25 +218,23 @@ module Elang
             
             priority = priority2
           elsif node.type == :lbrk
-            node = fetcher.fetch
-            if !last_node.nil? && (last_node.type == :identifier)
-              if current.first.is_a?(AstNode) && (current.first.type == :dot)
-                current << fetch_expression(fetcher)
-              elsif current.count == 1
-                current << fetch_expression(fetcher)
-              else
-                modified = [current.pop, fetch_expression(fetcher)]
-                current << modified
-              end
-            else
-              current << fetch_expression(fetcher)
-            end
+            fetcher.fetch
+            current << node = fetch_expression(fetcher)
           elsif node.type == :rbrk
             node = fetcher.fetch
             break
           elsif node.type == :comma
             node = fetcher.fetch
             # do nothing
+          elsif (node.type == :identifier) && (lbrk = fetcher.next) && (lbrk.type == :lbrk)
+            fn_call = fetch_function_call(fetcher)
+            
+            if !current.nil? && current.first.is_a?(AstNode) && (current.first.type == :dot)
+              current << fn_call[2]
+              current << fn_call[3]
+            else
+              current << node = fn_call
+            end
           elsif [:lf, :cr, :crlf].include?(node.type)
             break
           elsif (node.type == :identifier) && (node.text == "end")
@@ -261,13 +258,14 @@ module Elang
       
       while node = fetcher.element
         if node.type == :identifier
-          case node.text
-          when "class"
+          if node.text == "class"
             sexp << fetch_class_def(fetcher)
-          when "def"
+          elsif node.text == "def"
             sexp << fetch_function_def(fetcher)
-          when "end"
+          elsif node.text == "end"
             break
+          elsif (lbrk = fetcher.next) && (lbrk.type == :lbrk)
+            sexp << fetch_function_call(fetcher)
           else
             sexp << fetch_expression(fetcher)
           end

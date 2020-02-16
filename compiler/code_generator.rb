@@ -37,6 +37,9 @@ module Elang
         :mem_get_data_offset  => SystemFunction.new("mem_get_data_offset"), 
         :alloc_object         => SystemFunction.new("alloc_object"), 
         :load_str             => SystemFunction.new("load_str"), 
+        :_int_to_h8           => SystemFunction.new("_int_to_h8"), 
+        :_int_to_h16          => SystemFunction.new("_int_to_h16"), 
+        :_int_to_s            => SystemFunction.new("_int_to_s"), 
         :str_length           => SystemFunction.new("str_length"), 
         :str_lcase            => SystemFunction.new("str_lcase"), 
         :str_ucase            => SystemFunction.new("str_ucase"), 
@@ -356,33 +359,59 @@ module Elang
           append_code hex2bin(hc)
         end
       else
-        prepare_arguments func_args
+        func_sym = @codeset.symbols.find_nearest(active_scope, func_name)
         
-        # push args count
-        append_code hex2bin("B8" + Utils::Converter.int_to_whex_rev(func_args.count) + "50")
-        
-        # push object method id
-        function_id = FunctionId.new(current_scope, func_name)
-        add_function_id_ref function_id, code_len + 1
-        append_code hex2bin("B8000050")
-        
-        # push receiver object
-        if rcvr_name.nil?
-          if active_scope.cls.nil?
-            raise "Send without receiver"
-          else
-            append_code hex2bin("8B460450")
-          end
-        elsif (receiver = @codeset.symbols.find_nearest(active_scope, rcvr_name)).nil?
-          raise "Undefined symbol '#{rcvr_name}' in scope '#{active_scope.to_s}'"
-        else
-          add_variable_ref receiver, code_len + 1
-          append_code hex2bin("A1000050")
+        if func_sym.nil? && SYS_FUNCTIONS.key?(func_name.to_sym)
+          func_sym = SYS_FUNCTIONS[func_name.to_sym]
         end
         
-        # call _send_to_object
-        add_function_ref SYS_FUNCTIONS[:send_to_obj], code_len + 1
-        append_code hex2bin("E80000")
+        if rcvr_name.nil?
+          if active_scope.cls.nil?
+            is_obj_method = false
+          elsif func_sym.nil?
+            raise "Undefined function '#{func_name}' in scope '#{active_scope.to_s}'"
+          elsif func_sym.is_a?(Function)
+            is_obj_method = func_sym.scope.cls == active_scope.cls
+          elsif func_sym.is_a?(SystemFunction)
+            is_obj_method = false
+          else
+            raise "Unknown error when handling handle_send for function '#{func_name}' in scope '#{active_scope.to_s}'."
+          end
+        else
+          is_obj_method = true
+        end
+        
+        if !is_obj_method
+          handle_function_call node[2..3]
+        else
+          prepare_arguments func_args
+          
+          # push args count
+          append_code hex2bin("B8" + Utils::Converter.int_to_whex_rev(func_args.count) + "50")
+          
+          # push object method id
+          function_id = FunctionId.new(current_scope, func_name)
+          add_function_id_ref function_id, code_len + 1
+          append_code hex2bin("B8000050")
+          
+          # push receiver object
+          if rcvr_name.nil?
+            if active_scope.cls.nil?
+              raise "Send without receiver"
+            else
+              append_code hex2bin("8B460450")
+            end
+          elsif (receiver = @codeset.symbols.find_nearest(active_scope, rcvr_name)).nil?
+            raise "Undefined symbol '#{rcvr_name}' in scope '#{active_scope.to_s}'"
+          else
+            add_variable_ref receiver, code_len + 1
+            append_code hex2bin("A1000050")
+          end
+          
+          # call _send_to_object
+          add_function_ref SYS_FUNCTIONS[:send_to_obj], code_len + 1
+          append_code hex2bin("E80000")
+        end
       end
     end
     def handle_class_def(nodes)
@@ -417,6 +446,8 @@ module Elang
               elsif first_node.text.index("@")
                 register_instance_variable first_node.text
                 get_variable first_node.text
+              elsif ["self"].include?(first_node.text)
+                # ignore this
               elsif SYS_FUNCTIONS.key?(first_node.text.to_sym)
                 handle_function_call node
               else

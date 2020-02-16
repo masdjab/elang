@@ -22,32 +22,32 @@ a = "Com"
 b = "Put"
 c = "Ing"
 d = a.concat(b)
-e = d.concat(c)
-puts(e)
+d = d.concat(c)
+puts(d)
 puts("")
 
 # test String.append
 puts("* Test String.append")
-f = "Com"
-f.append(b)
-f.append(c)
-puts(f)
+d = "Com"
+d.append(b)
+d.append(c)
+puts(d)
 puts("")
 
 # test String.lcase
 puts("* Test lcase")
-g = f.lcase
-puts(g)
+d = d.lcase
+puts(d)
 puts("")
 
 # test String.ucase
 puts("* Test ucase")
-h = g.ucase
-puts(h)
+d = d.ucase
+puts(d)
 puts("")
 
 # test String.substr
 puts("* Test substr")
-i = h.substr(3, 5)
-puts(i)
+d = d.substr(3, 5)
+puts(d)
 puts("")

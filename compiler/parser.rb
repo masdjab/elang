@@ -286,7 +286,7 @@ module Elang
           "`"   => :bquote, 
           "$"   => :dollar, 
           "%"   => :percent, 
-          "^"   => :up
+          "^"   => :xor
         }
       
       cpos = @fetcher.pos

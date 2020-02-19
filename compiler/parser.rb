@@ -2,16 +2,6 @@ require './compiler/fetcher_v2'
 require './compiler/token'
 
 module Elang
-  class ParseError < Exception
-    attr_reader :row, :col
-    def initialize(row, col, message)
-      @row = row
-      @col = col
-      super(message)
-    end
-  end
-  
-  
   class Parser
     # syntax to be supported:
     # high priority:
@@ -65,7 +55,7 @@ module Elang
       "#{pos[:row]}:#{pos[:col]}"
     end
     def _create_parse_error(rowcol, message)
-      ParseError.new(rowcol[:row], rowcol[:col], message)
+      ParsingError.new(message, rowcol[:row], rowcol[:col], @code_lines)
     end
     def _throw_parse_error(pos, message)
       rowcol = _pos_to_row_col(pos)

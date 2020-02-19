@@ -2,6 +2,7 @@
 # class responsibility:
 # - convert source code to codeset
 
+require './compiler/exception'
 require './compiler/parser'
 require './compiler/lexer'
 require './compiler/code_generator'
@@ -24,7 +25,10 @@ module Elang
       
       codegen = Elang::CodeGenerator.new
       codeset = codegen.generate_code(nodes, clines)
-      codeset.code_lines = clines
+      
+      if codeset
+        codeset.code_lines = clines
+      end
       
       codeset
     end

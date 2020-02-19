@@ -1,4 +1,5 @@
 require 'test-unit'
+require './compiler/exception'
 require './compiler/parser'
 require './compiler/lexer'
 

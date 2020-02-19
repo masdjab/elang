@@ -1,3 +1,4 @@
+require './compiler/exception'
 require './compiler/parser'
 require './compiler/lexer'
 

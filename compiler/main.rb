@@ -8,12 +8,17 @@ module Elang
       linker = Elang::Linker.new
       linker.load_library "#{ELANG_DIR}/libs/stdlib.bin"
       
-      codeset = compiler.compile(File.read(source_file))
-      binary = linker.link(codeset)
-      
-      file = File.new(output_file, "wb")
-      file.write binary
-      file.close
+      if codeset = compiler.compile(File.read(source_file))
+        binary = linker.link(codeset)
+        
+        file = File.new(output_file, "wb")
+        file.write binary
+        file.close
+        true
+      elsif File.exist?(output_file)
+        File.delete output_file
+        false
+      end
     end
     def handle_request
       src_file = ARGV[0]

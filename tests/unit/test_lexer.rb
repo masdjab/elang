@@ -30,14 +30,13 @@ class TestLexer < Test::Unit::TestCase
   def test_medium_expression
     check_expression \
       "x = 32 + p * 5 - 4 & q * r / s + 1", 
-      "[[=,x,[+,32,[-,[*,p,5],[+,[/,[*,[&,4,q],r],s],1]]]]]"
+      "[[=,x,[&,[-,[+,32,[*,p,5]],4],[+,[/,[*,q,r],s],1]]]]"
     check_expression \
       "x = (32 + p) * (5 - 4) & q * r / s + 1", 
-      "[[=,x,[*,[+,32,p],[+,[/,[*,[&,[-,5,4],q],r],s],1]]]]"
-      #"[[=,x,[+,[*,[+,32,p],[/,[*,[&,[-,5,4],q],r],s]],1]]]"
+      "[[=,x,[&,[*,[+,32,p],[-,5,4]],[+,[/,[*,q,r],s],1]]]]"
     check_expression \
       "x = (32 + p * (5 - sqrt(4))) & (q * r / s + 1)", 
-      "[[=,x,[&,[+,32,[*,p,[-,5,[.,nil,sqrt,[4]]]]],[*,q,[+,[/,r,s],1]]]]]"
+      "[[=,x,[&,[+,32,[*,p,[-,5,[.,nil,sqrt,[4]]]]],[+,[/,[*,q,r],s],1]]]]"
     
     check_expression \
       "x = mid(text, sqrt(2), 4)", 
@@ -64,7 +63,9 @@ class TestLexer < Test::Unit::TestCase
       [["def","self","hitung",["text"],[["=","x",[".",nil,"mid",["text",[".",nil,"sqrt",["2"]],"4"]]]]]]
   end
   def test_multiline_expression
-    # check_expression "x = 32 + 5\nputs x\n", "[=,x,[+,32,5]]"
+    #(todo)#fix this bug, caused by \n
+    #check_expression "x = 32 + 5\nputs x\n", "[[=,x,[+,32,5]],[.,nil,puts,[x]]"
+    
     
     source = <<EOS
 def tambah(a, b)
@@ -149,7 +150,6 @@ class Integer
 end
 EOS
     
-    #(todo)#fix this bug
     check_expression \
       source, 
       [
@@ -200,7 +200,7 @@ EOS
         [
           "class","Person",nil,
             [
-              ["def",nil,"get_name",[],[["@name"]]],
+              ["def",nil,"get_name",[],["@name"]],
               ["def",nil,"set_name",["v"],[["=","@name","v"]]],
               ["def","self","get_person_name",["person"],[[".","person","get_name",[]]]],
               ["def","self","set_person_name",["person","name"],[[".","person","set_name",["name"]]]]
@@ -209,24 +209,21 @@ EOS
         [
           "def",nil,"test_person",[],
           [
-            ["=","p1",[".","Person","new"]], 
+            ["=","p1",[".","Person","new",[]]], 
             [".","p1","set_name",["Bowo"]], 
-            ["=","a",[".","p1","get_name"]], 
+            ["=","a",[".","p1","get_name",[]]], 
             ["=","b",[".","Person","set_person_name",["p1","Agus"]]], 
             ["=","c",[".","Person","get_person_name",["p1"]]]
           ]
         ], 
-        ["test_person"]
+        "test_person"
       ]
     
-    source = <<EOS
-x = p1.get(0).phone.substr(0, 2)
-EOS
     
     check_expression \
-      source, 
+      "x = p1.get(0).phone.substr(0, 2)", 
       [
-        ["=", "x", [".", [".", [".", "p1", "get", ["0"]], "phone"], "substr", ["0", "2"]]]
+        ["=","x",[".",[".",[".","p1","get",["0"]],"phone",[]],"substr",["0", "2"]]]
       ]
   end
 end

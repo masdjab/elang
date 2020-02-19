@@ -193,7 +193,7 @@ class TestParser < Test::Unit::TestCase
         [".,:;()", [:dot, :comma, :colon, :semicolon, :lbrk, :rbrk]], 
         ["[]{}+-*", [:lsbrk, :rsbrk, :lcbrk, :rcbrk, :plus, :minus, :star]], 
         ["/\\?!@~`", [:slash, :bslash, :question, :excl, :at, :tilde, :bquote]], 
-        ["$%^|||&&&", [:dollar, :percent, :up, :dblor, :or, :dbland, :and]]
+        ["$%^|||&&&", [:dollar, :percent, :xor, :dblor, :or, :dbland, :and]]
       ]
       
     tests.each{|t|assert_equal t[1], _parse(t[0]).map{|x|x.type}}

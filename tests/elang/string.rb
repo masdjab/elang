@@ -21,15 +21,14 @@ puts("* Test String.concat")
 a = "Com"
 b = "Put"
 c = "Ing"
-d = a.concat(b)
-d = d.concat(c)
+d = a.concat(b).concat(c)
 puts(d)
 puts("")
 
 # test String.append
 puts("* Test String.append")
 d = "Com"
-puts(d.append(b.append(c)))
+puts(d.append(b).append(c))
 puts("")
 
 # test String.lcase
@@ -44,5 +43,4 @@ puts("")
 
 # test String.substr
 puts("* Test substr")
-d = "COMPUTING"
-puts(d.substr(3, 5))
+puts("COMPUTING".substr(3, 5))

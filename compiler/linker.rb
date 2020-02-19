@@ -42,6 +42,9 @@ module Elang
           
           if (text[0] == text[-1]) && ("\"'".index(text[0]))
             text = text[1...-1]
+            text = text.gsub("\\r", "\r")
+            text = text.gsub("\\n", "\n")
+            text = text.gsub("\\t", "\t")
           end
           
           lgth = text.length

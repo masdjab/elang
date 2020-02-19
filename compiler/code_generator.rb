@@ -162,47 +162,51 @@ module Elang
       
       append_code hex2bin(hex_code.join)
     end
-    def get_variable(name)
+    def get_variable(node)
       active_scope = current_scope
       
-      if name == "nil"
-        append_code hex2bin("B80000")
-      elsif name == "self"
-        if active_scope.cls.nil?
-          raise "Symbol 'self' accessed outside class"
-        else
-          append_code hex2bin("8B4604")
-        end
-      elsif (symbol = @codeset.symbols.find_nearest(active_scope, name)).nil?
-        raise "Cannot get value from '#{name}' , symbol not defined in scope '#{active_scope.to_s}'"
-      elsif symbol.is_a?(FunctionParameter)
-        # mov ax, [bp - n]
-        add_variable_ref symbol, code_len + 2
-        append_code hex2bin("8B4600")
-      elsif symbol.is_a?(InstanceVariable)
-        # #(todo)#resolve object id, class id, and instance variable getter address
-        if active_scope.cls.nil?
-          raise "Instance variable '#{name}' accessed in scope '#{active_scope.to_s}' which is not instance method"
-        elsif (cls = @codeset.symbols.find_exact(Scope.new, active_scope.cls)).nil?
-          raise "Class #{active_scope.cls} is not defined"
-        else
+      if node.type == :identifier
+        if (name = node.text) == "nil"
+          append_code hex2bin("B80000")
+        elsif name == "self"
+          if active_scope.cls.nil?
+            raise "Symbol 'self' accessed outside class"
+          else
+            append_code hex2bin("8B4604")
+          end
+        elsif (symbol = @codeset.symbols.find_nearest(active_scope, name)).nil?
+          raise "Cannot get value from '#{name}' , symbol not defined in scope '#{active_scope.to_s}'"
+        elsif symbol.is_a?(FunctionParameter)
+          # mov ax, [bp - n]
+          add_variable_ref symbol, code_len + 2
+          append_code hex2bin("8B4600")
+        elsif symbol.is_a?(InstanceVariable)
+          # #(todo)#resolve object id, class id, and instance variable getter address
+          if active_scope.cls.nil?
+            raise "Instance variable '#{name}' accessed in scope '#{active_scope.to_s}' which is not instance method"
+          elsif (cls = @codeset.symbols.find_exact(Scope.new, active_scope.cls)).nil?
+            raise "Class #{active_scope.cls} is not defined"
+          else
+            add_variable_ref symbol, code_len + 1
+            add_function_ref SYS_FUNCTIONS[:get_obj_var], code_len + 9
+            append_code hex2bin("B80000508B460450E80000")
+          end
+        elsif symbol.is_a?(ClassVariable)
+          # #(todo)#fix binary command
+          append_code hex2bin("A40000")
+        elsif symbol.scope.root?
+          # mov var, ax
           add_variable_ref symbol, code_len + 1
-          add_function_ref SYS_FUNCTIONS[:get_obj_var], code_len + 9
-          append_code hex2bin("B80000508B460450E80000")
+          append_code hex2bin("A10000")
+        elsif symbol.is_a?(Variable)
+          # mov ax, [bp + n]
+          add_variable_ref symbol, code_len + 2
+          append_code hex2bin("8B4600")
+        else
+          raise "Cannot get value from '#{name}', symbol type '#{symbol.class}' unknown"
         end
-      elsif symbol.is_a?(ClassVariable)
-        # #(todo)#fix binary command
-        append_code hex2bin("A40000")
-      elsif symbol.scope.root?
-        # mov var, ax
-        add_variable_ref symbol, code_len + 1
-        append_code hex2bin("A10000")
-      elsif symbol.is_a?(Variable)
-        # mov ax, [bp + n]
-        add_variable_ref symbol, code_len + 2
-        append_code hex2bin("8B4600")
-      else
-        raise "Cannot get value from '#{name}', symbol type '#{symbol.class}' unknown"
+      elsif node.type == :string
+        get_string_object node.text
       end
     end
     def set_variable(name)
@@ -248,7 +252,7 @@ module Elang
       elsif node.type == :string
         get_string_object node.text
       else
-        get_variable node.text
+        get_variable node
       end
     end
     def prepare_arguments(arguments)
@@ -341,13 +345,15 @@ module Elang
       # [., receiver, name, args]
       
       active_scope = current_scope
-      rcvr_name = node[1] ? node[1].text : nil
+      rcvr_node = node[1]
       func_name = node[2].text
       func_args = node[3] ? node[3] : []
       
       if func_name == "new"
-        if (cls = @codeset.symbols.items.find{|x|x.is_a?(Class) && (x.name == rcvr_name)}).nil?
-          raise "Class '#{rcvr_name}' not defined"
+        cls_name = rcvr_node.text
+        
+        if (cls = @codeset.symbols.items.find{|x|x.is_a?(Class) && (x.name == cls_name)}).nil?
+          raise "Class '#{cls_name}' not defined"
         else
           ct = CodesetTool.new(@codeset)
           iv = ct.get_instance_variables(cls)
@@ -359,7 +365,7 @@ module Elang
           append_code hex2bin(hc)
         end
       else
-        if rcvr_name.nil?
+        if rcvr_node.nil?
           func_sym = @codeset.symbols.find_nearest(active_scope, func_name)
           
           if func_sym.nil? && SYS_FUNCTIONS.key?(func_name.to_sym)
@@ -395,17 +401,18 @@ module Elang
           append_code hex2bin("B8000050")
           
           # push receiver object
-          if rcvr_name.nil?
+          if rcvr_node.nil?
             if active_scope.cls.nil?
               raise "Send without receiver"
             else
               append_code hex2bin("8B460450")
             end
-          elsif (receiver = @codeset.symbols.find_nearest(active_scope, rcvr_name)).nil?
-            raise "Undefined symbol '#{rcvr_name}' in scope '#{active_scope.to_s}'"
+          elsif rcvr_node.is_a?(Array)
+            handle_send rcvr_node
+            append_code hex2bin("50")
           else
-            add_variable_ref receiver, code_len + 1
-            append_code hex2bin("A1000050")
+            get_variable rcvr_node
+            append_code hex2bin("50")
           end
           
           # call _send_to_object
@@ -442,10 +449,10 @@ module Elang
                 handle_class_def node
               elsif first_node.text.index("@@")
                 register_class_variable first_node.text
-                get_variable first_node.text
+                get_variable first_node
               elsif first_node.text.index("@")
                 register_instance_variable first_node.text
-                get_variable first_node.text
+                get_variable first_node
               elsif ["self"].include?(first_node.text)
                 # ignore this
               elsif SYS_FUNCTIONS.key?(first_node.text.to_sym)

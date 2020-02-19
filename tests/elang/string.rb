@@ -43,5 +43,4 @@ puts("")
 
 # test String.substr
 puts("* Test substr")
-d = "COMPUTING"
-puts(d.substr(3, 5))
+puts("COMPUTING".substr(3, 5))

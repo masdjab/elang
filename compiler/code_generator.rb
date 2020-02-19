@@ -173,7 +173,7 @@ module Elang
           append_code hex2bin("B80000")
         elsif name == "self"
           if active_scope.cls.nil?
-            raise "Symbol 'self' accessed outside class"
+            raize "Symbol 'self' accessed outside class", node
           else
             append_code hex2bin("8B4604")
           end
@@ -186,9 +186,9 @@ module Elang
         elsif symbol.is_a?(InstanceVariable)
           # #(todo)#resolve object id, class id, and instance variable getter address
           if active_scope.cls.nil?
-            raise "Instance variable '#{name}' accessed in scope '#{active_scope.to_s}' which is not instance method"
+            raize "Instance variable '#{name}' accessed in scope '#{active_scope.to_s}' which is not instance method", node
           elsif (cls = @codeset.symbols.find_exact(Scope.new, active_scope.cls)).nil?
-            raise "Class #{active_scope.cls} is not defined"
+            raize "Class #{active_scope.cls} is not defined", name
           else
             add_variable_ref symbol, code_len + 1
             add_function_ref SYS_FUNCTIONS[:get_obj_var], code_len + 9
@@ -206,7 +206,7 @@ module Elang
           add_variable_ref symbol, code_len + 2
           append_code hex2bin("8B4600")
         else
-          raise "Cannot get value from '#{name}', symbol type '#{symbol.class}' unknown"
+          raize "Cannot get value from '#{name}', symbol type '#{symbol.class}' unknown", node
         end
       elsif node.type == :string
         get_string_object node.text
@@ -214,7 +214,7 @@ module Elang
     end
     def set_variable(name)
       if (symbol = @codeset.symbols.find_nearest(active_scope = current_scope, name)).nil?
-        raise "Cannot set value to '#{name}' , symbol not defined in scope '#{active_scope.to_s}'"
+        raize "Cannot set value to '#{name}' , symbol not defined in scope '#{active_scope.to_s}'"
       elsif symbol.is_a?(FunctionParameter)
         # mov [bp - n], ax
         add_variable_ref symbol, code_len + 2
@@ -222,9 +222,9 @@ module Elang
       elsif symbol.is_a?(InstanceVariable)
         # #(todo)#fix binary command
         if active_scope.cls.nil?
-          raise "Attempted to write to instance variable '#{name}' in scope '#{active_scope.to_s}' which is not instance method"
+          raize "Attempted to write to instance variable '#{name}' in scope '#{active_scope.to_s}' which is not instance method"
         elsif (cls = @codeset.symbols.find_exact(Scope.new, active_scope.cls)).nil?
-          raise "Class #{active_scope.cls} is not defined"
+          raize "Class #{active_scope.cls} is not defined"
         else
           add_variable_ref symbol, code_len + 2
           add_function_ref SYS_FUNCTIONS[:set_obj_var], code_len + 10
@@ -242,7 +242,7 @@ module Elang
         add_variable_ref symbol, code_len + 2
         append_code hex2bin("894600")
       else
-        raise "Cannot set value to '#{name}', symbol type '#{symbol.class}' unknown"
+        raize "Cannot set value to '#{name}', symbol type '#{symbol.class}' unknown"
       end
     end
     def prepare_operand(node)
@@ -341,7 +341,7 @@ module Elang
         add_function_ref function, code_len + 1
         append_code hex2bin("E80000")
       else
-        raise "Call to undefined function '#{func_name}'"
+        raize "Call to undefined function '#{func_name}'", node[0]
       end
     end
     def handle_send(node)
@@ -356,7 +356,7 @@ module Elang
         cls_name = rcvr_node.text
         
         if (cls = @codeset.symbols.items.find{|x|x.is_a?(Class) && (x.name == cls_name)}).nil?
-          raise "Class '#{cls_name}' not defined"
+          raize "Class '#{cls_name}' not defined", rcvr_node
         else
           ct = CodesetTool.new(@codeset)
           iv = ct.get_instance_variables(cls)
@@ -378,13 +378,13 @@ module Elang
           if active_scope.cls.nil?
             is_obj_method = false
           elsif func_sym.nil?
-            raise "Undefined function '#{func_name}' in scope '#{active_scope.to_s}'"
+            raize "Undefined function '#{func_name}' in scope '#{active_scope.to_s}'", node[2]
           elsif func_sym.is_a?(Function)
             is_obj_method = func_sym.scope.cls == active_scope.cls
           elsif func_sym.is_a?(SystemFunction)
             is_obj_method = false
           else
-            raise "Unknown error when handling handle_send for function '#{func_name}' in scope '#{active_scope.to_s}'."
+            raize "Unknown error when handling handle_send for function '#{func_name}' in scope '#{active_scope.to_s}'.", node[2]
           end
         else
           is_obj_method = true
@@ -406,7 +406,7 @@ module Elang
           # push receiver object
           if rcvr_node.nil?
             if active_scope.cls.nil?
-              raise "Send without receiver"
+              raize "Send without receiver", rcvr_node
             else
               append_code hex2bin("8B460450")
             end
@@ -436,7 +436,7 @@ module Elang
       nodes.each do |node|
         if node.is_a?(Array)
           if !(first_node = node[0]).is_a?(Elang::AstNode)
-            raise "Expected identifier, #{node[0].inspect} given"
+            raize "Expected identifier, #{node[0].inspect} given", node
           else
             case first_node.type
             when :assign
@@ -462,21 +462,21 @@ module Elang
                 handle_function_call node
               else
                 if (function = @codeset.symbols.find_nearest(current_scope, first_node.text)).nil?
-                  raise "Call to undefined function '#{first_node.text}' from scope '#{current_scope.to_s}'"
+                  raize "Call to undefined function '#{first_node.text}' from scope '#{current_scope.to_s}'", first_node
                 elsif !function.is_a?(Function)
-                  raise "Call to non-function '#{first_node.text}'"
+                  raize "Call to non-function '#{first_node.text}'", first_node
                 else
                   handle_function_call node
                 end
               end
             #else
-            #  raise "Unexpected node type #{first_node.type.inspect} in #{first_node.inspect}"
+            #  raize "Unexpected node type #{first_node.type.inspect} in #{first_node.inspect}", first_node
             else
               handle_expression node
             end
           end
         else
-          #raise "Expected array, #{node.class} given: #{node.inspect}"
+          #raize "Expected array, #{node.class} given: #{node.inspect}", node
           handle_expression node
         end
       end
@@ -496,7 +496,7 @@ module Elang
               function = Function.new(active_scope, rcvr_name, func_name, func_args, 0)
               
               if !active_scope.fun.nil?
-                raise "Function cannot be nested"
+                raize "Function cannot be nested", first_node
               else
                 @codeset.symbols.add function
                 enter_scope Scope.new(active_scope.cls, func_name)
@@ -515,7 +515,7 @@ module Elang
               cls_body = node[3]
               
               if !(active_scope = current_scope).cls.nil?
-                raise "Class cannot be nested"
+                raize "Class cannot be nested", first_node
               else
                 cls_object = register_class(cls_name, cls_parent)
                 enter_scope Scope.new(cls_name)
@@ -529,7 +529,7 @@ module Elang
             active_scope = current_scope
             
             if !left_var.is_a?(Elang::AstNode) || (left_var.type != :identifier)
-              raise "Left operand for assignment must be a symbol, #{left_var.inspect} given"
+              raize "Left operand for assignment must be a symbol, #{left_var.inspect} given", left_var
             end
             
             if (receiver = @codeset.symbols.find_nearest(active_scope, var_name)).nil?

@@ -61,6 +61,30 @@ module Elang
       
       [identifier, name_node, super_node, body_node]
     end
+    def fetch_function_params(fetcher)
+      params = []
+      
+      if (node = fetcher.element) && (node.type == :lbrk)
+        rbracket = false
+        fetcher.fetch
+        
+        while node = fetcher.element
+          if node.type == :rbrk
+            fetcher.fetch
+            rbracket = true
+            break
+          else
+            params << fetcher.fetch
+          end
+        end
+        
+        if !rbracket
+          raize "Expected ')'", fetcher.last
+        end
+      end
+      
+      params
+    end
     def fetch_function_def(fetcher)
       if (identifier = fetcher.fetch).type != :identifier
         raize "Function definition must start with 'def'", identifier
@@ -120,11 +144,7 @@ module Elang
       if (node = fetcher.element).nil?
         raize "Expected function body", node
       else
-        if node.type == :lbrk
-          args_node = fetch_expressions(fetcher)[0]
-        else
-          args_node = []
-        end
+        args_node = fetch_function_params(fetcher)
       end
       
       body_node = fetch_sexp(fetcher)

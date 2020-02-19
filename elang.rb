@@ -1,4 +1,9 @@
+ELANG_DIR = File.dirname(__FILE__)
+old_dir = Dir.pwd
+
+Dir.chdir File.dirname(__FILE__)
 require './compiler/main'
+Dir.chdir old_dir
 
 source_file = ARGV[0]
 source_name = File.basename(source_file)

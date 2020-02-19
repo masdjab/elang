@@ -473,7 +473,8 @@ module Elang
             end
           end
         else
-          raise "Expected array, #{node.class} given: #{node.inspect}"
+          #raise "Expected array, #{node.class} given: #{node.inspect}"
+          handle_expression node
         end
       end
     end
@@ -481,7 +482,6 @@ module Elang
       nodes.each do |node|
         if node.is_a?(Array)
           if (first_node = node[0]).is_a?(Array)
-            #raise "This branch is not expected to be executed (1) => node: #{first_node.inspect}"
             detect_names first_node
           elsif first_node.type == :identifier
             if first_node.text == "def"
@@ -543,7 +543,8 @@ module Elang
             end
           end
         else
-          raise "This branch is not expected to be executed (2). node: #{node.inspect}"
+          # case examples:
+          # @name
         end
       end
     end

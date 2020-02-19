@@ -57,6 +57,9 @@ module Elang
       @codeset = CodeSet.new
       @scope_stack = []
     end
+    def raize(msg, node = nil)
+      raise ParsingError.new(msg, node, @code_lines)
+    end
     def code_len
       @codeset.code_branch.length
     end
@@ -175,7 +178,7 @@ module Elang
             append_code hex2bin("8B4604")
           end
         elsif (symbol = @codeset.symbols.find_nearest(active_scope, name)).nil?
-          raise "Cannot get value from '#{name}' , symbol not defined in scope '#{active_scope.to_s}'"
+          raize "Cannot get value from '#{name}' , symbol not defined in scope '#{active_scope.to_s}'", node
         elsif symbol.is_a?(FunctionParameter)
           # mov ax, [bp - n]
           add_variable_ref symbol, code_len + 2
@@ -551,13 +554,21 @@ module Elang
     
     public
     def generate_code(nodes, code_lines = [])
-      @code_lines = code_lines
-      @scope_stack = []
-      @scope_stack = []
-      @codeset = CodeSet.new
-      detect_names nodes
-      handle_any nodes
-      @codeset
+      result = nil
+      
+      begin
+        @code_lines = code_lines
+        @scope_stack = []
+        @scope_stack = []
+        @codeset = CodeSet.new
+        detect_names nodes
+        handle_any nodes
+        result = @codeset
+      rescue StandardError => e
+        Exception.show e
+      end
+      
+      result
     end
   end
 end

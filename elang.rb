@@ -11,9 +11,10 @@ source_ext  = File.extname(source_file)
 output_file = source_name[0...-source_ext.length] + ".com"
 
 puts "Elang v1.0"
+puts
 
-Elang::Main.new.compile(source_file, output_file)
-
-puts "Source path: #{File.dirname(source_file)}"
-puts "Source file: #{source_name}"
-puts "Output file: #{output_file}"
+if Elang::Main.new.compile(source_file, output_file)
+  puts "Source path: #{File.dirname(source_file)}"
+  puts "Source file: #{source_name}"
+  puts "Output file: #{output_file}"
+end

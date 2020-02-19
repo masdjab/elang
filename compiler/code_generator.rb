@@ -341,13 +341,15 @@ module Elang
       # [., receiver, name, args]
       
       active_scope = current_scope
-      rcvr_name = node[1] ? node[1].text : nil
+      rcvr_node = node[1]
       func_name = node[2].text
       func_args = node[3] ? node[3] : []
       
       if func_name == "new"
-        if (cls = @codeset.symbols.items.find{|x|x.is_a?(Class) && (x.name == rcvr_name)}).nil?
-          raise "Class '#{rcvr_name}' not defined"
+        cls_name = rcvr_node.text
+        
+        if (cls = @codeset.symbols.items.find{|x|x.is_a?(Class) && (x.name == cls_name)}).nil?
+          raise "Class '#{cls_name}' not defined"
         else
           ct = CodesetTool.new(@codeset)
           iv = ct.get_instance_variables(cls)
@@ -359,7 +361,7 @@ module Elang
           append_code hex2bin(hc)
         end
       else
-        if rcvr_name.nil?
+        if rcvr_node.nil?
           func_sym = @codeset.symbols.find_nearest(active_scope, func_name)
           
           if func_sym.nil? && SYS_FUNCTIONS.key?(func_name.to_sym)
@@ -395,13 +397,16 @@ module Elang
           append_code hex2bin("B8000050")
           
           # push receiver object
-          if rcvr_name.nil?
+          if rcvr_node.nil?
             if active_scope.cls.nil?
               raise "Send without receiver"
             else
               append_code hex2bin("8B460450")
             end
-          elsif (receiver = @codeset.symbols.find_nearest(active_scope, rcvr_name)).nil?
+          elsif rcvr_node.is_a?(Array)
+            handle_send rcvr_node
+            append_code hex2bin("50")
+          elsif (receiver = @codeset.symbols.find_nearest(active_scope, rcvr_name = rcvr_node.text)).nil?
             raise "Undefined symbol '#{rcvr_name}' in scope '#{active_scope.to_s}'"
           else
             add_variable_ref receiver, code_len + 1

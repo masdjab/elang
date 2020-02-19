@@ -121,7 +121,7 @@ module Elang
         raize "Expected function body", node
       else
         if node.type == :lbrk
-          args_node = @shunting_yard.fetch_expressions(fetcher)[0]
+          args_node = fetch_expressions(fetcher)[0]
         else
           args_node = []
         end
@@ -132,6 +132,26 @@ module Elang
       fetch_end(fetcher)
       
       [identifier, rcvr_node, name_node, args_node, body_node]
+    end
+    def convert_expressions_to_nodes(expr)
+      if expr.is_a?(Array)
+        expr.map{|x|convert_expressions_to_nodes(x)}
+      elsif expr.is_a?(Operation)
+        rec = convert_expressions_to_nodes(expr.rec)
+        op1 = convert_expressions_to_nodes(expr.op1)
+        op2 = convert_expressions_to_nodes(expr.op2)
+        
+        if (cmd = expr.cmd).type == :dot
+          [cmd, rec, op1, op2]
+        else
+          [cmd, op1, op2]
+        end
+      else
+        expr
+      end
+    end
+    def fetch_expressions(fetcher)
+      convert_expressions_to_nodes @shunting_yard.fetch_expressions(fetcher)
     end
     def fetch_sexp(fetcher)
       sexp = []
@@ -145,14 +165,14 @@ module Elang
           elsif node.text == "end"
             break
           else
-            sexp += @shunting_yard.fetch_expressions(fetcher)
+            sexp += fetch_expressions(fetcher)
           end
         elsif [:lf, :cr, :crlf].include?(node.type)
           fetcher.fetch
         elsif node.type == :rbrk
           break
         else
-          sexp += @shunting_yard.fetch_expressions(fetcher)
+          sexp += fetch_expressions(fetcher)
         end
       end
       

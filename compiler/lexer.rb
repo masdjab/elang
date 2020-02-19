@@ -1,4 +1,3 @@
-require './compiler/parsing_error'
 require './compiler/ast_node'
 require './compiler/operation'
 require './compiler/shunting_yard'
@@ -73,6 +72,8 @@ module Elang
             fetcher.fetch
             rbracket = true
             break
+          elsif node.type == :comma
+            fetcher.fetch
           else
             params << fetcher.fetch
           end

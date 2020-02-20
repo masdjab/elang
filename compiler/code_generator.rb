@@ -170,7 +170,11 @@ module Elang
       
       if node.type == :identifier
         if (name = node.text) == "nil"
-          append_code hex2bin("B80000")
+          append_code hex2bin("B8" + Utils::Converter.int_to_whex_be(Class::ROOT_CLASS_IDS["NilClass"]))
+        elsif name == "true"
+          append_code hex2bin("B8" + Utils::Converter.int_to_whex_be(Class::ROOT_CLASS_IDS["TrueClass"]))
+        elsif name == "false"
+          append_code hex2bin("B8" + Utils::Converter.int_to_whex_be(Class::ROOT_CLASS_IDS["FalseClass"]))
         elsif name == "self"
           if active_scope.cls.nil?
             raize "Symbol 'self' accessed outside class", node
@@ -208,6 +212,8 @@ module Elang
         else
           raize "Cannot get value from '#{name}', symbol type '#{symbol.class}' unknown", node
         end
+      elsif node.type == :number
+        append_code hex2bin("B8" + Utils::Converter.int_to_whex_rev(intobj(node.text.to_i)))
       elsif node.type == :string
         get_string_object node.text
       end
@@ -364,7 +370,7 @@ module Elang
           ci = Utils::Converter.int_to_whex_rev(CodesetTool.create_class_id(cls))
           hc = "B8#{sz}50B8#{ci}50E80000"
           
-          add_function_ref SYS_FUNCTIONS[:alloc_object], code_len + 13
+          add_function_ref SYS_FUNCTIONS[:alloc_object], code_len + 9
           append_code hex2bin(hc)
         end
       else

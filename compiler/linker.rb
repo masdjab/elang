@@ -123,7 +123,7 @@ module Elang
         
         cls[:i_funs].each do |f|
           func_address = Utils::Converter.int_to_whex_rev(@code_origin + subs_offset + f[:offset]).upcase
-          asmcode << asm("83F8" + Utils::Converter.int_to_bhex_rev(f[:id]) + "7504", "  cmp ax, #{f[:id]}; jnz + 2")
+          asmcode << asm("3D" + Utils::Converter.int_to_whex_rev(f[:id]) + "7504", "  cmp ax, #{f[:id]}; jnz + 2")
           asmcode << asm("B8#{func_address}C3", "  mov ax, #{key.downcase}_obj_#{f[:name]}; ret")
         end
         
@@ -142,26 +142,59 @@ module Elang
       
       
       asmcode << asm()
-      code_label = "find_obj_method_address"
+      code_label = "find_obj_method"
       code_offset[code_label] = asmcode.code.length
       asmcode << asm("", "#{code_label}:")
+      
+      asmcode << asm("8B4604", "  mov ax, [bp + 4]")
       
       # add integer class
       if @classes.key?("Integer")
         asmcode << asm("A90100", "  test ax, 1")
         jump_distance = code_offset["method_selector_integer"] - (asmcode.code.length + 4)
         jump_target = Utils::Converter.int_to_whex_rev(jump_distance).upcase
-        asmcode << asm("0F84#{jump_target}", "  jz method_selector_integer")
+        asmcode << asm("0F85#{jump_target}", "  jnz method_selector_integer")
       end
       
-      # add non integer classes
+      # add nil class
+      if @classes.key?("NilClass")
+        asmcode << asm("3D" + Utils::Converter.int_to_whex_rev(Class::ROOT_CLASS_IDS["NilClass"]), "  cmp ax, nil_class_id")
+        jump_distance = code_offset["method_selector_nilclass"] - (asmcode.code.length + 4)
+        jump_target = Utils::Converter.int_to_whex_rev(jump_distance).upcase
+        asmcode << asm("0F84#{jump_target}", "  jz method_selector_nilclass")
+      end
+      
+      # add false class
+      if @classes.key?("FalseClass")
+        asmcode << asm("3D" + Utils::Converter.int_to_whex_rev(Class::ROOT_CLASS_IDS["FalseClass"]), "  cmp ax, false_class_id")
+        jump_distance = code_offset["method_selector_falseclass"] - (asmcode.code.length + 4)
+        jump_target = Utils::Converter.int_to_whex_rev(jump_distance).upcase
+        asmcode << asm("0F84#{jump_target}", "  jz method_selector_falseclass")
+      end
+      
+      # add true class
+      if @classes.key?("TrueClass")
+        asmcode << asm("3D" + Utils::Converter.int_to_whex_rev(Class::ROOT_CLASS_IDS["TrueClass"]), "  cmp ax, true_class_id")
+        jump_distance = code_offset["method_selector_trueclass"] - (asmcode.code.length + 4)
+        jump_target = Utils::Converter.int_to_whex_rev(jump_distance).upcase
+        asmcode << asm("0F84#{jump_target}", "  jz method_selector_trueclass")
+      end
+      
+      asmcode << asm("56", "  push si")
+      asmcode << asm("8B7604", "  mov si, [bp + 4]")
+      asmcode << asm("8B04", "  mov ax, [si]")
+      asmcode << asm("5E", "  pop si")
+      
+      # add non-built-in classes
       @classes.each do |key, cls|
-        if clsid = cls[:clsid]
-          asmcode << asm("83F8" + Utils::Converter.int_to_bhex_rev(cls[:clsid]).upcase, "  cmp ax, #{cls[:clsid]}")
-          code_label = "method_selector_#{key.downcase}"
-          jump_distance = code_offset[code_label] - (asmcode.code.length + 4)
-          jump_target = Utils::Converter.int_to_whex_rev(jump_distance).upcase
-          asmcode << asm("0F84#{jump_target}", "  jz #{code_label}")
+        if !["Integer", "NilClass", "TrueClass", "FalseClass"].include?(key)
+          if clsid = cls[:clsid]
+            asmcode << asm("3D" + Utils::Converter.int_to_whex_rev(cls[:clsid]).upcase, "  cmp ax, #{cls[:clsid]}")
+            code_label = "method_selector_#{key.downcase}"
+            jump_distance = code_offset[code_label] - (asmcode.code.length + 4)
+            jump_target = Utils::Converter.int_to_whex_rev(jump_distance).upcase
+            asmcode << asm("0F84#{jump_target}", "  jz #{code_label}")
+          end
         end
       end
       
@@ -205,11 +238,7 @@ module Elang
       asmcode << asm("50", "  push ax")
       asmcode << asm()
       
-      asmcode << asm("56", "  push si")
-      asmcode << asm("8B7604", "  mov si, [bp + 4]")
-      asmcode << asm("8B04", "  mov ax, [si]")
-      asmcode << asm("5E", "  pop si")
-      code_label = "find_obj_method_address"
+      code_label = "find_obj_method"
       call_distance = code_offset[code_label] - (asmcode.code.length + 3)
       call_target = Utils::Converter.int_to_whex_rev(call_distance).upcase
       asmcode << asm("E8#{call_target}", "  call #{code_label}")
@@ -315,10 +344,10 @@ module Elang
       dispatcher_code = align_code(asm.code, 16)
       dispatcher_size = dispatcher_code.length
       mapper_method = asm.instructions.map{|x|x.to_s}.join("\r\n")
-#      puts
-#      puts "*** OBJECT METHOD MAPPER ***"
-#      puts mapper_method
-#      puts
+      #puts
+      #puts "*** OBJECT METHOD MAPPER ***"
+      #puts mapper_method
+      #puts
       
       
       init_code = build_code_initializer(codeset)

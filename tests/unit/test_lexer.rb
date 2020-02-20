@@ -227,4 +227,54 @@ EOS
         ["=","x",[".",[".",[".","p1","get",["0"]],"phone",[]],"substr",["0", "2"]]]
       ]
   end
+  def test_if
+    source = <<EOS
+a = 2
+
+if a == 2
+  puts("a == 2")
+else
+  puts("a != 2")
+end
+EOS
+    
+    check_expression \
+      source, 
+      [
+        ["=", "a", 2], 
+        [
+          "if", ["==", "a", 2],
+          [[".", nil, "puts", ["a == 2"]]], 
+          [[".", nil, "puts", ["a != 2"]]]
+        ]
+      ]
+    
+    
+    source = <<EOS
+a = 2
+
+if a == 2
+  puts("a == 2")
+elsif a == 3
+  puts("a == 3")
+else
+  puts("a != 2, a != 3")
+end
+EOS
+    
+    check_expression \
+      source, 
+      [
+        ["=", "a", 2], 
+        [
+          "if", ["==", "a", 2],
+          [[".", nil, "puts", ["a == 2"]]], 
+          [
+            "if", ["==", "a", 3], 
+            [[".", nil, "puts", ["a == 3"]]],
+            [[".", nil, "puts", ["a != 2, a != 3"]]]
+          ]
+        ]
+      ]
+  end
 end

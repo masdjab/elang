@@ -1078,6 +1078,90 @@ _int_to_s_loop:
   ret 2
   
   
+_is_true:
+  ; input: object; output: ZF
+  push bp
+  mov bp, sp
+  push ax
+  mov ax, [bp + 4]
+  cmp ax, CLS_ID_TRUE
+  jz _is_true_done
+  cmp ax, CLS_ID_FALSE
+  jz _is_true_false
+  test ax, ax
+  jmp _is_true_done
+_is_true_false:
+  or ax, 1
+_is_true_done:
+  pop ax
+  pop bp
+  ret 2
+  
+  
+_is_equal:
+  ; input: object1, object2; output: ax
+  push bp
+  mov bp, sp
+  push si
+  push di
+  mov si, [bp + 4]
+  mov di, [bp + 6]
+_is_equal_check_integer:
+  test si, 1
+  jnz _is_equal_eval_simple
+  test si, CLS_ID_NULL
+  jz _is_equal_eval_simple
+  test si, CLS_ID_TRUE
+  jz _is_equal_eval_simple
+  test si, CLS_ID_FALSE
+  jnz _is_equal_false
+_is_equal_eval_simple:
+  cmp si, di
+  jnz _is_equal_false
+_is_equal_true:
+  mov ax, CLS_ID_TRUE
+  jmp _is_equal_done
+_is_equal_false:
+  mov ax, CLS_ID_FALSE
+_is_equal_done:
+  pop di
+  pop si
+  pop bp
+  ret 4
+  
+  
+_is_not_equal:
+  ; input: object1, object2; output: ax
+  push bp
+  mov bp, sp
+  push si
+  push di
+  mov si, [bp + 4]
+  mov di, [bp + 6]
+_is_not_equal_check_integer:
+  test si, 1
+  jnz _is_not_equal_eval_simple
+  test si, CLS_ID_NULL
+  jz _is_not_equal_eval_simple
+  test si, CLS_ID_TRUE
+  jz _is_not_equal_eval_simple
+  test si, CLS_ID_FALSE
+  jnz _is_not_equal_false
+_is_not_equal_eval_simple:
+  cmp si, di
+  jz _is_not_equal_false
+_is_not_equal_true:
+  mov ax, CLS_ID_TRUE
+  jmp _is_not_equal_done
+_is_not_equal_false:
+  mov ax, CLS_ID_FALSE
+_is_not_equal_done:
+  pop di
+  pop si
+  pop bp
+  ret 4
+  
+  
 _get_obj_var:
   ; input: object, var-index
   push bp

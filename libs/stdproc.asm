@@ -286,6 +286,7 @@ _collect_garbage:
   ; input: none; output: none
   push ax
   push bx
+  push si
   mov bx, [FIRST_BLOCK]
 _collect_garbage_check_block:
   mov ax, [bx]
@@ -293,16 +294,26 @@ _collect_garbage_check_block:
   jnz _collect_garbage_block_checked
   xor ax, ax
   mov [bx], ax
+  mov si, bx
+  mov ax, [si + 6]
+  cmp ax, NO_MORE
+  jz _collect_garbage_next_block_found
+  push si
+  mov ax, [si]
+  pop si
+  test ax, ax
+  jnz _collect_garbage_next_block_found
+  mov si, ax
+_collect_garbage_next_block_found:
   push bx
   call _mem_dealloc
-  mov ax, [bx + 4]
-  cmp ax, NO_MORE
-  jz _collect_garbage_done
+  mov bx, si
 _collect_garbage_block_checked:
-  mov ax, [bx + 4]
-  add bx, ax
-  jmp _collect_garbage_check_block
+  mov bx, [bx + 6]
+  cmp bx, NO_MORE
+  jnz _collect_garbage_check_block
 _collect_garbage_done:
+  pop si
   pop bx
   pop ax
   ret
@@ -489,7 +500,6 @@ _destroy_object:
   call _is_object
   jnz _destroy_object_done
   push ax
-  push ax
   call _mem_get_container_block
   mov si, ax
   mov ax, [si + 2]
@@ -505,6 +515,9 @@ _destroy_object_destroy_child:
   push ax
   call _destroy_object
   loop _destroy_object_destroy_child
+  mov ax, GARBAGE
+  mov si, [bp + 4]
+  mov [si], ax
 _destroy_object_done:
   pop si
   pop cx

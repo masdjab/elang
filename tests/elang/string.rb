@@ -44,3 +44,9 @@ puts("")
 # test String.substr
 puts("* Test substr")
 puts("COMPUTING".substr(3, 5))
+
+_unassign_object(a)
+_unassign_object(b)
+_unassign_object(c)
+_unassign_object(d)
+_collect_garbage()

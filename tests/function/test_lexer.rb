@@ -2,6 +2,7 @@ require './compiler/exception'
 require './compiler/parser'
 require './compiler/lexer'
 
+=begin
     source1 = <<EOS
 puts(3, 5)
 puts(_int_pack(2))
@@ -36,4 +37,23 @@ tokens = Elang::Parser.new.parse(source)
 ast_nodes = Elang::Lexer.new.to_sexp_array(tokens)
 puts "code: #{source}"
 #puts "[[+,[+,a,b],c]]"
+puts Elang::Lexer.sexp_display(ast_nodes)
+=end
+
+source = <<EOS
+a = 2
+
+if a == 2
+  puts("a == 2")
+#elsif a == 3
+#  puts("a == 3")
+else
+  puts("a != 2")
+end
+EOS
+
+tokens = Elang::Parser.new.parse(source)
+ast_nodes = Elang::Lexer.new.to_sexp_array(tokens)
+puts "code: #{source}"
+puts
 puts Elang::Lexer.sexp_display(ast_nodes)

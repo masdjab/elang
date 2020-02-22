@@ -28,6 +28,9 @@ module Elang
         :slash                => SystemFunction.new("_int_divide"), 
         :and                  => SystemFunction.new("_int_and"), 
         :or                   => SystemFunction.new("_int_or"), 
+        :equal                => SystemFunction.new("_is_equal"), 
+        :not_equal            => SystemFunction.new("_is_not_equal"), 
+        :is_true              => SystemFunction.new("_is_true"), 
         :get_obj_var          => SystemFunction.new("_get_obj_var"), 
         :set_obj_var          => SystemFunction.new("_set_obj_var"), 
         :send_to_obj          => SystemFunction.new("_send_to_object"), 
@@ -101,7 +104,7 @@ module Elang
     def append_code(code)
       @codeset.append_code code
     end
-    def invoke_num_method(meth_name)
+    def invoke_operation(meth_name)
       add_function_ref SYS_FUNCTIONS[meth_name], code_len + 1
       append_code hex2bin("E80000")
     end
@@ -277,7 +280,7 @@ module Elang
           append_code hex2bin("50")
           prepare_operand node[1]
           append_code hex2bin("50")
-          invoke_num_method node[0].type
+          invoke_operation node[0].type
         else
           prepare_operand node[0]
         end
@@ -438,51 +441,72 @@ module Elang
       handle_any nodes[3]
       leave_scope
     end
+    def handle_if(nodes)
+      cond_node = nodes[1]
+      exp1_node = nodes[2]
+      exp2_node = nodes.count > 3 ? nodes[3] : nil
+      
+      handle_expression cond_node
+      
+      offset1 = code_len
+      append_code hex2bin("50E800000F850000")
+      
+      handle_expression exp1_node
+      
+      if !exp2_node.nil?
+        offset2 = code_len
+        append_code hex2bin("E90000")
+        jmp_distance = code_len - (offset1 + 8)
+        @codeset.code_branch[offset1 + 6, 2] = Utils::Converter.int_to_word(jmp_distance)
+        handle_any exp2_node
+        jmp_distance = code_len - (offset2 + 3)
+        @codeset.code_branch[offset2 + 1, 2] = Utils::Converter.int_to_word(jmp_distance)
+      else
+        jmp_distance = code_len - (offset1 + 8)
+        @codeset.code_branch[offset1 + 6, 2] = Utils::Converter.int_to_word(jmp_distance)
+      end
+      
+      add_function_ref SYS_FUNCTIONS[:is_true], offset1 + 2
+    end
     def handle_any(nodes)
       nodes.each do |node|
         if node.is_a?(Array)
           if !(first_node = node[0]).is_a?(Elang::AstNode)
-            raize "Expected identifier, #{node[0].inspect} given", node
-          else
-            case first_node.type
-            when :assign
-              handle_assignment node
-            when :plus, :minus, :star, :slash, :and, :or
-              handle_expression node
-            when :dot
-              handle_send node
-            when :identifier
-              if first_node.text == "def"
-                handle_function_def node
-              elsif first_node.text == "class"
-                handle_class_def node
-              elsif first_node.text.index("@@")
-                register_class_variable first_node.text
-                get_variable first_node
-              elsif first_node.text.index("@")
-                register_instance_variable first_node.text
-                get_variable first_node
-              elsif ["self"].include?(first_node.text)
-                # ignore this
-              elsif SYS_FUNCTIONS.key?(first_node.text.to_sym)
-                handle_function_call node
-              else
-                if (function = @codeset.symbols.find_nearest(current_scope, first_node.text)).nil?
-                  raize "Call to undefined function '#{first_node.text}' from scope '#{current_scope.to_s}'", first_node
-                elsif !function.is_a?(Function)
-                  raize "Call to non-function '#{first_node.text}'", first_node
-                else
-                  handle_function_call node
-                end
-              end
-            #else
-            #  raize "Unexpected node type #{first_node.type.inspect} in #{first_node.inspect}", first_node
+            raize "Expected identifier, #{first_node} given", node
+          elsif first_node.type == :assign
+            handle_assignment node
+          elsif first_node.type == :dot
+            handle_send node
+          elsif first_node.type == :identifier
+            if first_node.text == "def"
+              handle_function_def node
+            elsif first_node.text == "class"
+              handle_class_def node
+            elsif ["if", "elsif"].include?(first_node.text)
+              handle_if node
+            elsif first_node.text.index("@@")
+              register_class_variable first_node.text
+              get_variable first_node
+            elsif first_node.text.index("@")
+              register_instance_variable first_node.text
+              get_variable first_node
+            elsif ["self"].include?(first_node.text)
+              # ignore this
+            elsif SYS_FUNCTIONS.key?(first_node.text.to_sym)
+              handle_function_call node
             else
-              handle_expression node
+              if (function = @codeset.symbols.find_nearest(current_scope, first_node.text)).nil?
+                raize "Call to undefined function '#{first_node.text}' from scope '#{current_scope.to_s}'", first_node
+              elsif !function.is_a?(Function)
+                raize "Call to non-function '#{first_node.text}'", first_node
+              else
+                handle_function_call node
+              end
             end
+          else
+            handle_expression node
           end
         else
-          #raize "Expected array, #{node.class} given: #{node.inspect}", node
           handle_expression node
         end
       end

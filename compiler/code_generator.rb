@@ -19,38 +19,50 @@ require './utils/converter'
 module Elang
   class CodeGenerator
     SYS_FUNCTIONS = 
+      [
+        SystemFunction.new("_int_pack"), 
+        SystemFunction.new("_int_unpack"), 
+        SystemFunction.new("_int_add"), 
+        SystemFunction.new("_int_subtract"), 
+        SystemFunction.new("_int_multiply"), 
+        SystemFunction.new("_int_divide"), 
+        SystemFunction.new("_int_and"), 
+        SystemFunction.new("_int_or"), 
+        SystemFunction.new("_is_equal"), 
+        SystemFunction.new("_is_not_equal"), 
+        SystemFunction.new("_is_true"), 
+        SystemFunction.new("_get_obj_var"), 
+        SystemFunction.new("_set_obj_var"), 
+        SystemFunction.new("_send_to_object"), 
+        SystemFunction.new("_mem_block_init"), 
+        SystemFunction.new("_mem_alloc"), 
+        SystemFunction.new("_mem_dealloc"), 
+        SystemFunction.new("_mem_get_data_offset"), 
+        SystemFunction.new("_alloc_object"), 
+        SystemFunction.new("_load_str"), 
+        SystemFunction.new("_int_to_h8"), 
+        SystemFunction.new("_int_to_h16"), 
+        SystemFunction.new("_int_to_s"), 
+        SystemFunction.new("_str_length"), 
+        SystemFunction.new("_str_lcase"), 
+        SystemFunction.new("_str_ucase"), 
+        SystemFunction.new("_str_concat"), 
+        SystemFunction.new("_str_append"), 
+        SystemFunction.new("_str_substr"), 
+        SystemFunction.new("print"), 
+        SystemFunction.new("puts")
+      ]
+    
+    OPERATION_MAP = 
       {
-        :_int_pack            => SystemFunction.new("_int_pack"), 
-        :_int_unpack          => SystemFunction.new("_int_unpack"), 
-        :plus                 => SystemFunction.new("_int_add"), 
-        :minus                => SystemFunction.new("_int_subtract"), 
-        :star                 => SystemFunction.new("_int_multiply"), 
-        :slash                => SystemFunction.new("_int_divide"), 
-        :and                  => SystemFunction.new("_int_and"), 
-        :or                   => SystemFunction.new("_int_or"), 
-        :equal                => SystemFunction.new("_is_equal"), 
-        :not_equal            => SystemFunction.new("_is_not_equal"), 
-        :is_true              => SystemFunction.new("_is_true"), 
-        :get_obj_var          => SystemFunction.new("_get_obj_var"), 
-        :set_obj_var          => SystemFunction.new("_set_obj_var"), 
-        :send_to_obj          => SystemFunction.new("_send_to_object"), 
-        :mem_block_init       => SystemFunction.new("mem_block_init"), 
-        :mem_alloc            => SystemFunction.new("mem_alloc"), 
-        :mem_dealloc          => SystemFunction.new("mem_dealloc"), 
-        :mem_get_data_offset  => SystemFunction.new("mem_get_data_offset"), 
-        :alloc_object         => SystemFunction.new("alloc_object"), 
-        :load_str             => SystemFunction.new("load_str"), 
-        :_int_to_h8           => SystemFunction.new("_int_to_h8"), 
-        :_int_to_h16          => SystemFunction.new("_int_to_h16"), 
-        :_int_to_s            => SystemFunction.new("_int_to_s"), 
-        :str_length           => SystemFunction.new("str_length"), 
-        :str_lcase            => SystemFunction.new("str_lcase"), 
-        :str_ucase            => SystemFunction.new("str_ucase"), 
-        :str_concat           => SystemFunction.new("str_concat"), 
-        :str_append           => SystemFunction.new("str_append"), 
-        :str_substr           => SystemFunction.new("str_substr"), 
-        :print                => SystemFunction.new("print"), 
-        :puts                 => SystemFunction.new("puts")
+        :plus       => "_int_add", 
+        :minus      => "_int_subtract", 
+        :star       => "_int_multiply", 
+        :slash      => "_int_divide", 
+        :and        => "_int_and", 
+        :or         => "_int_or", 
+        :equal      => "_is_equal", 
+        :not_equal  => "_is_not_equal" 
       }
       
     attr_reader :code_lines, :symbols, :symbol_refs
@@ -104,8 +116,11 @@ module Elang
     def append_code(code)
       @codeset.append_code code
     end
+    def get_sys_function(name)
+      SYS_FUNCTIONS.find{|x|x.name == name}
+    end
     def invoke_operation(meth_name)
-      add_function_ref SYS_FUNCTIONS[meth_name], code_len + 1
+      add_function_ref get_sys_function(OPERATION_MAP[meth_name]), code_len + 1
       append_code hex2bin("E80000")
     end
     def register_local_variable(name)
@@ -164,7 +179,7 @@ module Elang
         ]
       
       add_constant_ref symbol, code_len + 1
-      add_function_ref SYS_FUNCTIONS[:load_str], code_len + 12
+      add_function_ref get_sys_function("_load_str"), code_len + 12
       
       append_code hex2bin(hex_code.join)
     end
@@ -198,7 +213,7 @@ module Elang
             raize "Class #{active_scope.cls} is not defined", name
           else
             add_variable_ref symbol, code_len + 1
-            add_function_ref SYS_FUNCTIONS[:get_obj_var], code_len + 9
+            add_function_ref get_sys_function("_get_obj_var"), code_len + 9
             append_code hex2bin("B80000508B460450E80000")
           end
         elsif symbol.is_a?(ClassVariable)
@@ -236,7 +251,7 @@ module Elang
           raize "Class #{active_scope.cls} is not defined"
         else
           add_variable_ref symbol, code_len + 2
-          add_function_ref SYS_FUNCTIONS[:set_obj_var], code_len + 10
+          add_function_ref get_sys_function("_set_obj_var"), code_len + 10
           append_code hex2bin("50B80000508B460450E80000")
         end
       elsif symbol.is_a?(ClassVariable)
@@ -341,9 +356,9 @@ module Elang
     def handle_function_call(node)
       func_name = node[0].text
       
-      if SYS_FUNCTIONS.key?(func_name.to_sym)
+      if get_sys_function(func_name)
         prepare_arguments node[1]
-        add_function_ref SystemFunction.new(func_name.to_sym), code_len + 1
+        add_function_ref SystemFunction.new(func_name), code_len + 1
         append_code hex2bin("E80000")
       elsif function = @codeset.symbols.find_function(func_name)
         prepare_arguments node[1]
@@ -373,15 +388,15 @@ module Elang
           ci = Utils::Converter.int_to_whex_rev(CodesetTool.create_class_id(cls))
           hc = "B8#{sz}50B8#{ci}50E80000"
           
-          add_function_ref SYS_FUNCTIONS[:alloc_object], code_len + 9
+          add_function_ref get_sys_function("_alloc_object"), code_len + 9
           append_code hex2bin(hc)
         end
       else
         if rcvr_node.nil?
           func_sym = @codeset.symbols.find_nearest(active_scope, func_name)
           
-          if func_sym.nil? && SYS_FUNCTIONS.key?(func_name.to_sym)
-            func_sym = SYS_FUNCTIONS[func_name.to_sym]
+          if func_sym.nil? 
+            func_sym = get_sys_function(func_name)
           end
           
           if active_scope.cls.nil?
@@ -428,7 +443,7 @@ module Elang
           end
           
           # call _send_to_object
-          add_function_ref SYS_FUNCTIONS[:send_to_obj], code_len + 1
+          add_function_ref get_sys_function("_send_to_object"), code_len + 1
           append_code hex2bin("E80000")
         end
       end
@@ -466,7 +481,7 @@ module Elang
         @codeset.code_branch[offset1 + 6, 2] = Utils::Converter.int_to_word(jmp_distance)
       end
       
-      add_function_ref SYS_FUNCTIONS[:is_true], offset1 + 2
+      add_function_ref get_sys_function("_is_true"), offset1 + 2
     end
     def handle_any(nodes)
       nodes.each do |node|
@@ -492,7 +507,7 @@ module Elang
               get_variable first_node
             elsif ["self"].include?(first_node.text)
               # ignore this
-            elsif SYS_FUNCTIONS.key?(first_node.text.to_sym)
+            elsif get_sys_function(first_node.text)
               handle_function_call node
             else
               if (function = @codeset.symbols.find_nearest(current_scope, first_node.text)).nil?

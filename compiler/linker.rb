@@ -85,7 +85,7 @@ module Elang
         ]
       
       root_scope = Scope.new
-      codeset.symbol_refs << FunctionRef.new(SystemFunction.new("mem_block_init"), root_scope, 18, :init)
+      codeset.symbol_refs << FunctionRef.new(SystemFunction.new("_mem_block_init"), root_scope, 18, :init)
       hex2bin init_cmnd.join
     end
     def build_class_hierarchy(codeset)
@@ -281,11 +281,11 @@ module Elang
               if symbol.name == "_send_to_object"
                 resolve_value = @dispatcher_offset - (origin + ref.location + 2)
                 code[ref.location, 2] = Utils::Converter.int_to_word(resolve_value)
-              elsif sys_function = @system_functions[symbol.name.to_s]
+              elsif sys_function = @system_functions[symbol.name]
                 resolve_value = sys_function[:offset] - (origin + ref.location + 2)
                 code[ref.location, 2] = Utils::Converter.int_to_word(resolve_value)
               else
-                raise "Undefined system function '#{symbol.name}'"
+                raise "Undefined system function '#{symbol.name.inspect}'"
               end
             elsif symbol.is_a?(FunctionId)
               resolve_value = @function_names.index(symbol.name)

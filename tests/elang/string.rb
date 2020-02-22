@@ -1,18 +1,18 @@
 class String
   def lcase
-    str_lcase(self)
+    _str_lcase(self)
   end
   def ucase
-    str_ucase(self)
+    _str_ucase(self)
   end
   def concat(str)
-    str_concat(self, str)
+    _str_concat(self, str)
   end
   def append(str)
-    str_append(self, str)
+    _str_append(self, str)
   end
   def substr(pos, len)
-    str_substr(self, _int_unpack(pos), _int_unpack(len))
+    _str_substr(self, _int_unpack(pos), _int_unpack(len))
   end
 end
 

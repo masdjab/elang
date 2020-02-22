@@ -49,6 +49,8 @@ module Elang
         SystemFunction.new("_str_concat"), 
         SystemFunction.new("_str_append"), 
         SystemFunction.new("_str_substr"), 
+        SystemFunction.new("_unassign_object"), 
+        SystemFunction.new("_collect_garbage"), 
         SystemFunction.new("print"), 
         SystemFunction.new("puts")
       ]

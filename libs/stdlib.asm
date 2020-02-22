@@ -1,6 +1,6 @@
 dw code
 
-dw 43
+dw 42
 
 dw _mem_block_init, 15
   db "_mem_block_init"
@@ -18,12 +18,10 @@ dw _increment_object_ref, 21
   db "_increment_object_ref"
 dw _decrement_object_ref, 21
   db "_decrement_object_ref"
-dw _destroy_object, 15
-  db "_destroy_object"
-dw _collect_garbage, 16
-  db "_collect_garbage"
 dw _unassign_object, 16
   db "_unassign_object"
+dw _collect_garbage, 16
+  db "_collect_garbage"
 dw _cbw, 4
   db "_cbw"
 dw _cwb, 4

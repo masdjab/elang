@@ -233,92 +233,6 @@ _mem_get_container_block:
   ret 2
   
   
-_increment_object_ref:
-  ; input: object; output: none
-  push bp
-  mov bp, sp
-  push ax
-  push si
-  mov ax, [bp + 4]
-  push ax
-  call _mem_get_container_block
-  mov si, ax
-  mov ax, [si]
-  cmp ax, MAX_REF_COUNT
-  jz _increment_object_ref_done
-  inc ax
-  mov [si], ax
-_increment_object_ref_done:
-  pop si
-  pop ax
-  pop bp
-  ret 2
-  
-  
-_decrement_object_ref:
-  ; input: object; output: none
-  push bp
-  mov bp, sp
-  push ax
-  push si
-  mov ax, [bp + 4]
-  push ax
-  call _mem_get_container_block
-  mov si, ax
-  mov ax, [si]
-  cmp ax, GARBAGE
-  jz _decrement_object_ref_done
-  dec ax
-  test ax, ax
-  jnz _decrement_object_ref_set_counter
-  dec ax
-  mov ax, GARBAGE
-_decrement_object_ref_set_counter:
-  mov [si], ax
-_decrement_object_ref_done:
-  pop si
-  pop ax
-  pop bp
-  ret 2
-  
-  
-_collect_garbage:
-  ; input: none; output: none
-  push ax
-  push bx
-  push si
-  mov bx, [FIRST_BLOCK]
-_collect_garbage_check_block:
-  mov ax, [bx]
-  cmp ax, GARBAGE
-  jnz _collect_garbage_block_checked
-  xor ax, ax
-  mov [bx], ax
-  mov si, bx
-  mov ax, [si + 6]
-  cmp ax, NO_MORE
-  jz _collect_garbage_next_block_found
-  push si
-  mov ax, [si]
-  pop si
-  test ax, ax
-  jnz _collect_garbage_next_block_found
-  mov si, ax
-_collect_garbage_next_block_found:
-  push bx
-  call _mem_dealloc
-  mov bx, si
-_collect_garbage_block_checked:
-  mov bx, [bx + 6]
-  cmp bx, NO_MORE
-  jnz _collect_garbage_check_block
-_collect_garbage_done:
-  pop si
-  pop bx
-  pop ax
-  ret
-  
-  
 mem_copy:
   ; input: source, dest, length
   push bp
@@ -488,6 +402,72 @@ _alloc_object_done:
   ret 4
   
   
+_increment_object_ref:
+  ; input: object; output: none
+  push bp
+  mov bp, sp
+  push ax
+  push si
+  mov ax, [bp + 4]
+  push ax
+  call _mem_get_container_block
+  mov si, ax
+  mov ax, [si]
+  cmp ax, MAX_REF_COUNT
+  jz _increment_object_ref_done
+  inc ax
+  mov [si], ax
+_increment_object_ref_done:
+  pop si
+  pop ax
+  pop bp
+  ret 2
+  
+  
+_decrement_object_ref:
+  ; input: object; output: none
+  push bp
+  mov bp, sp
+  push ax
+  push si
+  mov ax, [bp + 4]
+  push ax
+  call _mem_get_container_block
+  mov si, ax
+  mov ax, [si]
+  cmp ax, GARBAGE
+  jz _decrement_object_ref_done
+  dec ax
+  test ax, ax
+  jnz _decrement_object_ref_set_counter
+  dec ax
+  mov ax, GARBAGE
+_decrement_object_ref_set_counter:
+  mov [si], ax
+_decrement_object_ref_done:
+  pop si
+  pop ax
+  pop bp
+  ret 2
+  
+  
+_unassign_object:
+  ; input: object; output: nothing
+  push bp
+  mov bp, sp
+  push ax
+  mov ax, [bp + 4]
+  push ax
+  call _is_object
+  jnz _unassign_object_done
+  push ax
+  call _decrement_object_ref
+_unassign_object_done:
+  pop ax
+  pop bp
+  ret 2
+  
+  
 _destroy_object:
   ; input: object; output: nothing
   push bp
@@ -526,25 +506,63 @@ _destroy_object_done:
   ret 2
   
   
-_unassign_object:
-  ; input: object; output: nothing
-  push bp
-  mov bp, sp
+_mark_garbages:
+  ; input: none; output: none
   push ax
-  mov ax, [bp + 4]
-  push ax
-  call _is_object
-  jnz _unassign_object_done
-  push ax
-  call _decrement_object_ref
-  test ax, ax
-  jnz _unassign_object_done
-  push ax
+  push bx
+  mov bx, [FIRST_BLOCK]
+_mark_garbages_check_block:
+  mov ax, [bx]
+  cmp ax, GARBAGE
+  jnz _mark_garbages_object_destroyed
+  push bx
   call _destroy_object
-_unassign_object_done:
+_mark_garbages_object_destroyed:
+  mov bx, [bx + 6]
+  cmp bx, NO_MORE
+  jnz _mark_garbages_check_block
+_mark_garbages_done:
+  pop bx
   pop ax
-  pop bp
-  ret 2
+  ret
+  
+  
+_collect_garbage:
+  ; input: none; output: none
+  push ax
+  push bx
+  push si
+  call _mark_garbages
+  mov bx, [FIRST_BLOCK]
+_collect_garbage_check_block:
+  mov ax, [bx]
+  cmp ax, GARBAGE
+  jnz _collect_garbage_block_checked
+  xor ax, ax
+  mov [bx], ax
+  mov si, bx
+  mov ax, [si + 6]
+  cmp ax, NO_MORE
+  jz _collect_garbage_next_block_found
+  push si
+  mov ax, [si]
+  pop si
+  test ax, ax
+  jnz _collect_garbage_next_block_found
+  mov si, ax
+_collect_garbage_next_block_found:
+  push bx
+  call _mem_dealloc
+  mov bx, si
+_collect_garbage_block_checked:
+  mov bx, [bx + 6]
+  cmp bx, NO_MORE
+  jnz _collect_garbage_check_block
+_collect_garbage_done:
+  pop si
+  pop bx
+  pop ax
+  ret
   
   
 create_str:

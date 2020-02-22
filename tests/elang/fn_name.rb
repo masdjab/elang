@@ -1,4 +1,4 @@
-class Wagu
+class Test
   def initialize(value)
     @value = value
   end
@@ -29,13 +29,13 @@ class Wagu
   end
 end
 
-#w = Wagu.new([1, 2, 3])
-#puts "initial value: #{w.value.inspect}"
-#w.value = [1, 2]
-#puts "set value = [1, 2] => new value = #{w.value.inspect}"
-#puts "w[0] = #{w[0].inspect}, w[1] = #{w[1].inspect}"
-#w.value[0] = 5
-#puts "set value[0] = 5 => new value[0] = #{w[0].inspect}"
-#puts "empty? => #{w.empty?.inspect}"
-#w.empty!
-#puts "emptied => empty? = #{w.empty?.inspect}"
+#t = Test.new([1, 2, 3])
+#puts "initial value: #{t.value.inspect}"
+#t.value = [1, 2]
+#puts "set value = [1, 2] => new value = #{t.value.inspect}"
+#puts "t[0] = #{t[0].inspect}, t[1] = #{t[1].inspect}"
+#t.value[0] = 5
+#puts "set value[0] = 5 => new value[0] = #{t[0].inspect}"
+#puts "empty? => #{t.empty?.inspect}"
+#t.empty!
+#puts "emptied => empty? = #{t.empty?.inspect}"

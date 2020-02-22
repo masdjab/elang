@@ -192,7 +192,7 @@ class TestParser < Test::Unit::TestCase
       [
         [".,:;()", [:dot, :comma, :colon, :semicolon, :lbrk, :rbrk]], 
         ["[]{}+-*", [:lsbrk, :rsbrk, :lcbrk, :rcbrk, :plus, :minus, :star]], 
-        ["/\\?!@~`", [:slash, :bslash, :question, :excl, :at, :tilde, :bquote]], 
+        ["/\\?!@~`", [:slash, :bslash, :question, :exclamation, :at, :tilde, :bquote]], 
         ["$%^|||&&&", [:dollar, :percent, :xor, :dblor, :or, :dbland, :and]]
       ]
       

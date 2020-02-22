@@ -1,6 +1,6 @@
 dw code
 
-dw 34
+dw 37
 
 dw mem_block_init, 14
   db "mem_block_init"
@@ -46,6 +46,12 @@ dw _int_to_h16, 11
   db "_int_to_h16"
 dw _int_to_s, 9
   db "_int_to_s"
+dw _is_equal, 9
+  db "_is_equal"
+dw _is_not_equal, 13
+  db "_is_not_equal"
+dw _is_true, 8
+  db "_is_true"
 dw _get_obj_var, 12
   db "_get_obj_var"
 dw _set_obj_var, 12

@@ -17,6 +17,24 @@ module Elang
     def raize(msg, node = nil)
       raise ParsingError.new(msg, node, @code_lines)
     end
+    def skip_linefeed(fetcher)
+      skipped = nil
+      
+      while (node = fetcher.element) && [:crlf, :lf, :cr].include?(node.type)
+        skipped = fetcher.fetch
+      end
+      
+      skipped
+    end
+    def skip_whitespace(fetcher)
+      skipped = nil
+      
+      while (node = fetcher.element) && (node.type == :whitespace)
+        skipped = fetcher.fetch
+      end
+      
+      skipped
+    end
     def fetch_end(fetcher)
       if (func_end = fetcher.fetch).nil?
         raize "Expected 'end' 1", fetcher.last
@@ -154,6 +172,47 @@ module Elang
       
       [identifier, rcvr_node, name_node, args_node, body_node]
     end
+    def fetch_if(fetcher)
+      if_lex = nil
+      
+      if (ifnode = fetcher.element) && ["if", "elsif"].include?(ifnode.text)
+        fetcher.fetch
+        skip_linefeed fetcher
+      else
+        raize "Expected 'if'", ifnode
+      end
+      
+      if (cond_node = fetch_expressions(fetcher)).empty?
+        raize "Expected boleean expression", cond_node
+      end
+      
+      if (expr1 = fetch_expressions(fetcher)).empty?
+        raise "Expected expression"
+      else
+        skip_linefeed fetcher
+      end
+      
+      if (node = fetcher.element) && (node.text == "elsif")
+        child_if = fetch_if(fetcher)
+        if_lex = [ifnode, cond_node, expr1, [child_if]]
+      elsif node.text == "else"
+        fetcher.fetch
+        
+        if (node = fetcher.element).nil?
+          raize "Expected expression", fetcher.last
+        elsif [:lf, :cr, :crlf].include?(node.type)
+          fetcher.fetch
+        end
+        
+        expr2 = fetch_expressions(fetcher)
+        skip_linefeed fetcher
+        if_lex = [ifnode, cond_node, expr1, expr2]
+      else
+        if_lex = [ifnode, cond_node, expr1]
+      end
+      
+      if_lex
+    end
     def convert_expressions_to_nodes(expr)
       if expr.is_a?(Array)
         expr.map{|x|convert_expressions_to_nodes(x)}
@@ -185,6 +244,8 @@ module Elang
             sexp << fetch_function_def(fetcher)
           elsif node.text == "end"
             break
+          elsif node.text == "if"
+            sexp << fetch_if(fetcher)
           else
             sexp += fetch_expressions(fetcher)
           end
@@ -204,20 +265,27 @@ module Elang
     def self.convert_tokens_to_ast_nodes(tokens)
       tokens.map{|x|AstNode.new(x.row, x.col, x.type, x.text)}
     end
-    def self.optimize(tokens)
+    def self.find_and_merge_tokens(tokens, text)
       loop do
-        if index = tokens.index{|x|x.text == "@"}
-          if next_token = tokens[index + 1]
-            tokens.delete next_token
-            token = tokens[index]
-            token.type = next_token.type
-            token.text = token.text + next_token.text
+        index = nil
+        
+        if i = tokens.index{|x|x.text == text}
+          if next_token = tokens[i + 1]
+            if yield(next_token)
+              index = i
+              tokens.delete next_token
+              token = tokens[index]
+              token.type = next_token.type
+              token.text = token.text + next_token.text
+            end
           end
         end
         
         break if index.nil?
       end
-      
+    end
+    def self.optimize(tokens)
+      find_and_merge_tokens(tokens, "@"){|token|true}
       tokens.reject{|x|[:whitespace, :comment].include?(x.type)}
     end
     def self.sexp_display(sexp)

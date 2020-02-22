@@ -43,7 +43,7 @@ module Elang
   
   class Exception
     def self.show(e)
-      puts e.backtrace
+      puts e.backtrace.reverse
       puts
       puts e.message
       puts

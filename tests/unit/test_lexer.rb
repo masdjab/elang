@@ -229,6 +229,32 @@ EOS
   end
   def test_if
     source = <<EOS
+if true
+  x = 3
+end
+EOS
+    
+    check_expression \
+      source, 
+      [["if", ["true"], [["=", "x", "3"]]]]
+      
+    
+    source = <<EOS
+a = 2
+if a == 2
+  x = 3
+end
+EOS
+    
+    check_expression \
+      source, 
+      [
+        ["=", "a", 2], 
+        ["if", [["==", "a", 2]], [["=", "x", "3"]]]
+      ]
+      
+    
+    source = <<EOS
 a = 2
 
 if a == 2
@@ -243,12 +269,12 @@ EOS
       [
         ["=", "a", 2], 
         [
-          "if", ["==", "a", 2],
+          "if", [["==", "a", 2]],
           [[".", nil, "puts", ["a == 2"]]], 
           [[".", nil, "puts", ["a != 2"]]]
         ]
       ]
-    
+      
     
     source = <<EOS
 a = 2
@@ -267,12 +293,14 @@ EOS
       [
         ["=", "a", 2], 
         [
-          "if", ["==", "a", 2],
+          "if", [["==", "a", 2]], 
           [[".", nil, "puts", ["a == 2"]]], 
           [
-            "if", ["==", "a", 3], 
-            [[".", nil, "puts", ["a == 3"]]],
-            [[".", nil, "puts", ["a != 2, a != 3"]]]
+            [
+              "elsif", [["==", "a", 3]], 
+              [[".", nil, "puts", ["a == 3"]]],
+              [[".", nil, "puts", ["a != 2, a != 3"]]]
+            ]
           ]
         ]
       ]

@@ -204,6 +204,18 @@ module Elang
       
       _raw_token cpos, :number, text
     end
+    def _parse_not
+      cpos = @fetcher.pos
+      text = @fetcher.fetch
+      type = :exclamation
+      
+      if @fetcher.element == "="
+        text << @fetcher.fetch
+        type = :not_equal
+      end
+      
+      _raw_token cpos, type, text
+    end
     def _parse_equal
       cpos = @fetcher.pos
       text = @fetcher.fetch
@@ -270,7 +282,7 @@ module Elang
           "/"   => :slash, 
           "\\"  => :bslash, 
           "?"   => :question, 
-          "!"   => :excl, 
+          "!"   => :exclamation, 
           "@"   => :at, 
           "~"   => :tilde, 
           "`"   => :bquote, 
@@ -314,6 +326,8 @@ module Elang
           raw_tokens << _parse_string
         elsif NUMBERS.index(char)
           raw_tokens << _parse_number
+        elsif char == "!"
+          raw_tokens << _parse_not
         elsif char == "="
           raw_tokens << _parse_equal
         elsif char == "<"

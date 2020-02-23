@@ -13,11 +13,13 @@ module Elang
       @code_origin = 0x100
       @system_functions = {}
       @classes = {}
+      @root_var_count = 0
       @function_names = []
       @library_code = ""
+      @dynamic_area = 0
       @dispatcher_offset = 0
       @string_constants = {}
-      @cons_data_size = 0
+      @variable_offset = 0
     end
     def hex2bin(h)
       Utils::Converter.hex_to_bin(h)
@@ -31,6 +33,14 @@ module Elang
       end
       
       code
+    end
+    def build_root_var_indices(codeset)
+      codeset.symbols.items.each do |s|
+        if s.is_a?(Variable) && s.scope.root?
+          @root_var_count += 1
+          s.index = @root_var_count
+        end
+      end
     end
     def build_string_constants(codeset, offset)
       cons = {}
@@ -63,14 +73,40 @@ module Elang
         cons << "#{lgth}#{v[:text]}"
       end
       
+      if (cons.length > 0) && ((cons.length % 2) > 0)
+        cons << 0.chr
+      end
+      
       cons
     end
+    def build_class_hierarchy(codeset)
+      cs_tool = CodesetTool.new(codeset)
+      @function_names = cs_tool.get_function_names
+      @classes = cs_tool.get_classes_hierarchy
+    end
     def build_code_initializer(codeset)
-      variable_count = codeset.symbols.items.select{|x|x.is_a?(Variable) && x.scope.root?}.count
       rv_heap_size = Utils::Converter.int_to_whex_be(HEAP_SIZE)
-      dynamic_area = (variable_count) * 2 + @cons_data_size
       first_block_adr = Utils::Converter.int_to_whex_be(FIRST_BLOCK)
-      dynamic_area_adr = Utils::Converter.int_to_whex_be(dynamic_area)
+      dynamic_area_adr = Utils::Converter.int_to_whex_be(@dynamic_area)
+      
+      if @root_var_count > 0
+        cx = Utils::Converter.int_to_whex_be(@root_var_count)
+        di = Utils::Converter.int_to_whex_be(@variable_offset)
+        
+        commands = 
+          [
+            "B9#{cx}",  # mov cx, xx
+            "31C0",     # xor ax, ax
+            "BF#{di}",  # mov di, variable_offset
+            "FC",       # cld
+            "F2",       # repnz
+            "AB",       # stosw
+          ]
+        
+        init_vars = commands.join
+      else
+        init_vars = ""
+      end
       
       init_cmnd = 
         [
@@ -78,6 +114,8 @@ module Elang
           "050000",                   # add ax, 0
           "8ED0",                     # mov ss, ax
           "8ED8",                     # mov ds, ax
+          "8EC0",                     # mov es, ax
+          init_vars, 
           "B8#{rv_heap_size}50",      # push heap_size
           "B8#{dynamic_area_adr}50",  # push dynamic_area
           "E80000",                   # call mem_block_init
@@ -85,13 +123,8 @@ module Elang
         ]
       
       root_scope = Scope.new
-      codeset.symbol_refs << FunctionRef.new(SystemFunction.new("_mem_block_init"), root_scope, 18, :init)
+      codeset.symbol_refs << FunctionRef.new(SystemFunction.new("_mem_block_init"), root_scope, 20 + (init_vars.length / 2), :init)
       hex2bin init_cmnd.join
-    end
-    def build_class_hierarchy(codeset)
-      cs_tool = CodesetTool.new(codeset)
-      @function_names = cs_tool.get_function_names
-      @classes = cs_tool.get_classes_hierarchy
     end
     def build_cls_method_dispatcher
       #(todo)#build class methods dispatcher
@@ -264,8 +297,13 @@ module Elang
               resolve_value = (arg_offset + symbol.index + 2) * 2
               code[ref.location, 1] = Utils::Converter.int_to_byte(resolve_value)
             elsif symbol.is_a?(Variable)
-              resolve_value = @cons_data_size + ((symbol.index - 1) * 2)
-              code[ref.location, 2] = Utils::Converter.int_to_word(resolve_value)
+              if symbol.scope.root?
+                resolve_value = @variable_offset + (symbol.index - 1) * 2
+                code[ref.location, 2] = Utils::Converter.int_to_word(resolve_value)
+              else
+                resolve_value = -symbol.index * 2
+                code[ref.location, 1] = Utils::Converter.int_to_byte(resolve_value)
+              end
             elsif symbol.is_a?(InstanceVariable)
               if (clsinfo = @classes[symbol.scope.cls]).nil?
                 raise "Cannot find class '#{symbol.scope.cls}' in class info list"
@@ -330,10 +368,15 @@ module Elang
       subs_size = subs_code.length
       main_size = main_code.length
       
-      reserved_code = 0.chr * (2 * Variable::RESERVED_VARIABLE_COUNT)
-      @string_constants = build_string_constants(codeset, reserved_code.length)
-      cons_data = align_code(reserved_code + build_constant_data(@string_constants), 16)
-      @cons_data_size = cons_size = cons_data.length
+      build_root_var_indices(codeset)
+      reserved_image = 0.chr * (2 * Variable::RESERVED_VARIABLE_COUNT)
+      @string_constants = build_string_constants(codeset, reserved_image.length)
+      constant_image = build_constant_data(@string_constants)
+      cons_data = !constant_image.empty? ? reserved_image + constant_image : ""
+      cons_size = cons_data.length
+      @variable_offset = (reserved_image + constant_image).length
+      @dynamic_area = @variable_offset + (@root_var_count * 2)
+      
       
       build_class_hierarchy codeset
 #puts
@@ -356,8 +399,12 @@ module Elang
       
       if (extra_size = (ds_offset % 16)) > 0
         pad_count = 16 - extra_size
-        main_code = main_code + (0.chr * pad_count)
-        main_size = main_size + pad_count
+        
+        if cons_size > 0
+          main_code = main_code + (0.chr * pad_count)
+          main_size = main_size + pad_count
+        end
+        
         ds_offset = ds_offset + pad_count
       end
       

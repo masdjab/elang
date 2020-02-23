@@ -243,8 +243,10 @@ module Elang
         raize "Cannot set value to '#{name}' , symbol not defined in scope '#{active_scope.to_s}'"
       elsif symbol.is_a?(FunctionParameter)
         # mov [bp - n], ax
-        add_variable_ref symbol, code_len + 2
-        append_code hex2bin("894600")
+        add_variable_ref symbol, code_len + 3
+        add_function_ref get_sys_function("_unassign_object"), code_len + 6
+        add_variable_ref symbol, code_len + 11
+        append_code hex2bin("508B460050E8000058894600")
       elsif symbol.is_a?(InstanceVariable)
         # #(todo)#fix binary command
         if active_scope.cls.nil?
@@ -261,12 +263,16 @@ module Elang
         append_code hex2bin("A70000")
       elsif symbol.scope.root?
         # mov var, ax
-        add_variable_ref symbol, code_len + 1
-        append_code hex2bin("A30000")
+        add_variable_ref symbol, code_len + 2
+        add_function_ref get_sys_function("_unassign_object"), code_len + 6
+        add_variable_ref symbol, code_len + 10
+        append_code hex2bin("50A1000050E8000058A30000")
       elsif symbol.is_a?(Variable)
         # mov [bp + n], ax
-        add_variable_ref symbol, code_len + 2
-        append_code hex2bin("894600")
+        add_variable_ref symbol, code_len + 3
+        add_function_ref get_sys_function("_unassign_object"), code_len + 6
+        add_variable_ref symbol, code_len + 11
+        append_code hex2bin("508B460050E8000058894600")
       else
         raize "Cannot set value to '#{name}', symbol type '#{symbol.class}' unknown"
       end
@@ -317,12 +323,13 @@ module Elang
       func_args = node[3]
       func_body = node[4]
       
-      #(todo)#count variable_count
+      #(todo)#count local_var_count
       enter_scope Scope.new(active_scope.cls, func_name)
       
       function = @codeset.symbols.find_exact(active_scope, func_name)
       function.offset = code_len
-      variable_count = 0
+      local_variables = @codeset.symbols.items.select{|x|(x.scope.to_s == current_scope.to_s) && x.is_a?(Variable)}
+      local_var_count = local_variables.count
       params_count = func_args.count + (rcvr_name ? 2 : 0)
       
       if active_scope.cls.nil?
@@ -330,16 +337,29 @@ module Elang
         append_code hex2bin("55" + "89E5")
       end
       
-      if variable_count > 0
+      if local_var_count > 0
         # sub sp, nn
-        append_code hex2bin("81EC" + Elang::Utils::Converter.int_to_whex_be(variable_count * 2))
+        append_code hex2bin("81EC" + Elang::Utils::Converter.int_to_whex_be(local_var_count * 2))
+        
+        local_variables.each do |v|
+          # xor ax, ax; mov [v], ax
+          add_variable_ref v, code_len + 4
+          append_code hex2bin("31C0894600")
+        end
       end
       
       handle_any func_body
       
-      if variable_count > 0
+      if local_var_count > 0
+        local_variables.each do |v|
+          # mov ax, [v]; push v; call _unassign_object
+          add_variable_ref v, code_len + 2
+          add_function_ref get_sys_function("_unassign_object"), code_len + 5
+          append_code hex2bin("8B460050E80000")
+        end
+        
         # add sp, nn
-        append_code hex2bin("81C4" + Elang::Utils::Converter.int_to_whex_be(variable_count * 2))
+        append_code hex2bin("81C4" + Elang::Utils::Converter.int_to_whex_be(local_var_count * 2))
       end
       
       if active_scope.cls.nil?
@@ -350,6 +370,7 @@ module Elang
         hex_code = (params_count > 0 ? "C2#{Elang::Utils::Converter.int_to_whex_be(params_count * 2).upcase}" : "C3")
         append_code hex2bin(hex_code)
       else
+        # ret
         append_code hex2bin("C3")
       end
       

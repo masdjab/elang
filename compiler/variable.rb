@@ -1,6 +1,6 @@
 module Elang
   class Variable
-    RESERVED_VARIABLE_COUNT = 1
+    RESERVED_VARIABLE_COUNT = 4
     
     @@index = 0
     

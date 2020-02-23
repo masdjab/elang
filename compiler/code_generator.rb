@@ -351,12 +351,14 @@ module Elang
       handle_any func_body
       
       if local_var_count > 0
+        append_code hex2bin("50")
         local_variables.each do |v|
           # mov ax, [v]; push v; call _unassign_object
           add_variable_ref v, code_len + 2
           add_function_ref get_sys_function("_unassign_object"), code_len + 5
           append_code hex2bin("8B460050E80000")
         end
+        append_code hex2bin("58")
         
         # add sp, nn
         append_code hex2bin("81C4" + Elang::Utils::Converter.int_to_whex_be(local_var_count * 2))
@@ -626,7 +628,6 @@ module Elang
       
       begin
         @code_lines = code_lines
-        @scope_stack = []
         @scope_stack = []
         @codeset = CodeSet.new
         detect_names nodes

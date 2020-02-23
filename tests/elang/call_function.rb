@@ -1,6 +1,6 @@
 def tambah(a, b)
-  c = 0
-  a + b + c
+  a + b
 end
 
 a = tambah(4, 3)
+puts(_str_concat("result: ", _int_to_s(_int_unpack(a))))

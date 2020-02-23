@@ -326,8 +326,11 @@ module Elang
                 raise "Undefined system function '#{symbol.name.inspect}'"
               end
             elsif symbol.is_a?(FunctionId)
-              resolve_value = @function_names.index(symbol.name)
-              code[ref.location, 2] = Utils::Converter.int_to_word(resolve_value)
+              if (resolve_value = @function_names.index(symbol.name)).nil?
+                raise "Unknown method '#{symbol.name}'"
+              else
+                code[ref.location, 2] = Utils::Converter.int_to_word(resolve_value)
+              end
             elsif symbol.is_a?(Class)
 #puts "Resolving class '#{symbol.name}', index: #{symbol.index}"
             else

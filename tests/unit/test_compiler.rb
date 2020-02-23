@@ -1,4 +1,5 @@
 require 'test-unit'
+require './compiler/source_code'
 require './compiler/compiler'
 
 class CompilerTest < Test::Unit::TestCase
@@ -6,7 +7,7 @@ class CompilerTest < Test::Unit::TestCase
     @compiler = Elang::Compiler.new
   end
   def compile(source)
-    @compiler.compile(source)
+    @compiler.compile(Elang::StringSourceCode.new(source))
   end
   def check_binary(actual, expected_str)
     assert_equal Elang::Utils::Converter.hex_to_bin(expected_str), actual

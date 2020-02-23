@@ -1,4 +1,5 @@
 require 'test-unit'
+require './compiler/source_code'
 require './compiler/ast_node'
 require './compiler/code_generator'
 require './utils/converter'
@@ -58,11 +59,11 @@ class TestCodeGenerator < Test::Unit::TestCase
   def symbols
     @code_generator.symbols
   end
-  def generate_code(nodes)
-    @code_generator.generate_code(nodes)
+  def generate_code(nodes, source = nil)
+    @code_generator.generate_code(nodes, source)
   end
-  def check_code_result(nodes, exp_main, exp_subs)
-    codeset = generate_code(nodes)
+  def check_code_result(nodes, exp_main, exp_subs, source = nil)
+    codeset = generate_code(nodes, source)
     assert_equal exp_main, codeset.main_code
     assert_equal exp_subs, codeset.subs_code
     codeset

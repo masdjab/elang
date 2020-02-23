@@ -1,6 +1,7 @@
 require './tests/unit/test_converter'
 require './tests/unit/test_fetcher'
 require './tests/unit/test_shunting_yard'
+require './tests/unit/test_source_code'
 require './tests/unit/test_parser'
 require './tests/unit/test_code_generator'
 require './tests/unit/test_lexer'

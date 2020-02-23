@@ -17,4 +17,5 @@ if Elang::Main.new.compile(source_file, output_file)
   puts "Source path: #{File.dirname(source_file)}"
   puts "Source file: #{source_name}"
   puts "Output file: #{output_file}"
+  puts "Output size: #{File.size(output_file)} byte(s)"
 end

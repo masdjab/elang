@@ -8,14 +8,21 @@ module Elang
     # class responsibility:
     # convert from tokens to ast nodes
     
-    attr_reader :code_lines
+    attr_reader   :code_lines
+    attr_accessor :error_formatter
     
     private
     def initialize
+      @source = nil
       @shunting_yard = ShuntingYard.new
+      @error_formatter = ParsingExceptionFormatter.new
     end
     def raize(msg, node = nil)
-      raise ParsingError.new(msg, node, @code_lines)
+      if node
+        raise ParsingError.new(msg, node.row, node.col, @source)
+      else
+        raise ParsingError.new(msg)
+      end
     end
     def skip_linefeed(fetcher)
       skipped = nil
@@ -315,11 +322,16 @@ module Elang
         sexp.inspect
       end
     end
-    def to_sexp_array(tokens, code_lines = [])
-      @code_lines = code_lines
-      tokens = self.class.optimize(tokens)
-      nodes = self.class.convert_tokens_to_ast_nodes(tokens)
-      nodes = fetch_sexp(FetcherV2.new(nodes))
+    def to_sexp_array(tokens, source = nil)
+      begin
+        @source = source
+        tokens = self.class.optimize(tokens)
+        nodes = self.class.convert_tokens_to_ast_nodes(tokens)
+        nodes = fetch_sexp(FetcherV2.new(nodes))
+      rescue Exception => e
+        ExceptionHelper.show e, @error_formatter
+        nil
+      end
     end
   end
 end

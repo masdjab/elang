@@ -21,7 +21,11 @@ METHOD_ID_SET_BYTE_AT     EQU 5
 METHOD_ID_GET_WORD_AT     EQU 6
 METHOD_ID_SET_WORD_AT     EQU 7
 
+; reserved system data
 FIRST_BLOCK               EQU 0
+FREE_BLOCK_SIZE           EQU 2
+USED_BLOCK_SIZE           EQU 4
+GARBAGE_COUNT             EQU 6
 
 
 _mem_block_init:
@@ -35,6 +39,7 @@ _mem_block_init:
   cmp ax, 10
   jc _mem_block_init_done
   sub ax, 8
+  mov [FREE_BLOCK_SIZE], ax
   mov [bx + 2], ax      ; data size
   mov ax, NO_MORE
   mov [bx + 4], ax      ; prev block
@@ -42,6 +47,9 @@ _mem_block_init:
   xor ax, ax
   mov [bx], ax          ; flag
 _mem_block_init_done:
+  xor ax, ax
+  mov [USED_BLOCK_SIZE], ax
+  mov [GARBAGE_COUNT], ax
   pop bx
   pop ax
   pop bp
@@ -103,6 +111,9 @@ mem_split_block:
   mov ax, [bp + 6]
   mov [bx + 2], ax
   mov [bx + 6], si
+  mov ax, [FREE_BLOCK_SIZE]
+  sub ax, 8
+  mov [FREE_BLOCK_SIZE], ax
   mov ax, si
   mov si, [si + 6]
   cmp si, NO_MORE
@@ -151,6 +162,9 @@ _mem_merge_free_block_do_merge:
   mov [bx + 6], ax
   mov si, ax
   mov [si + 4], bx
+  mov ax, [FREE_BLOCK_SIZE]
+  add ax, 8
+  mov [FREE_BLOCK_SIZE], ax
   jmp _mem_merge_free_block_do_merge
 _mem_merge_free_block_done:
   pop si
@@ -182,6 +196,12 @@ _mem_alloc_size_aligned:
   call mem_split_block
   mov ax, 1
   mov [bx], ax
+  mov ax, [bx + 2]
+  add ax, [USED_BLOCK_SIZE]
+  mov [USED_BLOCK_SIZE], ax
+  mov ax, [FREE_BLOCK_SIZE]
+  sub ax, [bx + 2]
+  mov [FREE_BLOCK_SIZE], ax
   mov ax, bx
 _mem_alloc_done:
   pop bx
@@ -194,8 +214,10 @@ _mem_dealloc:
   push bp
   mov bp, sp
   push ax
+  push cx
   push bx
   mov bx, [bp + 4]
+  mov cx, [bx + 2]
   mov ax, [bx]
   test ax, ax
   jz _mem_dealloc_done
@@ -203,11 +225,25 @@ _mem_dealloc:
   mov [bx], ax
   push bx
   call mem_merge_free_block
+  mov ax, [FREE_BLOCK_SIZE]
+  add ax, cx
+  mov [FREE_BLOCK_SIZE], ax
 _mem_dealloc_done:
   pop bx
+  pop cx
   pop ax
   pop bp
   ret 2
+  
+  
+_get_free_block_size:
+  mov ax, [FREE_BLOCK_SIZE]
+  ret
+  
+  
+_get_used_block_size:
+  mov ax, [USED_BLOCK_SIZE]
+  ret
   
   
 _mem_get_data_offset:
@@ -440,29 +476,12 @@ _decrement_object_ref:
   dec ax
   test ax, ax
   jnz _decrement_object_ref_set_counter
-  dec ax
+  inc word [GARBAGE_COUNT]
   mov ax, GARBAGE
 _decrement_object_ref_set_counter:
   mov [si], ax
 _decrement_object_ref_done:
   pop si
-  pop ax
-  pop bp
-  ret 2
-  
-  
-_unassign_object:
-  ; input: object; output: nothing
-  push bp
-  mov bp, sp
-  push ax
-  mov ax, [bp + 4]
-  push ax
-  call _is_object
-  jnz _unassign_object_done
-  push ax
-  call _decrement_object_ref
-_unassign_object_done:
   pop ax
   pop bp
   ret 2
@@ -495,9 +514,12 @@ _destroy_object_destroy_child:
   push ax
   call _destroy_object
   loop _destroy_object_destroy_child
-  mov ax, GARBAGE
   mov si, [bp + 4]
+  mov ax, GARBAGE
+  cmp ax, [si]
+  jz _destroy_object_done
   mov [si], ax
+  inc word [GARBAGE_COUNT]
 _destroy_object_done:
   pop si
   pop cx
@@ -558,11 +580,54 @@ _collect_garbage_block_checked:
   mov bx, [bx + 6]
   cmp bx, NO_MORE
   jnz _collect_garbage_check_block
+  xor ax, ax
+  mov [GARBAGE_COUNT], ax
 _collect_garbage_done:
   pop si
   pop bx
   pop ax
   ret
+  
+  
+_collect_garbage_if_needed:
+  push ax
+  mov ax, [GARBAGE_COUNT]
+  test ax, ax
+  jz _collect_garbage_if_needed_skip
+  push cx
+  push dx
+  call _get_free_block_size
+  mov cx, ax
+  call _get_used_block_size
+  add cx, ax
+  shr cx, 2
+  cmp ax, cx
+  jc _collect_garbage_if_needed_done
+  call _collect_garbage
+_collect_garbage_if_needed_done:
+  pop dx
+  pop cx
+_collect_garbage_if_needed_skip:
+  pop ax
+  ret
+  
+  
+_unassign_object:
+  ; input: object; output: nothing
+  push bp
+  mov bp, sp
+  push ax
+  mov ax, [bp + 4]
+  push ax
+  call _is_object
+  jnz _unassign_object_done
+  push ax
+  call _decrement_object_ref
+  call _collect_garbage_if_needed
+_unassign_object_done:
+  pop ax
+  pop bp
+  ret 2
   
   
 create_str:

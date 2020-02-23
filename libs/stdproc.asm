@@ -1366,6 +1366,8 @@ _set_obj_var:
   add ax, 1
   shl ax, 1
   add si, ax
+  push si
+  call _unassign_object
   mov ax, [bp + 8]
   mov [si], ax
   pop si

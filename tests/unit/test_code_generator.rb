@@ -72,7 +72,7 @@ class TestCodeGenerator < Test::Unit::TestCase
       check_code_result(
         [[asn, idt("a"), num("2")]], \
         # mov ax, 02h; mov a, ax"
-        bin("B80500A30000"), 
+        bin("B8050050A1000050E8000058A30000"), 
         ""
       )
     assert_equal 1, codeset.symbols.count
@@ -81,37 +81,37 @@ class TestCodeGenerator < Test::Unit::TestCase
     # mov ax, 01h; mov cx, 02h; add ax, cx; mov mynum, ax
     check_code_result \
       [[asn,idt("mynum"),[plus,num("1"),num("2")]]], \
-      bin("B8050050B8030050E80000A30000"), 
+      bin("B8050050B8030050E8000050A1000050E8000058A30000"), 
       ""
       
     # mov ax, 01h; mov cx, 02h; sub ax, cx; mov mynum, ax
     check_code_result \
       [[asn,idt("mynum"),[minus,num("1"),num("2")]]], \
-      bin("B8050050B8030050E80000A30000"), 
+      bin("B8050050B8030050E8000050A1000050E8000058A30000"), 
       ""
     
     # mov ax, 01h; mov cx, 02h; mul ax, cx; mov mynum, ax
     check_code_result \
       [[asn,idt("mynum"),[star,num("1"),num("2")]]], \
-      bin("B8050050B8030050E80000A30000"), 
+      bin("B8050050B8030050E8000050A1000050E8000058A30000"), 
       ""
     
     # mov ax, 01h; mov cx, 02h; div ax, cx; mov mynum, ax
     check_code_result \
       [[asn,idt("mynum"),[slash,num("1"),num("2")]]], \
-      bin("B8050050B8030050E80000A30000"), 
+      bin("B8050050B8030050E8000050A1000050E8000058A30000"), 
       ""
     
     # mov ax, 01h; mov cx, 02h; and ax, cx; mov mynum, ax
     check_code_result \
       [[asn,idt("mynum"),[pand,num("1"),num("2")]]], \
-      bin("B8050050B8030050E80000A30000"), 
+      bin("B8050050B8030050E8000050A1000050E8000058A30000"), 
       ""
     
     # mov ax, 01h; mov cx, 02h; or ax, cx; mov mynum, ax
     check_code_result \
       [[asn,idt("mynum"),[por,num("1"),num("2")]]], \
-      bin("B8050050B8030050E80000A30000"), 
+      bin("B8050050B8030050E8000050A1000050E8000058A30000"), 
       ""
     
     # mov ax, 0; mov v1, ax
@@ -123,7 +123,7 @@ class TestCodeGenerator < Test::Unit::TestCase
         [asn,idt("v2"),num("52")], 
         [asn,idt("mynum"),[plus,idt("v1"),idt("v2")]]
       ], \
-      bin("B82500A30000B86900A30000A1000050A1000050E80000A30000"), 
+      bin("B8250050A1000050E8000058A30000B8690050A1000050E8000058A30000A1000050A1000050E8000050A1000050E8000058A30000"), 
       ""
   end
   def test_simple_string_operation
@@ -158,7 +158,7 @@ class TestCodeGenerator < Test::Unit::TestCase
     check_code_result \
       [[idt("def"),nil,idt("echo"),fnp("x","y"),[[asn,idt("x"),num("5")]]]], 
       "", 
-      bin("5589E5B80B008946005DC20400")
+      bin("5589E5B80B00508B460050E80000588946005DC20400")
     
     # mov ax, 05h; mov x, ax; mov ax, 02h; mov y, ax; ret 4
     codeset = 
@@ -173,7 +173,11 @@ class TestCodeGenerator < Test::Unit::TestCase
           ]
         ], 
         "", 
-        bin("5589E5B80B00894600B805008946005DC20400")
+        bin(
+          "5589E581EC040031C089460031C0894600B80B00508B460050E8" \
+          "000058894600B80500508B460050E8000058894600508B460050E8" \
+          "00008B460050E800005881C404005DC20400"
+        )
       )
     assert_equal 5, codeset.symbols.count
     assert_equal "echo", codeset.symbols.items[0].name
@@ -193,7 +197,7 @@ class TestCodeGenerator < Test::Unit::TestCase
         ], 
         [asn,idt("a"),[idt("tambah"),[num("4"),num("3")]]]
       ], 
-      bin("B8070050B8090050E80000A30000"), 
+      bin("B8070050B8090050E8000050A1000050E8000058A30000"), 
       bin("5589E58B4600508B460050E800005DC20400")
     
     # mov ax, 03h; push ax; call multiply_by_two
@@ -219,7 +223,7 @@ class TestCodeGenerator < Test::Unit::TestCase
         [asn, idt("y"), num("3")], 
         [dot,nil,idt("multiply_by_two2"),[idt("x"), idt("y")]]
       ], 
-      bin("B80500A30000B80700A30000A1000050A1000050E80000"), 
+      bin("B8050050A1000050E8000058A30000B8070050A1000050E8000058A30000A1000050A1000050E80000"), 
       bin("5589E55DC20400")
     
     # instance function parameter
@@ -242,7 +246,7 @@ class TestCodeGenerator < Test::Unit::TestCase
         [asn,idt("y"), num("3")], 
         [dot,idt("p1"),idt("multiply_by_two3"),[idt("x"), idt("y")]]
       ], 
-      bin("B8000050B80B0050E80000A30000B80500A30000B80700A30000A1000050A1000050B8020050B8000050A1000050E80000"), 
+      bin("B8000050B80B0050E8000050A1000050E8000058A30000B8050050A1000050E8000058A30000B8070050A1000050E8000058A30000A1000050A1000050B8020050B8000050A1000050E80000"), 
       bin("8B4600508B460050B8020050B80000508B460450E80000C3")
   end
   def test_function_local_var
@@ -259,7 +263,10 @@ class TestCodeGenerator < Test::Unit::TestCase
         ]
       ], 
       "", 
-      bin("5589E5B805008946008B460050E800005DC20200")
+      bin(
+        "5589E581EC020031C0894600B80500508B460050E8000058" \
+        "8946008B460050E80000508B460050E800005881C402005DC20200"
+      )
     
     # instance function local var
     # mov ax, [bp + 6]; push ax; call multiply_by_two
@@ -278,7 +285,10 @@ class TestCodeGenerator < Test::Unit::TestCase
         ]
       ], 
       "", 
-      bin("B805008946008B460050E80000C3")
+      bin(
+        "81EC020031C0894600B80500508B460050E8000058894600" \
+        "8B460050E80000508B460050E800005881C40200C3"
+      )
   end
   def test_instance_variable
     # instance function local var

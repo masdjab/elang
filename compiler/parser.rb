@@ -27,15 +27,13 @@ module Elang
     LETTERS = "abcdefghijklmnopqrstuvwxyz"
     IDENTIFIER = "#{LETTERS}#{NUMBERS}_"
     
-    attr_reader :code_lines
-    
     def initialize
+      @source = nil
       @fetcher = FetcherV2.new("")
-      @code_lines = []
     end
     def _pos_to_row_col(pos)
-      if line = @code_lines.find{|x|(x[:min]..x[:max]).include?(pos)}
-        {row: line[:row], col: pos - line[:min] + 1}
+      if line = @source.lines.find{|x|(x.min..x.max).include?(pos)}
+        {row: line.row, col: pos - line.min + 1}
       else
         {row: 0, col: 0}
       end
@@ -55,7 +53,7 @@ module Elang
       "#{pos[:row]}:#{pos[:col]}"
     end
     def _create_parse_error(rowcol, message)
-      ParsingError.new(message, rowcol[:row], rowcol[:col], @code_lines)
+      ParsingError.new(message, rowcol[:row], rowcol[:col], @source.lines)
     end
     def _throw_parse_error(pos, message)
       rowcol = _pos_to_row_col(pos)
@@ -308,9 +306,10 @@ module Elang
       
       lines
     end
-    def parse(code)
+    def parse(source)
+      @source = source
+      code = @source.text
       @fetcher = FetcherV2.new(code)
-      @code_lines = detect_lines(code)
       raw_tokens = []
       
       while char = @fetcher.element

@@ -2,6 +2,7 @@ require 'test-unit'
 require './compiler/exception'
 require './compiler/fetcher_v2'
 require './compiler/ast_node'
+require './compiler/source_code'
 require './compiler/parser'
 require './compiler/lexer'
 require './compiler/operation'
@@ -13,7 +14,7 @@ class TestShuntingYard < Test::Unit::TestCase
   end
   def build(exp)
     sy = Elang::ShuntingYard.new
-    tt = Elang::Lexer.optimize(@parser.parse(exp))
+    tt = Elang::Lexer.optimize(@parser.parse(Elang::StringSourceCode.new(exp)))
     nn = Elang::Lexer.convert_tokens_to_ast_nodes(tt)
     ff = Elang::FetcherV2.new(nn)
     rr = sy.fetch_expressions(ff)

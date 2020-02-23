@@ -8,7 +8,9 @@ module Elang
       linker = Elang::Linker.new
       linker.load_library "#{ELANG_DIR}/libs/stdlib.bin"
       
-      if codeset = compiler.compile(File.read(source_file))
+      source = FileSourceCode.new(source_file)
+      
+      if codeset = compiler.compile(source)
         binary = linker.link(codeset)
         
         file = File.new(output_file, "wb")

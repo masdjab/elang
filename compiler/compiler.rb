@@ -3,6 +3,7 @@
 # - convert source code to codeset
 
 require './compiler/exception'
+require './compiler/source_code'
 require './compiler/parser'
 require './compiler/lexer'
 require './compiler/code_generator'
@@ -17,20 +18,15 @@ module Elang
     
     def compile(source)
       parser = Elang::Parser.new
-      tokens = parser.parse(source)
-      clines = parser.code_lines
-      
       lexer = Elang::Lexer.new
-      nodes = lexer.to_sexp_array(tokens, clines)
+      tokens = parser.parse(source)
       
-      codegen = Elang::CodeGenerator.new
-      codeset = codegen.generate_code(nodes, clines)
-      
-      if codeset
-        codeset.code_lines = clines
+      if nodes = lexer.to_sexp_array(tokens, source)
+        codegen = Elang::CodeGenerator.new
+        codeset = codegen.generate_code(nodes, source)
+      else
+        nil
       end
-      
-      codeset
     end
   end
 end

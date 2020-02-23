@@ -1,4 +1,5 @@
 require 'test-unit'
+require './compiler/source_code'
 require './compiler/exception'
 require './compiler/parser'
 require './compiler/lexer'
@@ -9,8 +10,9 @@ class TestLexer < Test::Unit::TestCase
     @lexer = Elang::Lexer.new
   end
   def check_expression(expression, expected)
-    tokens = @parser.parse(expression)
-    ast_nodes = @lexer.to_sexp_array(tokens, @parser.code_lines)
+    source = Elang::StringSourceCode.new(expression)
+    tokens = @parser.parse(source)
+    ast_nodes = @lexer.to_sexp_array(tokens, source)
     display = Elang::Lexer.sexp_display(ast_nodes)
     
     if expected.is_a?(Array)

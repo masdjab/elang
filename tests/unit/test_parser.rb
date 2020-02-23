@@ -1,10 +1,12 @@
 require 'test-unit'
 require 'mocha/test_unit'
+require './compiler/exception'
+require './compiler/source_code'
 require './compiler/parser'
 
 class TestParser < Test::Unit::TestCase
   def _parse(code)
-    Elang::Parser.new.parse(code)
+    Elang::Parser.new.parse(Elang::StringSourceCode.new(code))
   end
   def _assert_single_number(code)
     tokens = _parse(code)

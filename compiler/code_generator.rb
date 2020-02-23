@@ -67,15 +67,22 @@ module Elang
         :not_equal  => "_is_not_equal" 
       }
       
-    attr_reader :code_lines, :symbols, :symbol_refs
+    attr_reader   :code_lines, :symbols, :symbol_refs
+    attr_accessor :error_formatter
     
     private
     def initialize
+      @source = nil
       @codeset = CodeSet.new
       @scope_stack = []
+      @error_formatter = ParsingExceptionFormatter.new
     end
     def raize(msg, node = nil)
-      raise ParsingError.new(msg, node, @code_lines)
+      if node
+        raise ParsingError.new(msg, node.row, node.col, @source)
+      else
+        raise ParsingError.new(msg)
+      end
     end
     def code_len
       @codeset.code_branch.length
@@ -623,18 +630,18 @@ module Elang
     end
     
     public
-    def generate_code(nodes, code_lines = [])
+    def generate_code(nodes, source = nil) # , code_lines = []
+      @source = source
       result = nil
       
       begin
-        @code_lines = code_lines
         @scope_stack = []
         @codeset = CodeSet.new
         detect_names nodes
         handle_any nodes
         result = @codeset
-      rescue StandardError => e
-        Exception.show e
+      rescue Exception => e
+        ExceptionHelper.show e, @error_formatter
       end
       
       result

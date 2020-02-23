@@ -1,17 +1,27 @@
 dw code
 
-dw 37
+dw 42
 
-dw mem_block_init, 14
-  db "mem_block_init"
-dw mem_alloc, 9
-  db "mem_alloc"
-dw mem_dealloc, 11
-  db "mem_dealloc"
-dw mem_get_data_offset, 19
-  db "mem_get_data_offset"
-dw alloc_object, 12
-  db "alloc_object"
+dw _mem_block_init, 15
+  db "_mem_block_init"
+dw _mem_alloc, 10
+  db "_mem_alloc"
+dw _mem_dealloc, 12
+  db "_mem_dealloc"
+dw _mem_get_data_offset, 20
+  db "_mem_get_data_offset"
+dw _alloc_object, 13
+  db "_alloc_object"
+dw _is_object, 10
+  db "_is_object"
+dw _increment_object_ref, 21
+  db "_increment_object_ref"
+dw _decrement_object_ref, 21
+  db "_decrement_object_ref"
+dw _unassign_object, 16
+  db "_unassign_object"
+dw _collect_garbage, 16
+  db "_collect_garbage"
 dw _cbw, 4
   db "_cbw"
 dw _cwb, 4
@@ -56,20 +66,20 @@ dw _get_obj_var, 12
   db "_get_obj_var"
 dw _set_obj_var, 12
   db "_set_obj_var"
-dw load_str, 8
-  db "load_str"
-dw str_length, 10
-  db "str_length"
-dw str_lcase, 9
-  db "str_lcase"
-dw str_ucase, 9
-  db "str_ucase"
-dw str_concat, 10
-  db "str_concat"
-dw str_append, 10
-  db "str_append"
-dw str_substr, 10
-  db "str_substr"
+dw _load_str, 9
+  db "_load_str"
+dw _str_length, 11
+  db "_str_length"
+dw _str_lcase, 10
+  db "_str_lcase"
+dw _str_ucase, 10
+  db "_str_ucase"
+dw _str_concat, 11
+  db "_str_concat"
+dw _str_append, 11
+  db "_str_append"
+dw _str_substr, 11
+  db "_str_substr"
 dw _print, 5
   db "print"
 dw _puts, 4

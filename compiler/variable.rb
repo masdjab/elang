@@ -1,10 +1,12 @@
 module Elang
   class Variable
-    RESERVED_VARIABLE_COUNT = 1
+    RESERVED_VARIABLE_COUNT = 8
     
     @@index = 0
     
-    attr_reader :scope, :name, :index
+    attr_reader   :scope, :name
+    attr_accessor :index
+    
     def initialize(scope, name)
       @index = @@index = @@index + 1
       @scope = scope

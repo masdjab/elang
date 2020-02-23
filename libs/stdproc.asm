@@ -2,6 +2,8 @@
 
 NO_MORE                   EQU 0ffffh
 FAILED                    EQU 0ffffh
+GARBAGE                   EQU 0ffffh
+MAX_REF_COUNT             EQU 0fffeh
 
 CLS_ID_NULL               EQU 0
 CLS_ID_FALSE              EQU 2
@@ -19,10 +21,14 @@ METHOD_ID_SET_BYTE_AT     EQU 5
 METHOD_ID_GET_WORD_AT     EQU 6
 METHOD_ID_SET_WORD_AT     EQU 7
 
+; reserved system data
 FIRST_BLOCK               EQU 0
+FREE_BLOCK_SIZE           EQU 2
+USED_BLOCK_SIZE           EQU 4
+GARBAGE_COUNT             EQU 6
 
 
-mem_block_init:
+_mem_block_init:
   ; input: offset, size; output: none
   push bp
   mov bp, sp
@@ -33,6 +39,7 @@ mem_block_init:
   cmp ax, 10
   jc _mem_block_init_done
   sub ax, 8
+  mov [FREE_BLOCK_SIZE], ax
   mov [bx + 2], ax      ; data size
   mov ax, NO_MORE
   mov [bx + 4], ax      ; prev block
@@ -40,6 +47,9 @@ mem_block_init:
   xor ax, ax
   mov [bx], ax          ; flag
 _mem_block_init_done:
+  xor ax, ax
+  mov [USED_BLOCK_SIZE], ax
+  mov [GARBAGE_COUNT], ax
   pop bx
   pop ax
   pop bp
@@ -101,6 +111,9 @@ mem_split_block:
   mov ax, [bp + 6]
   mov [bx + 2], ax
   mov [bx + 6], si
+  mov ax, [FREE_BLOCK_SIZE]
+  sub ax, 8
+  mov [FREE_BLOCK_SIZE], ax
   mov ax, si
   mov si, [si + 6]
   cmp si, NO_MORE
@@ -149,6 +162,9 @@ _mem_merge_free_block_do_merge:
   mov [bx + 6], ax
   mov si, ax
   mov [si + 4], bx
+  mov ax, [FREE_BLOCK_SIZE]
+  add ax, 8
+  mov [FREE_BLOCK_SIZE], ax
   jmp _mem_merge_free_block_do_merge
 _mem_merge_free_block_done:
   pop si
@@ -158,7 +174,7 @@ _mem_merge_free_block_done:
   ret 2
   
   
-mem_alloc:
+_mem_alloc:
   ; input: size; output: ax=address
   push bp
   mov bp, sp
@@ -180,6 +196,12 @@ _mem_alloc_size_aligned:
   call mem_split_block
   mov ax, 1
   mov [bx], ax
+  mov ax, [bx + 2]
+  add ax, [USED_BLOCK_SIZE]
+  mov [USED_BLOCK_SIZE], ax
+  mov ax, [FREE_BLOCK_SIZE]
+  sub ax, [bx + 2]
+  mov [FREE_BLOCK_SIZE], ax
   mov ax, bx
 _mem_alloc_done:
   pop bx
@@ -187,13 +209,15 @@ _mem_alloc_done:
   ret 2
   
   
-mem_dealloc:
+_mem_dealloc:
   ; input: block
   push bp
   mov bp, sp
   push ax
+  push cx
   push bx
   mov bx, [bp + 4]
+  mov cx, [bx + 2]
   mov ax, [bx]
   test ax, ax
   jz _mem_dealloc_done
@@ -201,14 +225,28 @@ mem_dealloc:
   mov [bx], ax
   push bx
   call mem_merge_free_block
+  mov ax, [FREE_BLOCK_SIZE]
+  add ax, cx
+  mov [FREE_BLOCK_SIZE], ax
 _mem_dealloc_done:
   pop bx
+  pop cx
   pop ax
   pop bp
   ret 2
   
   
-mem_get_data_offset:
+_get_free_block_size:
+  mov ax, [FREE_BLOCK_SIZE]
+  ret
+  
+  
+_get_used_block_size:
+  mov ax, [USED_BLOCK_SIZE]
+  ret
+  
+  
+_mem_get_data_offset:
   ; input: block; output: ax
   push bp
   mov bp, sp
@@ -221,7 +259,7 @@ _mem_get_data_offset_done:
   ret 2
   
   
-mem_get_container_block:
+_mem_get_container_block:
   ; input object; output: ax
   push bp
   mov bp, sp
@@ -326,22 +364,22 @@ _mem_resize_shrink:
 _mem_resize_expand:
   mov ax, [bp + 6]
   push ax
-  call mem_alloc
+  call _mem_alloc
   cmp ax, NO_MORE
   jz _mem_resize_fail
   push ax
   mov cx, [bx + 2]
   push cx
   push ax
-  call mem_get_data_offset
+  call _mem_get_data_offset
   push ax
   push bx
-  call mem_get_data_offset
+  call _mem_get_data_offset
   push ax
   call mem_copy
   mov ax, [bp + 4]
   push ax
-  call mem_dealloc
+  call _mem_dealloc
   pop ax
   jmp _mem_resize_done
 _mem_resize_fail:
@@ -353,7 +391,29 @@ _mem_resize_done:
   ret 4
   
   
-alloc_object:
+_is_object:
+  ; input: object; output: ZF=1 if object, else ZF=0
+  push bp
+  mov bp, sp
+  push ax
+  mov ax, [bp + 4]
+  test ax, 1
+  jnz _is_object_done
+  test ax, CLS_ID_NULL
+  jz _is_object_false
+  test ax, CLS_ID_TRUE
+  jz _is_object_false
+  test ax, CLS_ID_FALSE
+  jnz _is_object_done
+_is_object_false:
+  or ax, 1
+_is_object_done:
+  pop ax
+  pop bp
+  ret 2
+  
+  
+_alloc_object:
   ; input: class id, instance variable count
   push bp
   mov bp, sp
@@ -362,11 +422,11 @@ alloc_object:
   add ax, 1
   shl ax, 1
   push ax
-  call mem_alloc
+  call _mem_alloc
   cmp ax, NO_MORE
   jz _alloc_object_done
   push ax
-  call mem_get_data_offset
+  call _mem_get_data_offset
   push ax
   mov bx, ax
   mov ax, [bp + 4]
@@ -378,6 +438,198 @@ _alloc_object_done:
   ret 4
   
   
+_increment_object_ref:
+  ; input: object; output: none
+  push bp
+  mov bp, sp
+  push ax
+  push si
+  mov ax, [bp + 4]
+  push ax
+  call _mem_get_container_block
+  mov si, ax
+  mov ax, [si]
+  cmp ax, MAX_REF_COUNT
+  jz _increment_object_ref_done
+  inc ax
+  mov [si], ax
+_increment_object_ref_done:
+  pop si
+  pop ax
+  pop bp
+  ret 2
+  
+  
+_decrement_object_ref:
+  ; input: object; output: none
+  push bp
+  mov bp, sp
+  push ax
+  push si
+  mov ax, [bp + 4]
+  push ax
+  call _mem_get_container_block
+  mov si, ax
+  mov ax, [si]
+  cmp ax, GARBAGE
+  jz _decrement_object_ref_done
+  dec ax
+  test ax, ax
+  jnz _decrement_object_ref_set_counter
+  inc word [GARBAGE_COUNT]
+  mov ax, GARBAGE
+_decrement_object_ref_set_counter:
+  mov [si], ax
+_decrement_object_ref_done:
+  pop si
+  pop ax
+  pop bp
+  ret 2
+  
+  
+_destroy_object:
+  ; input: object; output: nothing
+  push bp
+  mov bp, sp
+  push ax
+  push cx
+  push si
+  mov ax, [bp + 4]
+  push ax
+  call _is_object
+  jnz _destroy_object_done
+  push ax
+  call _mem_get_container_block
+  mov si, ax
+  mov ax, [si + 2]
+  shr ax, 1
+  dec ax
+  test ax, ax
+  jz _destroy_object_done
+  mov cx, ax
+  mov si, [bp + 4]
+_destroy_object_destroy_child:
+  add si, 2
+  mov ax, [si]
+  push ax
+  call _destroy_object
+  loop _destroy_object_destroy_child
+  mov si, [bp + 4]
+  mov ax, GARBAGE
+  cmp ax, [si]
+  jz _destroy_object_done
+  mov [si], ax
+  inc word [GARBAGE_COUNT]
+_destroy_object_done:
+  pop si
+  pop cx
+  pop ax
+  pop bp
+  ret 2
+  
+  
+_mark_garbages:
+  ; input: none; output: none
+  push ax
+  push bx
+  mov bx, [FIRST_BLOCK]
+_mark_garbages_check_block:
+  mov ax, [bx]
+  cmp ax, GARBAGE
+  jnz _mark_garbages_object_destroyed
+  push bx
+  call _destroy_object
+_mark_garbages_object_destroyed:
+  mov bx, [bx + 6]
+  cmp bx, NO_MORE
+  jnz _mark_garbages_check_block
+_mark_garbages_done:
+  pop bx
+  pop ax
+  ret
+  
+  
+_collect_garbage:
+  ; input: none; output: none
+  push ax
+  push bx
+  push si
+  call _mark_garbages
+  mov bx, [FIRST_BLOCK]
+_collect_garbage_check_block:
+  mov ax, [bx]
+  cmp ax, GARBAGE
+  jnz _collect_garbage_block_checked
+  xor ax, ax
+  mov [bx], ax
+  mov si, bx
+  mov ax, [si + 6]
+  cmp ax, NO_MORE
+  jz _collect_garbage_next_block_found
+  push si
+  mov ax, [si]
+  pop si
+  test ax, ax
+  jnz _collect_garbage_next_block_found
+  mov si, ax
+_collect_garbage_next_block_found:
+  push bx
+  call _mem_dealloc
+  mov bx, si
+_collect_garbage_block_checked:
+  mov bx, [bx + 6]
+  cmp bx, NO_MORE
+  jnz _collect_garbage_check_block
+  xor ax, ax
+  mov [GARBAGE_COUNT], ax
+_collect_garbage_done:
+  pop si
+  pop bx
+  pop ax
+  ret
+  
+  
+_collect_garbage_if_needed:
+  push ax
+  mov ax, [GARBAGE_COUNT]
+  test ax, ax
+  jz _collect_garbage_if_needed_skip
+  push cx
+  push dx
+  call _get_free_block_size
+  mov cx, ax
+  call _get_used_block_size
+  add cx, ax
+  shr cx, 2
+  cmp ax, cx
+  jc _collect_garbage_if_needed_done
+  call _collect_garbage
+_collect_garbage_if_needed_done:
+  pop dx
+  pop cx
+_collect_garbage_if_needed_skip:
+  pop ax
+  ret
+  
+  
+_unassign_object:
+  ; input: object; output: nothing
+  push bp
+  mov bp, sp
+  push ax
+  mov ax, [bp + 4]
+  push ax
+  call _is_object
+  jnz _unassign_object_done
+  push ax
+  call _decrement_object_ref
+  call _collect_garbage_if_needed
+_unassign_object_done:
+  pop ax
+  pop bp
+  ret 2
+  
+  
 create_str:
   ; input: length; output: ax=str object or zero if fail
   push bp
@@ -385,20 +637,20 @@ create_str:
   push si
   mov ax, [bp + 4]
   push ax
-  call mem_alloc
+  call _mem_alloc
   cmp ax, NO_MORE
   jnz _create_str_alloc_success
   mov ax, CLS_ID_NULL
   jmp _create_str_failed
 _create_str_alloc_success:
   push ax
-  call mem_get_data_offset
+  call _mem_get_data_offset
   mov si, ax
   mov ax, 2                 ; instance_variable count
   push ax
   mov ax, CLS_ID_STRING     ; class_id
   push ax
-  call alloc_object
+  call _alloc_object
   cmp ax, NO_MORE
   jz _create_str_failed
   xchg si, ax
@@ -412,7 +664,7 @@ _create_str_failed:
   ret 2
   
   
-load_str:
+_load_str:
   ; input: offset, length; output: ax
   ; string structure:
   ; - class id
@@ -441,7 +693,7 @@ _load_str_failed:
   ret 4
   
   
-str_length:
+_str_length:
   ; input: str; output: ax
   push bp
   mov bp, sp
@@ -452,7 +704,7 @@ str_length:
   pop bp
   ret 2
   
-str_copy:
+_str_copy:
   ; input str; output: ax
   ; create a copy of existing string
   push bp
@@ -481,7 +733,7 @@ _str_copy_failed:
   ret 2
   
   
-str_concat:
+_str_concat:
   ; input: str1, str2; output: ax=new str or zero if fail
   push bp
   mov bp, sp
@@ -523,7 +775,7 @@ _str_concat_failed:
   ret 4
   
   
-str_substr:
+_str_substr:
   ; input: str, offset, size; output: ax
   push bp
   mov bp, sp
@@ -552,7 +804,7 @@ _str_substr_failed:
   ret 6
   
   
-str_lcase:
+_str_lcase:
   ; input: str; output: ax
   push bp
   mov bp, sp
@@ -561,7 +813,7 @@ str_lcase:
   push si
   mov ax, [bp + 4]
   push ax
-  call str_copy
+  call _str_copy
   cmp ax, CLS_ID_NULL
   jz _str_lcase_done
   mov bx, ax
@@ -590,7 +842,7 @@ _str_lcase_done:
   ret 2
   
   
-str_ucase:
+_str_ucase:
   ; input: str; output: ax
   push bp
   mov bp, sp
@@ -599,7 +851,7 @@ str_ucase:
   push si
   mov ax, [bp + 4]
   push ax
-  call str_copy
+  call _str_copy
   cmp ax, CLS_ID_NULL
   jz _str_ucase_done
   mov bx, ax
@@ -628,7 +880,7 @@ _str_ucase_done:
   ret 2
   
   
-str_append:
+_str_append:
   ; input: dst, src; output: none
   push bp
   mov bp, sp
@@ -662,11 +914,11 @@ _str_append_relocate:
   shr ax, 1
   add ax, cx
   push ax
-  call mem_alloc
+  call _mem_alloc
   cmp ax, CLS_ID_NULL
   jz _str_append_done
   push ax
-  call mem_get_data_offset
+  call _mem_get_data_offset
   mov bx, ax
   mov ax, [si + 2]
   push ax
@@ -685,7 +937,7 @@ _str_append_relocate:
   mov ax, [si + 4]
   sub ax, 8
   push ax
-  call mem_dealloc
+  call _mem_dealloc
   mov [si + 2], cx
   mov [si + 4], bx
 _str_append_done:
@@ -698,7 +950,7 @@ _str_append_done:
   ret 4
   
   
-str_reverse:
+_str_reverse:
   ; input: str object; output: ax
   push bp
   mov bp, sp
@@ -735,11 +987,11 @@ _str_reverse_done:
   ret 2
   
   
-str_strip:
-str_truncate:
-str_shift:
-str_prepend:
-str_insert:
+_str_strip:
+_str_truncate:
+_str_shift:
+_str_prepend:
+_str_insert:
   
   
 _cbw:
@@ -1107,14 +1359,9 @@ _is_equal:
   mov si, [bp + 4]
   mov di, [bp + 6]
 _is_equal_check_integer:
-  test si, 1
-  jnz _is_equal_eval_simple
-  test si, CLS_ID_NULL
-  jz _is_equal_eval_simple
-  test si, CLS_ID_TRUE
-  jz _is_equal_eval_simple
-  test si, CLS_ID_FALSE
-  jnz _is_equal_false
+  push si
+  call _is_object
+  jz _is_equal_false
 _is_equal_eval_simple:
   cmp si, di
   jnz _is_equal_false
@@ -1139,14 +1386,9 @@ _is_not_equal:
   mov si, [bp + 4]
   mov di, [bp + 6]
 _is_not_equal_check_integer:
-  test si, 1
-  jnz _is_not_equal_eval_simple
-  test si, CLS_ID_NULL
-  jz _is_not_equal_eval_simple
-  test si, CLS_ID_TRUE
-  jz _is_not_equal_eval_simple
-  test si, CLS_ID_FALSE
-  jnz _is_not_equal_false
+  push si
+  call _is_object
+  jz _is_not_equal_false
 _is_not_equal_eval_simple:
   cmp si, di
   jz _is_not_equal_false
@@ -1189,6 +1431,8 @@ _set_obj_var:
   add ax, 1
   shl ax, 1
   add si, ax
+  push si
+  call _unassign_object
   mov ax, [bp + 8]
   mov [si], ax
   pop si

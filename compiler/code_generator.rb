@@ -73,7 +73,6 @@ module Elang
     private
     def initialize
       @source = nil
-      @codeset = CodeSet.new
       @scope_stack = []
       @error_formatter = ParsingExceptionFormatter.new
     end
@@ -164,6 +163,14 @@ module Elang
       receiver = ClassVariable.new(current_scope, name)
       @codeset.symbols.add receiver
       receiver
+    end
+    def register_function(scope, rcvr_name, func_name, func_args)
+      if (fun = @codeset.symbols.items.find{|x|(x.name == func_name) && x.is_a?(Function) && (x.scope.to_s == scope.to_s)}).nil?
+        fun = Function.new(scope, rcvr_name, func_name, func_args, 0)
+        @codeset.symbols.add(fun)
+      end
+      
+      fun
     end
     def get_number(number)
       # mov ax, imm
@@ -570,12 +577,11 @@ module Elang
               func_name = node[2].text
               func_args = node[3]
               func_body = node[4]
-              function = Function.new(active_scope, rcvr_name, func_name, func_args, 0)
               
               if !active_scope.fun.nil?
                 raize "Function cannot be nested", first_node
               else
-                @codeset.symbols.add function
+                function = register_function(active_scope, rcvr_name, func_name, func_args)
                 enter_scope Scope.new(active_scope.cls, func_name)
                 
                 (0...func_args.count).each do |i|
@@ -630,21 +636,19 @@ module Elang
     end
     
     public
-    def generate_code(nodes, source = nil)
+    def generate_code(nodes, codeset, source = nil)
       @source = source
-      result = nil
+      @codeset = codeset
       
       begin
         @scope_stack = []
-        @codeset = CodeSet.new
         detect_names nodes
         handle_any nodes
-        result = @codeset
+        true
       rescue Exception => e
         ExceptionHelper.show e, @error_formatter
+        false
       end
-      
-      result
     end
   end
 end

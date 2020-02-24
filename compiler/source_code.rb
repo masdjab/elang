@@ -98,7 +98,8 @@ module Elang
         if src.nil?
           "#{msg} (#{exception.class}) at #{row}, #{col}"
         else
-          "#{msg} (#{exception.class}) at #{row}, #{col}#{$/}#{src.highlight(row, col)}"
+          file_info = src.is_a?(FileSourceCode) ? " in #{src.file_name}" : ""
+          "#{msg} (#{exception.class})#{file_info} at #{row}, #{col}#{$/}#{src.highlight(row, col)}"
         end
       else
         "#{msg} (#{exception.class})"

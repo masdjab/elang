@@ -1,21 +1,3 @@
-class String
-  def lcase
-    _str_lcase(self)
-  end
-  def ucase
-    _str_ucase(self)
-  end
-  def concat(str)
-    _str_concat(self, str)
-  end
-  def append(str)
-    _str_append(self, str)
-  end
-  def substr(pos, len)
-    _str_substr(self, _int_unpack(pos), _int_unpack(len))
-  end
-end
-
 # test String.concat
 puts("* Test String.concat")
 a = "Com"

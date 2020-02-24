@@ -7,7 +7,9 @@ class CompilerTest < Test::Unit::TestCase
     @compiler = Elang::Compiler.new
   end
   def compile(source)
-    @compiler.compile(Elang::StringSourceCode.new(source))
+    codeset = Elang::CodeSet.new
+    @compiler.compile(Elang::StringSourceCode.new(source), codeset)
+    codeset
   end
   def check_binary(actual, expected_str)
     assert_equal Elang::Utils::Converter.hex_to_bin(expected_str), actual

@@ -11,7 +11,7 @@ module Elang
       codeset = CodeSet.new
       lib_source = FileSourceCode.new("#{ELANG_DIR}/libs/libs.rb")
       usr_source = FileSourceCode.new(source_file)
-      compiled = false
+      result = nil
       
       if compiler.compile(lib_source, codeset)
         if compiler.compile(usr_source, codeset)
@@ -21,15 +21,15 @@ module Elang
           file.write binary
           file.close
           
-          compiled = true
+          result = codeset
         end
       end
       
-      if !compiled && File.exist?(output_file)
+      if result.nil? && File.exist?(output_file)
         File.delete output_file
       end
       
-      compiled
+      result
     end
     def handle_request
       src_file = ARGV[0]

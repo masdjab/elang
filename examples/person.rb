@@ -5,18 +5,6 @@ class Person
   def get_age
     @age
   end
-  def set_sex(sex)
-    @sex = sex
-  end
-  def get_sex
-    @sex
-  end
-  def set_deposit(deposit)
-    @deposit = deposit
-  end
-  def get_deposit
-    @deposit
-  end
 end
 
 class Programmer < Person

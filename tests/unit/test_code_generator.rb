@@ -1,4 +1,5 @@
 require 'test-unit'
+require './compiler/exception'
 require './compiler/source_code'
 require './compiler/ast_node'
 require './compiler/code_generator'
@@ -60,7 +61,9 @@ class TestCodeGenerator < Test::Unit::TestCase
     @code_generator.symbols
   end
   def generate_code(nodes, source = nil)
-    @code_generator.generate_code(nodes, source)
+    codeset = Elang::CodeSet.new
+    @code_generator.generate_code(nodes, codeset, source)
+    codeset
   end
   def check_code_result(nodes, exp_main, exp_subs, source = nil)
     codeset = generate_code(nodes, source)

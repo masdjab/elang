@@ -16,16 +16,16 @@ module Elang
     # - create codeset from ast nodes using code generator
     # - resolve symbol references add build final binary code
     
-    def compile(source)
+    def compile(source, codeset)
       parser = Elang::Parser.new
       lexer = Elang::Lexer.new
       tokens = parser.parse(source)
       
       if nodes = lexer.to_sexp_array(tokens, source)
         codegen = Elang::CodeGenerator.new
-        codeset = codegen.generate_code(nodes, source)
+        codegen.generate_code(nodes, codeset, source)
       else
-        nil
+        false
       end
     end
   end

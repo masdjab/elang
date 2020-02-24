@@ -1,9 +1,3 @@
-class Integer
-  def to_s
-    _int_to_s(_int_unpack(self))
-  end
-end
-
 class NilClass
   def to_s
     "a nil object"

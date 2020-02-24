@@ -1,15 +1,3 @@
-class FalseClass
-  def to_s
-    "false"
-  end
-end
-
-class TrueClass
-  def to_s
-    "true"
-  end
-end
-
 a = 3
 b = a == 2
 c = a == 3

@@ -1,8 +1,8 @@
-ruby ..\elang.rb call_function.rb
-ruby ..\elang.rb escape.rb
-ruby ..\elang.rb fn_name.rb
-ruby ..\elang.rb if1.rb
-ruby ..\elang.rb numeric_operations.rb
-ruby ..\elang.rb object.rb
-ruby ..\elang.rb person.rb
-ruby ..\elang.rb string.rb
+@ruby ..\elang.rb call_function.elang
+@ruby ..\elang.rb escape.elang
+@ruby ..\elang.rb fn_name.elang
+@ruby ..\elang.rb if1.elang
+@ruby ..\elang.rb numeric_operations.elang
+@ruby ..\elang.rb object.elang
+@ruby ..\elang.rb person.elang
+@ruby ..\elang.rb string.elang

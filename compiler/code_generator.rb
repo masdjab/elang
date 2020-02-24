@@ -67,7 +67,7 @@ module Elang
         :not_equal  => "_is_not_equal" 
       }
       
-    attr_reader   :code_lines, :symbols, :symbol_refs
+    attr_reader   :symbols, :symbol_refs
     attr_accessor :error_formatter
     
     private
@@ -630,7 +630,7 @@ module Elang
     end
     
     public
-    def generate_code(nodes, source = nil) # , code_lines = []
+    def generate_code(nodes, source = nil)
       @source = source
       result = nil
       

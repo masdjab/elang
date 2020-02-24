@@ -4,15 +4,6 @@ require './compiler/token'
 module Elang
   class Parser
     # syntax to be supported:
-    # high priority:
-    # - constant
-    # - expression
-    # - if condition then expression
-    # - if block (with elsif, else and end)
-    # - single assignment
-    # - def function_name(arguments)
-    # - end (function, class)
-    # - class
     # medium priority:
     # - require
     # - import module_name
@@ -341,6 +332,7 @@ module Elang
       end
       
       _set_line_numbers raw_tokens
+      
       raw_tokens.map{|x|Token.new(x[:row], x[:col], x[:type], x[:text])}
     end
   end

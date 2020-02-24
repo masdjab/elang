@@ -8,7 +8,6 @@ module Elang
     # class responsibility:
     # convert from tokens to ast nodes
     
-    attr_reader   :code_lines
     attr_accessor :error_formatter
     
     private

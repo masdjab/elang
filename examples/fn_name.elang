@@ -1,4 +1,4 @@
-class Test
+class TestClass
   def initialize(value)
     @value = value
   end
@@ -8,8 +8,20 @@ class Test
   def value=(v)
     @value = v
   end
+  #def +(a, b)
+  #  _int_pack(_int_add(_int_unpack(a), _int_unpack(b)))
+  #end
+  def +(v)
+    @value + v
+  end
+  def -(v)
+    @value - v
+  end
   def <<(v)
-    1
+    @value * 2
+  end
+  def >>(v)
+    @value / 2
   end
   def [](index)
     #@value[index]
@@ -39,3 +51,14 @@ end
 #puts "empty? => #{t.empty?.inspect}"
 #t.empty!
 #puts "emptied => empty? = #{t.empty?.inspect}"
+
+tc = TestClass.new
+tc.value = 2
+#c = tc + 5
+#puts "tc.value = " + tc.value.to_s
+#puts "tc + 2 = " + (tc + 2).to_s
+#puts "tc - 1 = " + (tc - 1).to_s
+#puts "tc << 1 = " + (tc << 1).to_s
+#puts "tc << 2 = " + (tc >> 2).to_s
+a = 1 + 1
+puts "1 + 1 = " + a.to_s

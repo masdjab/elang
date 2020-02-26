@@ -1076,6 +1076,7 @@ _int_pack:
   ; input: value; output: ax
   push bp
   mov bp, sp
+  mov ax, [bp + 4]
   shl ax, 1
   or ax, 1
   pop bp
@@ -1086,6 +1087,7 @@ _int_unpack:
   ; input: value; output: ax
   push bp
   mov bp, sp
+  mov ax, [bp + 4]
   shr ax, 1
   test ax, 4000h
   jz _int_unpack_done
@@ -1096,6 +1098,7 @@ _int_unpack_done:
   
   
 _int_add:
+  ; input: v1, v2; output: ax
   push bp
   mov bp, sp
   push cx
@@ -1115,6 +1118,7 @@ _int_add:
   
   
 _int_subtract:
+  ; input: v1, v2; output: ax
   push bp
   mov bp, sp
   push cx
@@ -1134,6 +1138,7 @@ _int_subtract:
   
   
 _int_multiply:
+  ; input: v1, v2; output: ax
   push bp
   mov bp, sp
   push cx
@@ -1156,6 +1161,7 @@ _int_multiply:
   
   
 _int_divide:
+  ; input: v1, v2; output: ax
   push bp
   mov bp, sp
   push cx
@@ -1178,6 +1184,7 @@ _int_divide:
   
   
 _int_and:
+  ; input: v1, v2; output: ax
   push bp
   mov bp, sp
   push cx
@@ -1197,6 +1204,7 @@ _int_and:
   
   
 _int_or:
+  ; input: v1, v2; output: ax
   push bp
   mov bp, sp
   push cx

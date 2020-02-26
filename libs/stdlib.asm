@@ -46,7 +46,7 @@ dw _int_multiply, 13
   db "_int_multiply"
 dw _int_divide, 11
   db "_int_divide"
-dw _int_add, 8
+dw _int_and, 8
   db "_int_and"
 dw _int_or, 7
   db "_int_or"

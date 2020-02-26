@@ -55,6 +55,7 @@ module Elang
             text = text.gsub("\\r", "\r")
             text = text.gsub("\\n", "\n")
             text = text.gsub("\\t", "\t")
+            text = text.gsub("\\\"", "\"")
           end
           
           lgth = text.length
@@ -137,11 +138,13 @@ module Elang
       code_label = "handle_invalid_class_id"
       code_offset[code_label] = asmcode.code.length
       asmcode << asm("", "#{code_label}:")
+      asmcode << asm("B80000", "  mov ax, 0")
       asmcode << asm("C3", "  ret")
       
       code_label = "handle_method_not_found"
       code_offset[code_label] = asmcode.code.length
       asmcode << asm("", "#{code_label}:")
+      asmcode << asm("B80000", "  mov ax, 0")
       asmcode << asm("C3", "  ret")
       
       @classes.each do |key, cls|

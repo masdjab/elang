@@ -1,21 +1,21 @@
 class Integer
   def +(v)
-    _int_pack(_int_add(_int_unpack(self), _int_unpack(v)))
+    _int_add(self, v)
   end
   def -(v)
-    _int_pack(_int_subtract(_int_unpack(self), _int_unpack(v)))
+    _int_subtract(self, v)
   end
   def *(v)
-    _int_pack(_int_multiply(_int_unpack(self), _int_unpack(v)))
+    _int_multiply(self, v)
   end
   def /(v)
-    _int_pack(_int_divide(_int_unpack(self), _int_unpack(v)))
+    _int_divide(self, v)
   end
   def &(v)
-    _int_pack(_int_and(_int_unpack(self), _int_unpack(v)))
+    _int_and(self, v)
   end
   def |(v)
-    _int_pack(_int_or(_int_unpack(self), _int_unpack(v)))
+    _int_or(self, v)
   end
   def ==(v)
     _is_equal(v, self)

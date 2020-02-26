@@ -216,6 +216,11 @@ class TestCodeGenerator < Test::Unit::TestCase
     functions = codeset.symbols.items.select{|x|x.is_a?(Elang::Function)}
     assert_equal 1, functions.count
     assert_equal "multiply_by_two1", functions[0].name
+    
+    check_code_result \
+      [[asn,idt("a"),[dot,num(1),plus,[num(1)]]],[dot,nil,idt("puts"),[[dot,str("1 + 1 = "),plus,[[dot,idt("a"),idt("to_s"),[]]]]]]], 
+      bin("B8030050B8010050B8000050B8030050E8000050A1000050E8000058A30000B8000050B8000050A1000050E8000050B8010050B8000050BE00008B440083C6025056E8000050E8000050E80000"), 
+      ""
   end
   def test_function_parameter
     # root function parameter

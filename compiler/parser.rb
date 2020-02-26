@@ -311,7 +311,7 @@ module Elang
         type = :le
       elsif @fetcher.element == "<"
         text << @fetcher.fetch
-        type = :lele
+        type = :ltlt
       end
       
       _raw_token cpos, type, text
@@ -326,7 +326,7 @@ module Elang
         type = :ge
       elsif @fetcher.element == ">"
         text << @fetcher.fetch
-        type = :gege
+        type = :gtgt
       end
       
       _raw_token cpos, type, text

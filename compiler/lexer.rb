@@ -273,6 +273,39 @@ module Elang
       output = []
       
       while node = fetcher.fetch
+        if node.is_a?(AstNode)
+          if (node.type == :identifier) && !(n1 = fetcher.element).nil? && n1.is_a?(AstNode) && !"!?".index(n1.text).nil?
+            n1 = fetcher.fetch
+            node.text = node.text + n1.text
+            output << node
+          elsif (node.type == :identifier) && (node.text == "def")
+            output << node
+            
+            if !(node = fetcher.element).nil? && (node.type == :whitespace)
+              output << fetcher.fetch
+              
+              if !(node = fetcher.element).nil? && (node.type == :identifier)
+                output << fetcher.fetch
+                
+                if !(node = fetcher.element).nil? && (node.text == "=")
+                  output << fetcher.fetch
+                end
+              end
+            end
+          else
+            output << node
+          end
+        else
+          output << node
+        end
+      end
+      
+      output.reject{|x|[:whitespace, :comment].include?(x.type)}
+    end
+    def prepare_nodes_2(fetcher)
+      output = []
+      
+      while node = fetcher.fetch
         if node.type == :identifier
           output << node
           output += fetch_function_args(fetcher, node)
@@ -283,7 +316,7 @@ module Elang
       
       output
     end
-    def prepare_nodes_2(fetcher)
+    def prepare_nodes_3(fetcher)
       output = []
       
       while node = fetcher.fetch
@@ -395,9 +428,9 @@ module Elang
     end
     def prepare_nodes(tokens)
       nodes = convert_tokens_to_ast_nodes(tokens)
-      nodes = nodes.reject{|x|[:whitespace, :comment].include?(x.type)}
       nodes = prepare_nodes_1(FetcherV2.new(nodes))
       nodes = prepare_nodes_2(FetcherV2.new(nodes))
+      nodes = prepare_nodes_3(FetcherV2.new(nodes))
       nodes
     end
     def to_sexp_array(tokens, source = nil)

@@ -32,6 +32,10 @@ class TestLexer < Test::Unit::TestCase
   end
   def test_medium_expression
     check_expression \
+      "a = 1 + 1", 
+      "[[=,a,[.,1,+,[1]]]]"
+      
+    check_expression \
       "x = 32 + p * 5 - 4 & q * r / s + 1", 
       "[[=,x,[.,[.,[.,32,+,[[.,p,*,[5]]]],-,[4]],&,[[.,[.,[.,q,*,[r]],/,[s]],+,[1]]]]]]"
     check_expression \
@@ -64,6 +68,14 @@ class TestLexer < Test::Unit::TestCase
     check_expression \
       "def self.hitung(text)\r\nx = mid(text, sqrt(2), 4)\r\nend", 
       [["def","self","hitung",["text"],[["=","x",[".",nil,"mid",["text",[".",nil,"sqrt",["2"]],"4"]]]]]]
+    
+    check_expression \
+      "puts \"1 + 1 = \" + a.to_s", 
+      "[[.,nil,puts,[[.,1 + 1 = ,+,[[.,a,to_s,[]]]]]]]"
+    
+    check_expression \
+      "a = 1 + 1#{$/}puts \"1 + 1 = \" + a.to_s", 
+      "[[=,a,[.,1,+,[1]]],[.,nil,puts,[[.,1 + 1 = ,+,[[.,a,to_s,[]]]]]]]"
     
     # failed
     #check_expression \

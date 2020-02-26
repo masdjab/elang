@@ -55,6 +55,7 @@ module Elang
         SystemFunction.new("puts")
       ]
     
+    # this hash is planned to be deleted
     OPERATION_MAP = 
       {
         :plus       => "_int_add", 
@@ -128,6 +129,7 @@ module Elang
       SYS_FUNCTIONS.find{|x|x.name == name}
     end
     def invoke_operation(meth_name)
+      raise "This function should not be called (planned to be deleted)"
       add_function_ref get_sys_function(OPERATION_MAP[meth_name]), code_len + 1
       append_code hex2bin("E80000")
     end
@@ -313,6 +315,7 @@ module Elang
     def handle_expression(node)
       if node.is_a?(Array)
         if node.count > 1
+          raise "This block should not be called (planned to be deleted)"
           prepare_operand node[2]
           append_code hex2bin("50")
           prepare_operand node[1]
@@ -320,6 +323,14 @@ module Elang
           invoke_operation node[0].type
         else
           prepare_operand node[0]
+        end
+      elsif node.type == :identifier
+        if !(fn = @codeset.symbols.find_nearest(current_scope, node.text)).nil? && (fn.is_a?(Function))
+          handle_function_call [node, []]
+        elsif SYS_FUNCTIONS.find{|x|x.name == node.text}
+          handle_function_call [node, []]
+        else
+          prepare_operand node
         end
       else
         prepare_operand node

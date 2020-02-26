@@ -86,6 +86,8 @@ module Elang
     def format(exception)
       msg = exception.message
       
+      src_info = lambda{|x|x.is_a?(FileSourceCode) ? " in #{x.file_name}" : ""}
+      
       if exception.is_a?(ParsingError)
         src = exception.source
         row = exception.row
@@ -94,16 +96,15 @@ module Elang
         src, row, col = nil, nil, nil
       end
       
-      if !row.nil? && !col.nil?
-        if src.nil?
-          "#{msg} (#{exception.class}) at #{row}, #{col}"
-        else
-          file_info = src.is_a?(FileSourceCode) ? " in #{src.file_name}" : ""
-          "#{msg} (#{exception.class})#{file_info} at #{row}, #{col}#{$/}#{src.highlight(row, col)}"
-        end
-      else
-        "#{msg} (#{exception.class})"
+      sf_info = src.is_a?(FileSourceCode) ? " in #{src.file_name}" : ""
+      rc_info = !row.nil? && !col.nil? ? " at #{row}, #{col}" : ""
+      preview = !src.nil? && !col.nil? && !row.nil? ? src.highlight(row, col) : ""
+      
+      if !preview.gsub("\r", "").gsub("\n", "").empty?
+        preview = "#{$/}#{$/}#{preview}"
       end
+      
+      "#{msg} (#{exception.class})#{sf_info}#{rc_info}#{preview}"
     end
   end
 end

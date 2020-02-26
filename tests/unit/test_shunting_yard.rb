@@ -14,8 +14,9 @@ class TestShuntingYard < Test::Unit::TestCase
   end
   def build(exp)
     sy = Elang::ShuntingYard.new
-    tt = Elang::Lexer.optimize(@parser.parse(Elang::StringSourceCode.new(exp)))
-    nn = Elang::Lexer.convert_tokens_to_ast_nodes(tt)
+    lx = Elang::Lexer.new
+    tt = @parser.parse(Elang::StringSourceCode.new(exp))
+    nn = lx.prepare_nodes(tt)
     ff = Elang::FetcherV2.new(nn)
     rr = sy.fetch_expressions(ff)
     Elang::Lexer.sexp_display(rr)
@@ -51,6 +52,10 @@ class TestShuntingYard < Test::Unit::TestCase
     check_result "puts(d.substr(1,7))", "[[.,nil,puts,[[.,d,substr,[1,7]]]]]"
     check_result "puts(d.substr(1,7).substr(2,5))", "[[.,nil,puts,[[.,[.,d,substr,[1,7]],substr,[2,5]]]]]"
     check_result "d.set_name(\"Bowo\")", "[[.,d,set_name,[Bowo]]]"
+    
     #check_result "d.set_name \"Bowo\"", "[[.,d,set_name,[Bowo]]]"
+    
+    check_result "tc.value =(2)", "[[.,tc,value=,[2]]]"
+    check_result "tc.value = 2", "[[.,tc,value=,[2]]]"
   end
 end

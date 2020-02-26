@@ -23,23 +23,23 @@ class TestLexer < Test::Unit::TestCase
   end
   def test_simple_expression
     check_expression "", "[]"
-    check_expression "1 + 2", "[[+,1,2]]"
-    check_expression "1 * 2", "[[*,1,2]]"
-    check_expression "a + b", "[[+,a,b]]"
-    check_expression "a + 6", "[[+,a,6]]"
-    check_expression "3 + c", "[[+,3,c]]"
-    check_expression "1 + (32 + p)", "[[+,1,[+,32,p]]]"
+    check_expression "1 + 2", "[[.,1,+,[2]]]"
+    check_expression "1 * 2", "[[.,1,*,[2]]]"
+    check_expression "a + b", "[[.,a,+,[b]]]"
+    check_expression "a + 6", "[[.,a,+,[6]]]"
+    check_expression "3 + c", "[[.,3,+,[c]]]"
+    check_expression "1 + (32 + p)", "[[.,1,+,[[.,32,+,[p]]]]]"
   end
   def test_medium_expression
     check_expression \
       "x = 32 + p * 5 - 4 & q * r / s + 1", 
-      "[[=,x,[&,[-,[+,32,[*,p,5]],4],[+,[/,[*,q,r],s],1]]]]"
+      "[[=,x,[.,[.,[.,32,+,[[.,p,*,[5]]]],-,[4]],&,[[.,[.,[.,q,*,[r]],/,[s]],+,[1]]]]]]"
     check_expression \
       "x = (32 + p) * (5 - 4) & q * r / s + 1", 
-      "[[=,x,[&,[*,[+,32,p],[-,5,4]],[+,[/,[*,q,r],s],1]]]]"
+      "[[=,x,[.,[.,[.,32,+,[p]],*,[[.,5,-,[4]]]],&,[[.,[.,[.,q,*,[r]],/,[s]],+,[1]]]]]]"
     check_expression \
       "x = (32 + p * (5 - sqrt(4))) & (q * r / s + 1)", 
-      "[[=,x,[&,[+,32,[*,p,[-,5,[.,nil,sqrt,[4]]]]],[+,[/,[*,q,r],s],1]]]]"
+      "[[=,x,[.,[.,32,+,[[.,p,*,[[.,5,-,[[.,nil,sqrt,[4]]]]]]]],&,[[.,[.,[.,q,*,[r]],/,[s]],+,[1]]]]]]"
     
     check_expression \
       "x = mid(text, sqrt(2), 4)", 
@@ -64,11 +64,26 @@ class TestLexer < Test::Unit::TestCase
     check_expression \
       "def self.hitung(text)\r\nx = mid(text, sqrt(2), 4)\r\nend", 
       [["def","self","hitung",["text"],[["=","x",[".",nil,"mid",["text",[".",nil,"sqrt",["2"]],"4"]]]]]]
+    
+    # failed
+    #check_expression \
+    #  "puts \"tc + 3 = \".concat (tc + 3).to_s", 
+    #  "[[.,nil,puts,[[.,tc + 3 = ,concat,[.,[.,tc,+,[3]],to_s,[]]]]]]"
+    # got this instead
+    #   [[.,nil,puts,[[.,[.,tc + 3 = ,concat,[[.,tc,+,[3]]]],to_s,[]]]]]
+    
+    check_expression \
+      "puts((6 + 3).to_s)", 
+      "[[.,nil,puts,[[.,[.,6,+,[3]],to_s,[]]]]]"
+    
+    # failed
+    #check_expression \
+    #  "puts (6 + 3).to_s", 
+    #  "[[.,nil,puts,[[.,[.,6,+,[3]],to_s,[]]]]]"
   end
   def test_multiline_expression
     #(todo)#fix this bug, caused by \n
     #check_expression "x = 32 + 5\nputs x\n", "[[=,x,[+,32,5]],[.,nil,puts,[x]]"
-    
     
     source = <<EOS
 def tambah(a, b)
@@ -81,7 +96,7 @@ EOS
     check_expression \
       source, 
       [
-        ["def",nil,"tambah",["a","b"],[["+","a","b"]]], 
+        ["def",nil,"tambah",["a","b"],[[".","a","+",["b"]]]], 
         ["=","a",[".",nil,"tambah",["4","3"]]]
       ]
       
@@ -252,7 +267,7 @@ EOS
       source, 
       [
         ["=", "a", 2], 
-        ["if", [["==", "a", 2]], [["=", "x", "3"]]]
+        ["if", [[".", "a", "==", [2]]], [["=", "x", "3"]]]
       ]
       
     
@@ -271,7 +286,7 @@ EOS
       [
         ["=", "a", 2], 
         [
-          "if", [["==", "a", 2]],
+          "if", [[".", "a", "==", [2]]],
           [[".", nil, "puts", ["a == 2"]]], 
           [[".", nil, "puts", ["a != 2"]]]
         ]
@@ -295,11 +310,11 @@ EOS
       [
         ["=", "a", 2], 
         [
-          "if", [["==", "a", 2]], 
+          "if", [[".", "a", "==", [2]]], 
           [[".", nil, "puts", ["a == 2"]]], 
           [
             [
-              "elsif", [["==", "a", 3]], 
+              "elsif", [[".", "a", "==", [3]]], 
               [[".", nil, "puts", ["a == 3"]]],
               [[".", nil, "puts", ["a != 2, a != 3"]]]
             ]

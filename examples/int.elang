@@ -1,6 +1,7 @@
 a = 2800
-a = a + 5
-b = a.to_s
-puts(b)
-c = a.to_h
-puts(c)
+b = a + 5
+puts b.to_s
+puts b.to_h
+c = 4 + 3
+puts c.to_s
+puts((6 + 3).to_s)

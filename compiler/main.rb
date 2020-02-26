@@ -9,7 +9,7 @@ module Elang
       linker.load_library "#{ELANG_DIR}/libs/stdlib.bin"
       
       codeset = CodeSet.new
-      lib_source = FileSourceCode.new("#{ELANG_DIR}/libs/libs.rb")
+      lib_source = FileSourceCode.new("#{ELANG_DIR}/libs/libs.elang")
       usr_source = FileSourceCode.new(source_file)
       result = nil
       

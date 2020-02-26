@@ -2,7 +2,12 @@ module Elang
   class Function
     PREDEFINED_FUNCTION_NAMES =
       [
-        "initialize", "nil?", "to_s", "_get_byte_at", "_set_byte_at", "_get_word_at", "_set_word_at"
+        "+", "-", "*", "/", "&", "|", 
+        "+=", "-=", "*=", "/=", "&=", "|=", 
+        "==", "!=", "<", ">", "<=", ">=", 
+        "initialize", "super", "nil?", "to_s", 
+        "_get_byte_at", "_set_byte_at", 
+        "_get_word_at", "_set_word_at"
       ]
     
     @@index = 0

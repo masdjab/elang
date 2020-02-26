@@ -1,59 +1,41 @@
 require './compiler/exception'
+require './compiler/source_code'
 require './compiler/parser'
 require './compiler/lexer'
-
-=begin
-    source1 = <<EOS
-puts(3, 5)
-puts(_int_pack(2))
-d = "COMPUTING"
-puts(d.substr(1, 7))
-#puts(d.substr(1, 7).substr(2, 5))
-d.set_name("Bowo")
-#d.set_name "Bowo"  # parameter without brackets
-EOS
-    
-    sources = 
-      [
-        "a + b * c - d", 
-        "1 + (32 + p)", 
-        "x = 1 + (32 + p)", 
-        "a.b+c*d.e", 
-        "a.b(1)+c*d.e(2)", 
-        "a.b(1,2)+c*d.e(3,4)", 
-        "a = tambah(4, 3)", 
-        "x = p1.get(0).phone.substr(0, 2)", 
-        "puts(3, 5)", 
-        "puts(_int_pack(2))", 
-        "x = 32 + p * 5 - 4 & q * r / s + 1", 
-        "x = (32 + p) * (5 - 4) & q * r / s + 1", 
-        "x = (32 + p * (5 - sqrt(4))) & (q * r / s + 1)", 
-        "x = (32 + p) * (5 - 4) & q * r / s + 1", 
-        source1, 
-      ]
-      
-source = sources[12]
-tokens = Elang::Parser.new.parse(source)
-ast_nodes = Elang::Lexer.new.to_sexp_array(tokens)
-puts "code: #{source}"
-#puts "[[+,[+,a,b],c]]"
-puts Elang::Lexer.sexp_display(ast_nodes)
-=end
+require './compiler/code_generator'
 
 source = <<EOS
-a = 2
-
-if a == 2
-  puts("a == 2")
-#elsif a == 3
-#  puts("a == 3")
-else
-  puts("a != 2")
+class TestClass
+  def set_value(v)
+    @value = v
+  end
+  def value=(v)
+    @value = v
+  end
+  def value
+    @value
+  end
+  def +(v)
+    @value + v
+  end
 end
+
+tc = TestClass.new
+tc.value = 2
+tc.set_value(2)
+puts((tc + 3).to_s())
 EOS
 
-tokens = Elang::Parser.new.parse(source)
-ast_nodes = Elang::Lexer.new.to_sexp_array(tokens)
-puts "code: #{source}"
-puts
-puts Elang::Lexer.sexp_display(ast_nodes)
+#source = "tc.value = kita(sum), vx, 2"
+#source = "sum sum sum 2, sum 3, 4"
+#source = "p1.set_age 32"
+source = "p1.set_age 32#{$/}puts \"p1.age = \".concat p1.get_age.to_s"
+source = "puts \"tc + 3 = \".concat (tc + 3).to_s"
+puts source
+source  = Elang::StringSourceCode.new(source)
+parser  = Elang::Parser.new
+lexer   = Elang::Lexer.new
+tokens  = parser.parse(source)
+nodes   = lexer.to_sexp_array(tokens, source)
+
+puts Elang::Lexer.sexp_display(nodes)

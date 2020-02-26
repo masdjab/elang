@@ -128,16 +128,22 @@ module Elang
       _raw_token cpos, :identifier, text
     end
     def _parse_string
-      text = ""
-      cpos = @fetcher.pos
-      quote = @fetcher.element
+      text   = ""
+      cpos   = @fetcher.pos
+      quote  = @fetcher.element
+      escape = false
       
       while char = @fetcher.fetch
-        if (char == quote) && !text.empty?
+        if (char == quote) && !text.empty? && !escape
           text << char
+          escape = false
           break
+        elsif char == "\\"
+          text << char
+          escape = true
         else
           text << char
+          escape = false
         end
       end
       
@@ -193,6 +199,84 @@ module Elang
       
       _raw_token cpos, :number, text
     end
+    def _parse_plus
+      cpos = @fetcher.pos
+      text = @fetcher.fetch
+      type = :plus
+      
+      if @fetcher.element == "="
+        text << @fetcher.fetch
+        type = :plus_assign
+      end
+      
+      _raw_token cpos, type, text
+    end
+    def _parse_minus
+      cpos = @fetcher.pos
+      text = @fetcher.fetch
+      type = :minus
+      
+      if @fetcher.element == "="
+        text << @fetcher.fetch
+        type = :minus_assign
+      end
+      
+      _raw_token cpos, type, text
+    end
+    def _parse_star
+      cpos = @fetcher.pos
+      text = @fetcher.fetch
+      type = :star
+      
+      if @fetcher.element == "="
+        text << @fetcher.fetch
+        type = :star_assign
+      end
+      
+      _raw_token cpos, type, text
+    end
+    def _parse_slash
+      cpos = @fetcher.pos
+      text = @fetcher.fetch
+      type = :slash
+      
+      if @fetcher.element == "="
+        text << @fetcher.fetch
+        type = :slash_assign
+      end
+      
+      _raw_token cpos, type, text
+    end
+    def _parse_and
+      cpos = @fetcher.pos
+      text = @fetcher.fetch
+      type = :and
+      
+      if @fetcher.element == "="
+        text << @fetcher.fetch
+        type = :and_assign
+      elsif @fetcher.element == "&"
+        text << @fetcher.fetch
+        type = :andand
+      end
+      
+      _raw_token cpos, type, text
+    end
+    def _parse_or
+      cpos = @fetcher.pos
+      text = @fetcher.fetch
+      type = :or
+      
+      if @fetcher.element == "="
+        text << @fetcher.fetch
+        type = :or_assign
+      elsif @fetcher.element == "|"
+        text << @fetcher.fetch
+        type = :oror
+      end
+      
+      _raw_token cpos, type, text
+    end
     def _parse_not
       cpos = @fetcher.pos
       text = @fetcher.fetch
@@ -225,6 +309,9 @@ module Elang
       if @fetcher.element == "="
         text << @fetcher.fetch
         type = :le
+      elsif @fetcher.element == "<"
+        text << @fetcher.fetch
+        type = :lele
       end
       
       _raw_token cpos, type, text
@@ -237,13 +324,16 @@ module Elang
       if @fetcher.element == "="
         text << @fetcher.fetch
         type = :ge
+      elsif @fetcher.element == ">"
+        text << @fetcher.fetch
+        type = :gege
       end
       
       _raw_token cpos, type, text
     end
     def _parse_logical
       cpos = @fetcher.pos
-      tmap = {"&" => :and, "&&" => :dbland, "|" => :or, "||" => :dblor}
+      tmap = {"&" => :and, "&&" => :andand, "|" => :or, "||" => :oror}
       text = @fetcher.fetch
       
       if @fetcher.element == text
@@ -265,10 +355,6 @@ module Elang
           "]"   => :rsbrk, 
           "{"   => :lcbrk, 
           "}"   => :rcbrk, 
-          "+"   => :plus, 
-          "-"   => :minus, 
-          "*"   => :star, 
-          "/"   => :slash, 
           "\\"  => :bslash, 
           "?"   => :question, 
           "!"   => :exclamation, 
@@ -316,6 +402,18 @@ module Elang
           raw_tokens << _parse_string
         elsif NUMBERS.index(char)
           raw_tokens << _parse_number
+        elsif char == "+"
+          raw_tokens << _parse_plus
+        elsif char == "-"
+          raw_tokens << _parse_minus
+        elsif char == "*"
+          raw_tokens << _parse_star
+        elsif char == "/"
+          raw_tokens << _parse_slash
+        elsif char == "&"
+          raw_tokens << _parse_and
+        elsif char == "|"
+          raw_tokens << _parse_or
         elsif char == "!"
           raw_tokens << _parse_not
         elsif char == "="

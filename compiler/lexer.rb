@@ -8,6 +8,14 @@ module Elang
     # class responsibility:
     # convert from tokens to ast nodes
     
+    RESERVED_WORDS = 
+      [
+        "class", "def", "if", "elsif", "else", "end", "nil", "true", "false"
+      ]
+      
+    OPERATORS = 
+      ["+", "-", "*", "/", "&", "|", "+=", "-=", "*=", "/=", "&=", "|=", "==", "!=", "<", ">", "<=", ">=", "<<", ">>"]
+    
     attr_accessor :error_formatter
     
     private
@@ -20,7 +28,7 @@ module Elang
       if node
         raise ParsingError.new(msg, node.row, node.col, @source)
       else
-        raise ParsingError.new(msg)
+        raise ParsingError.new(msg, nil, nil, @source)
       end
     end
     def skip_linefeed(fetcher)
@@ -61,9 +69,9 @@ module Elang
       
       classname = ""
       if (name_node = fetcher.fetch).nil?
-        raize "Incomplete class definition", node
+        raize "Incomplete class definition", name_node
       elsif name_node.type != :identifier
-        raize "Expected class name", node
+        raize "Expected class name", name_node
       else
         class_name = name_node.text
       end
@@ -135,15 +143,8 @@ module Elang
             end
           end
         end
-      elsif name_node.text == "<"
-        if (node = fetcher.fetch).nil?
-          raize "Expected '<<', found '<'", node
-        elsif node.text != "<"
-          raize "Expected '<<', found '<'", node
-        else
-          name_node.type = :identifier
-          name_node.text += node.text
-        end
+      elsif OPERATORS.include?(name_node.text)
+        # accept function name
       elsif name_node.type == :identifier
         if node = fetcher.element
           if "?!=".index(node.text)
@@ -152,7 +153,7 @@ module Elang
           end
         end
       else
-        raize "Expected function name", name_node
+        raize "Expected function name, got #{name_node.inspect}", name_node
       end
       
       rcvr_node = nil
@@ -229,15 +230,97 @@ module Elang
         
         if (cmd = expr.cmd).type == :dot
           [cmd, rec, op1, op2]
-        else
+        elsif cmd.type == :assign
           [cmd, op1, op2]
+        else
+          dot_node = AstNode.new(cmd.row, cmd.col, :dot, ".")
+          cmd_node = AstNode.new(cmd.row, cmd.col, :identifier, cmd.text)
+          [dot_node, op1, cmd, [op2]]
         end
       else
         expr
       end
     end
+    def fetch_function_args(fetcher, prev_node)
+      output = []
+      types  = [:identifier, :number, :string]
+      
+      if !prev_node.nil? && prev_node.is_a?(AstNode) && (prev_node.type == :identifier) && !RESERVED_WORDS.include?(prev_node.text)
+        if !(cn = fetcher.element).nil? && types.include?(cn.type)
+          output << AstNode.new(nil, nil, :lbrk, "(")
+          
+          while node = fetcher.element
+            if node.type == :identifier
+              output << node = fetcher.fetch
+              output += fetch_function_args(fetcher, node)
+            elsif node.type == :comma
+              # do nothing
+              fetcher.fetch
+            elsif [:cr, :lf, :crlf].include?(node.type)
+              break
+            else
+              output << fetcher.fetch
+            end
+          end
+          
+          output << AstNode.new(nil, nil, :rbrk, ")")
+        end
+      end
+      
+      output
+    end
+    def prepare_nodes_1(fetcher)
+      output = []
+      
+      while node = fetcher.fetch
+        if node.type == :identifier
+          output << node
+          output += fetch_function_args(fetcher, node)
+        else
+          output << node
+        end
+      end
+      
+      output
+    end
+    def prepare_nodes_2(fetcher)
+      output = []
+      
+      while node = fetcher.fetch
+        if node.is_a?(Array)
+          output << node
+        elsif node.text == "@"
+          if (n1 = fetcher.element).nil? || !n1.is_a?(AstNode) || (n1.type != :identifier)
+            raize "Invalid syntax", node
+          else
+            n1 = fetcher.fetch
+            node.type = n1.type
+            node.text = node.text + n1.text
+            output << node
+          end
+        elsif node.text == "."
+          output << node
+          
+          if (n1 = fetcher.fetch).nil? || !n1.is_a?(AstNode) || (n1.type != :identifier)
+            raize "Invalid syntax => n1: #{n1.inspect}", output.last 
+          else
+            if !(n2 = fetcher.element).nil? && n2.is_a?(AstNode) && (n2.type == :assign)
+              n2 = fetcher.fetch
+              n1.text += n2.text
+            end
+            
+            output << n1
+            output += fetch_function_args(fetcher, n1)
+          end
+        else
+          output << node
+        end
+      end
+      
+      output
+    end
     def fetch_expressions(fetcher)
-      convert_expressions_to_nodes @shunting_yard.fetch_expressions(fetcher)
+      convert_expressions_to_nodes @shunting_yard.fetch_expressions(fetcher, @source)
     end
     def fetch_sexp(fetcher)
       sexp = []
@@ -268,32 +351,6 @@ module Elang
     end
     
     public
-    def self.convert_tokens_to_ast_nodes(tokens)
-      tokens.map{|x|AstNode.new(x.row, x.col, x.type, x.text)}
-    end
-    def self.find_and_merge_tokens(tokens, text)
-      loop do
-        index = nil
-        
-        if i = tokens.index{|x|x.text == text}
-          if next_token = tokens[i + 1]
-            if yield(next_token)
-              index = i
-              tokens.delete next_token
-              token = tokens[index]
-              token.type = next_token.type
-              token.text = token.text + next_token.text
-            end
-          end
-        end
-        
-        break if index.nil?
-      end
-    end
-    def self.optimize(tokens)
-      find_and_merge_tokens(tokens, "@"){|token|true}
-      tokens.reject{|x|[:whitespace, :comment].include?(x.type)}
-    end
     def self.sexp_display(sexp)
       if sexp.nil?
         "nil"
@@ -321,11 +378,32 @@ module Elang
         sexp.inspect
       end
     end
+    def convert_tokens_to_ast_nodes(tokens)
+      tokens.map{|x|AstNode.new(x.row, x.col, x.type, x.text)}
+    end
+    def find_tokens(tokens, text)
+      pat = text.is_a?(Array) ? text : [text]
+      cnt = pat.count
+      pos = 0
+      
+      while pos <= (tokens.count - cnt)
+        if (pos...(pos + cnt)).map{|x|tokens[x].text} == pat
+          yield pos
+        end
+        pos += 1
+      end
+    end
+    def prepare_nodes(tokens)
+      nodes = convert_tokens_to_ast_nodes(tokens)
+      nodes = nodes.reject{|x|[:whitespace, :comment].include?(x.type)}
+      nodes = prepare_nodes_1(FetcherV2.new(nodes))
+      nodes = prepare_nodes_2(FetcherV2.new(nodes))
+      nodes
+    end
     def to_sexp_array(tokens, source = nil)
       begin
         @source = source
-        tokens = self.class.optimize(tokens)
-        nodes = self.class.convert_tokens_to_ast_nodes(tokens)
+        nodes = prepare_nodes(tokens)
         nodes = fetch_sexp(FetcherV2.new(nodes))
       rescue Exception => e
         ExceptionHelper.show e, @error_formatter

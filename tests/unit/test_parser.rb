@@ -192,10 +192,10 @@ class TestParser < Test::Unit::TestCase
   def test_punctuations
     tests = 
       [
-        [".,:;()", [:dot, :comma, :colon, :semicolon, :lbrk, :rbrk]], 
-        ["[]{}+-*", [:lsbrk, :rsbrk, :lcbrk, :rcbrk, :plus, :minus, :star]], 
-        ["/\\?!@~`", [:slash, :bslash, :question, :exclamation, :at, :tilde, :bquote]], 
-        ["$%^|||&&&", [:dollar, :percent, :xor, :dblor, :or, :dbland, :and]]
+        [".,:;()",    [:dot, :comma, :colon, :semicolon, :lbrk, :rbrk]], 
+        ["[]{}+-*",   [:lsbrk, :rsbrk, :lcbrk, :rcbrk, :plus, :minus, :star]], 
+        ["/\\?!@~`",  [:slash, :bslash, :question, :exclamation, :at, :tilde, :bquote]], 
+        ["$%^|||&&&", [:dollar, :percent, :xor, :oror, :or, :andand, :and]]
       ]
       
     tests.each{|t|assert_equal t[1], _parse(t[0]).map{|x|x.type}}

@@ -23,6 +23,16 @@ module Elang
       }
     
     
+    def initialize
+      @source = nil
+    end
+    def raize(msg, node = nil)
+      if node
+        raise ParsingError.new(msg, node.row, node.col, @source)
+      else
+        raise ParsingError.new(msg, nil, nil, @source)
+      end
+    end
     def make_operations(rpns)
       operations = []
       
@@ -34,7 +44,7 @@ module Elang
               dot_node = AstNode.new(fnc_node.row, fnc_node.col, :dot, ".")
               operations << Operation.new(dot_node, fnc_node, rpn, nil)
             else
-              raise "Unexpected array #{rpn.inspect} after #{operations.last.inspect}"
+              raize "Unexpected array #{rpn.inspect} after #{operations.last.inspect}"
             end
           else
             operations << make_operations(rpn)
@@ -57,7 +67,7 @@ module Elang
         elsif rpn.is_a?(Operation)
           operations << rpn
         else
-          raise "Unexpected rpn type: #{rpn.class}"
+          raize "Unexpected rpn type: #{rpn.class}", rpn
         end
       end
       
@@ -89,7 +99,7 @@ module Elang
             elsif item.type == :lbrk
               identifier = fetcher.prev
               fetcher.fetch
-              sub_expression = fetch_expressions(fetcher)
+              sub_expression = parse_expression(fetcher)
               
               if !identifier.nil? && identifier.is_a?(AstNode) && (identifier.type == :identifier)
                 operations << sub_expression
@@ -110,6 +120,8 @@ module Elang
             else
               operations << fetcher.fetch
             end
+          else
+            operations << fetcher.fetch
           end
         rescue Exception => ex
           puts "operations: #{Lexer.sexp_display(operations)}"
@@ -119,8 +131,12 @@ module Elang
       
       (operations + stack)
     end
-    def fetch_expressions(fetcher)
+    def parse_expression(fetcher)
       make_operations make_expressions(fetcher)
+    end
+    def fetch_expressions(fetcher, source = nil)
+      @source = source
+      parse_expression(fetcher)
     end
   end
 end

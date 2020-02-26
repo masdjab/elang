@@ -84,38 +84,38 @@ class TestCodeGenerator < Test::Unit::TestCase
   def test_simple_numeric_operation
     # mov ax, 01h; mov cx, 02h; add ax, cx; mov mynum, ax
     check_code_result \
-      [[asn,idt("mynum"),[plus,num("1"),num("2")]]], \
-      bin("B8050050B8030050E8000050A1000050E8000058A30000"), 
+      [[asn,idt("mynum"),[dot,num("1"),plus,[num("2")]]]], \
+      bin("B8050050B8010050B8000050B8030050E8000050A1000050E8000058A30000"), 
       ""
       
     # mov ax, 01h; mov cx, 02h; sub ax, cx; mov mynum, ax
     check_code_result \
-      [[asn,idt("mynum"),[minus,num("1"),num("2")]]], \
-      bin("B8050050B8030050E8000050A1000050E8000058A30000"), 
+      [[asn,idt("mynum"),[dot,num("1"),minus,[num("2")]]]], \
+      bin("B8050050B8010050B8000050B8030050E8000050A1000050E8000058A30000"), 
       ""
     
     # mov ax, 01h; mov cx, 02h; mul ax, cx; mov mynum, ax
     check_code_result \
-      [[asn,idt("mynum"),[star,num("1"),num("2")]]], \
-      bin("B8050050B8030050E8000050A1000050E8000058A30000"), 
+      [[asn,idt("mynum"),[dot,num("1"),star,[num("2")]]]], \
+      bin("B8050050B8010050B8000050B8030050E8000050A1000050E8000058A30000"), 
       ""
     
     # mov ax, 01h; mov cx, 02h; div ax, cx; mov mynum, ax
     check_code_result \
-      [[asn,idt("mynum"),[slash,num("1"),num("2")]]], \
-      bin("B8050050B8030050E8000050A1000050E8000058A30000"), 
+      [[asn,idt("mynum"),[dot,num("1"),slash,[num("2")]]]], \
+      bin("B8050050B8010050B8000050B8030050E8000050A1000050E8000058A30000"), 
       ""
     
     # mov ax, 01h; mov cx, 02h; and ax, cx; mov mynum, ax
     check_code_result \
-      [[asn,idt("mynum"),[pand,num("1"),num("2")]]], \
-      bin("B8050050B8030050E8000050A1000050E8000058A30000"), 
+      [[asn,idt("mynum"),[dot,num("1"),pand,[num("2")]]]], \
+      bin("B8050050B8010050B8000050B8030050E8000050A1000050E8000058A30000"), 
       ""
     
     # mov ax, 01h; mov cx, 02h; or ax, cx; mov mynum, ax
     check_code_result \
-      [[asn,idt("mynum"),[por,num("1"),num("2")]]], \
-      bin("B8050050B8030050E8000050A1000050E8000058A30000"), 
+      [[asn,idt("mynum"),[dot,num("1"),por,[num("2")]]]], \
+      bin("B8050050B8010050B8000050B8030050E8000050A1000050E8000058A30000"), 
       ""
     
     # mov ax, 0; mov v1, ax
@@ -125,9 +125,9 @@ class TestCodeGenerator < Test::Unit::TestCase
       [
         [asn,idt("v1"),num("18")], 
         [asn,idt("v2"),num("52")], 
-        [asn,idt("mynum"),[plus,idt("v1"),idt("v2")]]
+        [asn,idt("mynum"),[dot,idt("v1"),plus,[idt("v2")]]]
       ], \
-      bin("B8250050A1000050E8000058A30000B8690050A1000050E8000058A30000A1000050A1000050E8000050A1000050E8000058A30000"), 
+      bin("B8250050A1000050E8000058A30000B8690050A1000050E8000058A30000A1000050B8010050B8000050A1000050E8000050A1000050E8000058A30000"), 
       ""
   end
   def test_simple_string_operation
@@ -196,13 +196,13 @@ class TestCodeGenerator < Test::Unit::TestCase
         [
           idt("def"),nil,idt("tambah"),fnp("a","b"),
           [
-            [plus,idt("a"),idt("b")]
+            [dot,idt("a"),plus,[idt("b")]]
           ]
         ], 
         [asn,idt("a"),[idt("tambah"),[num("4"),num("3")]]]
       ], 
       bin("B8070050B8090050E8000050A1000050E8000058A30000"), 
-      bin("5589E58B4600508B460050E800005DC20400")
+      bin("5589E58B460050B8010050B80000508B460050E800005DC20400")
     
     # mov ax, 03h; push ax; call multiply_by_two
     codeset = 

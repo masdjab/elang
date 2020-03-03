@@ -50,27 +50,7 @@ module Elang
       end
     end
     def create_hash(values)
-      fetcher = NodeFetcher.new(values)
-      t_hash = []
-      
-      while fetcher.check
-        k = fetcher.fetch
-        m = fetcher.fetch
-        v = fetcher.fetch
-        
-        if k.nil?
-          raize "Expected hash key", fetcher.last
-        elsif m.nil?
-          raize "Expected '=>'", fetcher.last
-        elsif v.nil?
-          raize "Expected hash value", fetcher.last
-        else
-          t_hash << k
-          t_hash << v
-        end
-      end
-      
-      Lex::Hash.new(t_hash)
+      Lex::Hash.new(values.inject([]){|a,b|a += [b[0], b[2]];a})
     end
     def fetch_end(fetcher)
       if (end_node = fetcher.fetch).nil? || !end_node.is_a?(Lex::Node)
@@ -509,10 +489,6 @@ module Elang
     end
     def self.sexp_to_a(sexp)
       Lex::Node.any_to_a sexp
-    end
-    def self.sexp_display(sexp)
-      # deprecated. use self.sexp_to_s instead
-      sexp_to_s sexp
     end
     def convert_tokens_to_lex_nodes(tokens)
       tokens.map{|x|Lex::Node.new(x.row, x.col, x.type, x.text)}

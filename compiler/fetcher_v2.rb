@@ -13,8 +13,9 @@ module Elang
     def eob?
       @pos == @len - 1
     end
-    def element
-      !empty? && (0...@len).include?(@pos) ? @items[@pos] : nil
+    def element(at = nil)
+      at = at ? at : @pos
+      !empty? && (0...@len).include?(at) ? @items[at] : nil
     end
     def next
       !empty? && !eob? ? @items[@pos + 1] : nil

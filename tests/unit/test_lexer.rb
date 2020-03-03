@@ -13,10 +13,10 @@ class TestLexer < Test::Unit::TestCase
     source = Elang::StringSourceCode.new(expression)
     tokens = @parser.parse(source)
     ast_nodes = @lexer.to_sexp_array(tokens, source)
-    display = Elang::Lexer.sexp_display(ast_nodes)
+    display = Elang::Lexer.sexp_to_s(ast_nodes)
     
     if expected.is_a?(Array)
-      expected = Elang::Lexer.sexp_display(expected)
+      expected = Elang::Lexer.sexp_to_s(expected)
     end
     
     assert_equal expected, display
@@ -104,6 +104,14 @@ class TestLexer < Test::Unit::TestCase
     check_expression \
       "def self.hitung(text)\r\nx = mid(text, sqrt(2), 4)\r\nend", 
       [["def","self","hitung",["text"],[[".","x","=",[[".",nil,"mid",["text",[".",nil,"sqrt",["2"]],"4"]]]]]]]
+    
+    check_expression \
+      "a = [1,2,3]\r\nb = a[1]\r\na[1] = 2\r\n", 
+      "[[.,a,=,[[1,2,3]]],[.,b,=,[[.,a,[],[1]]]],[.,a,[]=,[1,2]]]"
+    
+    check_expression \
+      "a = {'a' => 1, 'b' => 2, 'c' => 3}", 
+      "[[.,a,=,[[a,1,b,2,c,3]]]]"
   end
   def test_multiline_expression
     #(todo)#fix this bug, caused by \n

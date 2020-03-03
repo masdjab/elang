@@ -10,17 +10,19 @@ module Elang
         while skip && !(node = element(fpos)).nil?
           skip = false
           
-          if (node.type == :whitespace) && skip_space && (list.empty? || (list.last.type == :whitespace))
-            fpos = fpos + 1
-            skip = true
-          end
-          if [:cr, :lf, :crlf].include?(node.type) && skip_crlf
-            fpos = fpos + 1
-            skip = true
-          end
-          if (node.type == :comment) && skip_comment
-            fpos = fpos + 1
-            skip = true
+          if node.is_a?(Lex::Node)
+            if (node.type == :whitespace) && skip_space && (list.empty? || (list.last.is_a?(Lex::Node) && (list.last.type == :whitespace)))
+              fpos = fpos + 1
+              skip = true
+            end
+            if [:cr, :lf, :crlf].include?(node.type) && skip_crlf
+              fpos = fpos + 1
+              skip = true
+            end
+            if (node.type == :comment) && skip_comment
+              fpos = fpos + 1
+              skip = true
+            end
           end
         end
         
@@ -42,17 +44,19 @@ module Elang
         while skip && !node.nil?
           skip = false
           
-          if (node.type == :whitespace) && skip_space && (list.empty? || (list.last.type == :whitespace))
-            node = super()
-            skip = true
-          end
-          if [:cr, :lf, :crlf].include?(node.type) && skip_crlf
-            node = super()
-            skip = true
-          end
-          if (node.type == :comment) && skip_comment
-            node = super()
-            skip = true
+          if node.is_a?(Lex::Node)
+            if (node.type == :whitespace) && skip_space && (list.empty? || (list.last.is_a?(Lex::Node) && (list.last.type == :whitespace)))
+              node = super()
+              skip = true
+            end
+            if [:cr, :lf, :crlf].include?(node.type) && skip_crlf
+              node = super()
+              skip = true
+            end
+            if (node.type == :comment) && skip_comment
+              node = super()
+              skip = true
+            end
           end
         end
         

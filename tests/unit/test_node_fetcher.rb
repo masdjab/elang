@@ -9,10 +9,11 @@ require 'test-unit'
 
 class TestNodeFetcher < Test::Unit::TestCase
   def create_fetcher(source)
-    source = Elang::StringSourceCode.new(source)
-    parser = Elang::Parser.new
-    tokens = parser.parse(source)
-    fetcher = Elang::NodeFetcher.new(tokens)
+    source  = Elang::StringSourceCode.new(source)
+    parser  = Elang::Parser.new
+    tokens  = parser.parse(source)
+    nodes   = Elang::Lexer.convert_tokens_to_lex_nodes(tokens)
+    fetcher = Elang::NodeFetcher.new(nodes)
   end
   def check(source, count = 1, skip_space = true, skip_crlf = false, skip_comment = true)
     fetcher = create_fetcher(source)

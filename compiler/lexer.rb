@@ -490,7 +490,7 @@ module Elang
     def self.sexp_to_a(sexp)
       Lex::Node.any_to_a sexp
     end
-    def convert_tokens_to_lex_nodes(tokens)
+    def self.convert_tokens_to_lex_nodes(tokens)
       tokens.map{|x|Lex::Node.new(x.row, x.col, x.type, x.text)}
     end
     def find_tokens(tokens, text)
@@ -508,7 +508,7 @@ module Elang
     def to_sexp_array(tokens, source = nil)
       begin
         @source = source
-        nodes = convert_tokens_to_lex_nodes(tokens)
+        nodes = self.class.convert_tokens_to_lex_nodes(tokens)
         nodes = fetch_sexp(NodeFetcher.new(nodes))
       rescue Exception => e
         ExceptionHelper.show e, @error_formatter

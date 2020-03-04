@@ -22,6 +22,9 @@ module Elang
       tokens = parser.parse(source)
       
       if nodes = lexer.to_sexp_array(tokens, source)
+if source.file_name != "../libs/libs.elang"
+  puts Lexer.sexp_to_s(nodes)
+end
         codegen = Elang::CodeGenerator.new
         codegen.generate_code(nodes, codeset, source)
       else

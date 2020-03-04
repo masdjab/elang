@@ -16,7 +16,7 @@ class TestShuntingYard < Test::Unit::TestCase
     sy = Elang::ShuntingYard.new
     lx = Elang::Lexer.new
     tt = @parser.parse(Elang::StringSourceCode.new(exp))
-    nn = lx.convert_tokens_to_lex_nodes(tt)
+    nn = Elang::Lexer.convert_tokens_to_lex_nodes(tt)
     rr = sy.process(nn)
     Elang::Lexer.sexp_to_s(rr)
   end

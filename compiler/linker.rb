@@ -49,14 +49,10 @@ module Elang
       codeset.symbols.items.each do |s|
         if s.is_a?(Constant)
           text = s.value
-          
-          if (text[0] == text[-1]) && ("\"'".index(text[0]))
-            text = text[1...-1]
-            text = text.gsub("\\r", "\r")
-            text = text.gsub("\\n", "\n")
-            text = text.gsub("\\t", "\t")
-            text = text.gsub("\\\"", "\"")
-          end
+          text = text.gsub("\\r", "\r")
+          text = text.gsub("\\n", "\n")
+          text = text.gsub("\\t", "\t")
+          text = text.gsub("\\\"", "\"")
           
           lgth = text.length
           cons[s.name] = {text: text, length: lgth, offset: offs}

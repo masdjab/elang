@@ -1,3 +1,5 @@
+require './compiler/lex'
+require './compiler/shunting_yard'
 require './compiler/constant'
 require './compiler/class'
 require './compiler/function'
@@ -133,7 +135,7 @@ module Elang
       add_function_ref get_sys_function(OPERATION_MAP[meth_name]), code_len + 1
       append_code hex2bin("E80000")
     end
-    def register_local_variable(name)
+    def register_variable(name)
       receiver = Elang::Variable.new(current_scope, name)
       @codeset.symbols.add receiver
       receiver
@@ -201,7 +203,7 @@ module Elang
       
       append_code hex2bin(hex_code.join)
     end
-    def get_variable(node)
+    def get_value(node)
       active_scope = current_scope
       
       if node.type == :identifier
@@ -254,7 +256,7 @@ module Elang
         get_string_object node.text
       end
     end
-    def set_variable(name)
+    def set_value(name)
       if (symbol = @codeset.symbols.find_nearest(active_scope = current_scope, name)).nil?
         raize "Cannot set value to '#{name}' , symbol not defined in scope '#{active_scope.to_s}'"
       elsif symbol.is_a?(FunctionParameter)
@@ -303,50 +305,24 @@ module Elang
       elsif node.type == :string
         get_string_object node.text
       else
-        get_variable node
+        get_value node
       end
     end
     def prepare_arguments(arguments)
-      (0...arguments.count).map{|x|x}.reverse.each do |i|
-        prepare_operand arguments[i]
+      args = arguments.is_a?(Array) ? arguments : [arguments]
+      
+      (0...args.count).map{|x|x}.reverse.each do |i|
+        handle_any args[i]
         append_code hex2bin("50")
       end
-    end
-    def handle_expression(node)
-      if node.is_a?(Array)
-        if node.count > 1
-          raise "This block should not be called (planned to be deleted)"
-          prepare_operand node[2]
-          append_code hex2bin("50")
-          prepare_operand node[1]
-          append_code hex2bin("50")
-          invoke_operation node[0].type
-        else
-          prepare_operand node[0]
-        end
-      elsif node.type == :identifier
-        if !(fn = @codeset.symbols.find_nearest(current_scope, node.text)).nil? && (fn.is_a?(Function))
-          handle_function_call [node, []]
-        elsif SYS_FUNCTIONS.find{|x|x.name == node.text}
-          handle_function_call [node, []]
-        else
-          prepare_operand node
-        end
-      else
-        prepare_operand node
-      end
-    end
-    def handle_assignment(node)
-      prepare_operand node[2]
-      set_variable node[1].text
     end
     def handle_function_def(node)
       active_scope = current_scope
       
-      rcvr_name = node[1] ? node[1].text : active_scope.cls
-      func_name = node[2].text
-      func_args = node[3]
-      func_body = node[4]
+      rcvr_name = node.receiver ? node.receiver.text : active_scope.cls
+      func_name = node.name.text
+      func_args = node.params
+      func_body = node.body
       
       #(todo)#count local_var_count
       enter_scope Scope.new(active_scope.cls, func_name)
@@ -404,119 +380,127 @@ module Elang
       leave_scope
     end
     def handle_function_call(node)
-      func_name = node[0].text
+      name_node = node.cmd
+      func_name = name_node.text
+      func_args = node.args
       
       if get_sys_function(func_name)
-        prepare_arguments node[1]
+        prepare_arguments func_args
         add_function_ref SystemFunction.new(func_name), code_len + 1
         append_code hex2bin("E80000")
       elsif function = @codeset.symbols.find_function(func_name)
-        prepare_arguments node[1]
+        prepare_arguments func_args
         add_function_ref function, code_len + 1
         append_code hex2bin("E80000")
       else
-        raize "Call to undefined function '#{func_name}'", node[0]
+        raize "Call to undefined function '#{func_name}'", name_node
       end
     end
     def handle_send(node)
       # [., receiver, name, args]
       
       active_scope = current_scope
-      rcvr_node = node[1]
-      func_name = node[2].text
-      func_args = node[3] ? node[3] : []
+      rcvr_node = node.receiver
+      cmnd_node = node.cmd
+      args_node = node.args
       
-      if func_name == "new"
-        cls_name = rcvr_node.text
-        
-        if (cls = @codeset.symbols.items.find{|x|x.is_a?(Class) && (x.name == cls_name)}).nil?
-          raize "Class '#{cls_name}' not defined", rcvr_node
-        else
-          ct = CodesetTool.new(@codeset)
-          iv = ct.get_instance_variables(cls)
-          sz = Utils::Converter.int_to_whex_rev(iv.count)
-          ci = Utils::Converter.int_to_whex_rev(CodesetTool.create_class_id(cls))
-          hc = "B8#{sz}50B8#{ci}50E80000"
-          
-          add_function_ref get_sys_function("_alloc_object"), code_len + 9
-          append_code hex2bin(hc)
-        end
+      if cmnd_node.type == :assign
+        handle_any args_node
+        set_value rcvr_node.text
       else
-        if rcvr_node.nil?
-          func_sym = @codeset.symbols.find_nearest(active_scope, func_name)
+        if (cmnd_node.type == :identifier) && (cmnd_node.text == "new")
+          cls_name = rcvr_node.text
           
-          if func_sym.nil? 
-            func_sym = get_sys_function(func_name)
-          end
-          
-          if active_scope.cls.nil?
-            is_obj_method = false
-          elsif func_sym.nil?
-            raize "Undefined function '#{func_name}' in scope '#{active_scope.to_s}'", node[2]
-          elsif func_sym.is_a?(Function)
-            is_obj_method = func_sym.scope.cls == active_scope.cls
-          elsif func_sym.is_a?(SystemFunction)
-            is_obj_method = false
+          if (cls = @codeset.symbols.items.find{|x|x.is_a?(Class) && (x.name == cls_name)}).nil?
+            raize "Class '#{cls_name}' not defined", rcvr_node
           else
-            raize "Unknown error when handling handle_send for function '#{func_name}' in scope '#{active_scope.to_s}'.", node[2]
+            ct = CodesetTool.new(@codeset)
+            iv = ct.get_instance_variables(cls)
+            sz = Utils::Converter.int_to_whex_rev(iv.count)
+            ci = Utils::Converter.int_to_whex_rev(CodesetTool.create_class_id(cls))
+            hc = "B8#{sz}50B8#{ci}50E80000"
+            
+            add_function_ref get_sys_function("_alloc_object"), code_len + 9
+            append_code hex2bin(hc)
           end
         else
-          is_obj_method = true
-        end
-        
-        if !is_obj_method
-          handle_function_call node[2..3]
-        else
-          prepare_arguments func_args
+          func_name = cmnd_node.text
+          func_args = args_node ? args_node : []
           
-          # push args count
-          append_code hex2bin("B8" + Utils::Converter.int_to_whex_rev(func_args.count) + "50")
-          
-          # push object method id
-          function_id = FunctionId.new(current_scope, func_name)
-          add_function_id_ref function_id, code_len + 1
-          append_code hex2bin("B8000050")
-          
-          # push receiver object
           if rcvr_node.nil?
-            if active_scope.cls.nil?
-              raize "Send without receiver", rcvr_node
-            else
-              append_code hex2bin("8B460450")
+            func_sym = @codeset.symbols.find_nearest(active_scope, func_name)
+            
+            if func_sym.nil? 
+              func_sym = get_sys_function(func_name)
             end
-          elsif rcvr_node.is_a?(Array)
-            handle_send rcvr_node
-            append_code hex2bin("50")
+            
+            if active_scope.cls.nil?
+              is_obj_method = false
+            elsif func_sym.nil?
+              raize "Undefined function '#{func_name}' in scope '#{active_scope.to_s}'", node[2]
+            elsif func_sym.is_a?(Function)
+              is_obj_method = func_sym.scope.cls == active_scope.cls
+            elsif func_sym.is_a?(SystemFunction)
+              is_obj_method = false
+            else
+              raize "Unknown error when handling handle_send for function '#{func_name}' in scope '#{active_scope.to_s}'.", node[2]
+            end
           else
-            get_variable rcvr_node
-            append_code hex2bin("50")
+            is_obj_method = true
           end
           
-          # call _send_to_object
-          add_function_ref get_sys_function("_send_to_object"), code_len + 1
-          append_code hex2bin("E80000")
+          if !is_obj_method
+            handle_function_call node
+          else
+            prepare_arguments func_args
+            
+            # push args count
+            args_count = func_args.is_a?(Array) ? func_args.count : 1
+            append_code hex2bin("B8" + Utils::Converter.int_to_whex_rev(args_count) + "50")
+            
+            # push object method id
+            function_id = FunctionId.new(current_scope, func_name)
+            add_function_id_ref function_id, code_len + 1
+            append_code hex2bin("B8000050")
+            
+            # push receiver object
+            if rcvr_node.nil?
+              if active_scope.cls.nil?
+                raize "Send without receiver", rcvr_node
+              else
+                append_code hex2bin("8B460450")
+              end
+            else
+              handle_any rcvr_node
+              append_code hex2bin("50")
+            end
+            
+            # call _send_to_object
+            add_function_ref get_sys_function("_send_to_object"), code_len + 1
+            append_code hex2bin("E80000")
+          end
         end
       end
     end
-    def handle_class_def(nodes)
-      cls_name = nodes[1].text
-      cls_prnt = nodes[2] ? nodes[2].text : nil
+    def handle_class_def(node)
+      cls_name = node.name.text
+      cls_prnt = node.parent ? node.parent.text : nil
       
       enter_scope Scope.new(cls_name)
-      handle_any nodes[3]
+      handle_any node.body
       leave_scope
     end
-    def handle_if(nodes)
-      cond_node = nodes[1]
-      exp1_node = nodes[2]
-      exp2_node = nodes.count > 3 ? nodes[3] : nil
+    def handle_if(node)
+      cond_node = node.condition
+      exp1_node = node.body1
+      exp2_node = node.body2
       
-      handle_expression cond_node
+      handle_any cond_node
       
       offset1 = code_len
       append_code hex2bin("50E800000F850000")
       
-      handle_expression exp1_node
+      handle_any exp1_node
       
       if !exp2_node.nil?
         offset2 = code_len
@@ -533,98 +517,93 @@ module Elang
       
       add_function_ref get_sys_function("_is_true"), offset1 + 2
     end
-    def handle_any(nodes)
-      nodes.each do |node|
-        if node.is_a?(Array)
-          if !(first_node = node[0]).is_a?(Elang::AstNode)
-            raize "Expected identifier, #{first_node} given", node
-          elsif first_node.type == :assign
-            handle_assignment node
-          elsif first_node.type == :dot
-            handle_send node
-          elsif first_node.type == :identifier
-            if first_node.text == "def"
-              handle_function_def node
-            elsif first_node.text == "class"
-              handle_class_def node
-            elsif ["if", "elsif"].include?(first_node.text)
-              handle_if node
-            elsif first_node.text.index("@@")
-              register_class_variable first_node.text
-              get_variable first_node
-            elsif first_node.text.index("@")
-              register_instance_variable first_node.text
-              get_variable first_node
-            elsif ["self"].include?(first_node.text)
-              # ignore this
-            elsif get_sys_function(first_node.text)
+    def handle_any(node)
+      if node.is_a?(Array)
+        node.each{|x|handle_any(x)}
+      elsif node.is_a?(Lex::Send)
+        handle_send node
+      elsif node.is_a?(Lex::Function)
+        handle_function_def node
+      elsif node.is_a?(Lex::Class)
+        handle_class_def node
+      elsif node.is_a?(Lex::IfBlock)
+        handle_if node
+      elsif node.is_a?(Lex::Node)
+        if node.type == :identifier
+          if ["false", "true", "nil"].include?(node.text)
+            get_value node
+          elsif node.text.index("@@")
+            register_class_variable node.text
+            get_value node
+          elsif node.text.index("@")
+            register_instance_variable node.text
+            get_value node
+          elsif ["self"].include?(node.text)
+            # ignore this
+          elsif get_sys_function(node.text)
+            handle_function_call Lex::Send.new(nil, node, [])
+          else
+            if (smbl = @codeset.symbols.find_nearest(current_scope, node.text)).nil?
+              raize "Call to undefined function '#{node.text}' from scope '#{current_scope.to_s}'", node
+            elsif smbl.is_a?(Function)
               handle_function_call node
             else
-              if (function = @codeset.symbols.find_nearest(current_scope, first_node.text)).nil?
-                raize "Call to undefined function '#{first_node.text}' from scope '#{current_scope.to_s}'", first_node
-              elsif !function.is_a?(Function)
-                raize "Call to non-function '#{first_node.text}'", first_node
-              else
-                handle_function_call node
-              end
+              get_value node
             end
-          else
-            handle_expression node
           end
-        else
-          handle_expression node
+        elsif [:string, :number].include?(node.type)
+          get_value node
         end
+      elsif node.is_a?(Lex::Values)
+        node.items.each{|i|handle_any(i)}
+      else
+        raise "Unexpected node: #{node.inspect}"
       end
     end
-    def detect_names(nodes)
-      nodes.each do |node|
-        if node.is_a?(Array)
-          if (first_node = node[0]).is_a?(Array)
-            detect_names first_node
-          elsif first_node.type == :identifier
-            if first_node.text == "def"
-              active_scope = current_scope
-              rcvr_name = node[1] ? node[1].text : nil
-              func_name = node[2].text
-              func_args = node[3]
-              func_body = node[4]
-              
-              if !active_scope.fun.nil?
-                raize "Function cannot be nested", first_node
-              else
-                function = register_function(active_scope, rcvr_name, func_name, func_args)
-                enter_scope Scope.new(active_scope.cls, func_name)
-                
-                (0...func_args.count).each do |i|
-                  param = FunctionParameter.new(current_scope, func_args[i].text, i)
-                  @codeset.symbols.add param
-                end
-                
-                detect_names func_body
-                leave_scope
-              end
-            elsif first_node.text == "class"
-              cls_name = node[1].text
-              cls_parent = node[2] ? node[2].text : nil
-              cls_body = node[3]
-              
-              if !(active_scope = current_scope).cls.nil?
-                raize "Class cannot be nested", first_node
-              else
-                cls_object = register_class(cls_name, cls_parent)
-                enter_scope Scope.new(cls_name)
-                detect_names cls_body
-                leave_scope
-              end
-            end
-          elsif first_node.type == :assign
-            left_var = node[1]
+    def detect_names(node)
+      if node.is_a?(Array)
+        node.each{|x|detect_names(x)}
+      elsif node.is_a?(Lex::Function)
+        active_scope = current_scope
+        rcvr_name = node.receiver ? node.receiver.text : nil
+        func_name = node.name.text
+        func_args = node.params
+        func_body = node.body
+        
+        if !active_scope.fun.nil?
+          raize "Function cannot be nested", node
+        else
+          function = register_function(active_scope, rcvr_name, func_name, func_args)
+          enter_scope Scope.new(active_scope.cls, func_name)
+          
+          (0...func_args.count).each do |i|
+            param = FunctionParameter.new(current_scope, func_args[i].text, i)
+            @codeset.symbols.add param
+          end
+          
+          detect_names func_body
+          leave_scope
+        end
+      elsif node.is_a?(Lex::Class)
+        cls_name = node.name.text
+        cls_parent = node.parent ? node.parent.text : nil
+        cls_body = node.body
+        
+        if !(active_scope = current_scope).cls.nil?
+          raize "Class cannot be nested", node
+        else
+          cls_object = register_class(cls_name, cls_parent)
+          enter_scope Scope.new(cls_name)
+          detect_names cls_body
+          leave_scope
+        end
+      elsif node.is_a?(Lex::Send)
+        left_var = node.receiver
+        active_scope = current_scope
+        
+        if left_var.is_a?(Elang::Lex::Node)
+          if left_var.type == :identifier
             var_name = left_var.text
-            active_scope = current_scope
-            
-            if !left_var.is_a?(Elang::AstNode) || (left_var.type != :identifier)
-              raize "Left operand for assignment must be a symbol, #{left_var.inspect} given", left_var
-            end
             
             if (receiver = @codeset.symbols.find_nearest(active_scope, var_name)).nil?
               if var_name.index("@@") == 0
@@ -635,14 +614,13 @@ module Elang
                 receiver = register_instance_variable(var_name)
               else
                 # local variable
-                receiver = register_local_variable(var_name)
+                receiver = register_variable(var_name)
               end
             end
           end
-        else
-          # case examples:
-          # @name
         end
+        
+        detect_names node.args
       end
     end
     

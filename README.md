@@ -15,10 +15,10 @@ Elang is a programming language written in Ruby. It has Ruby like syntax, but co
 Ruby (v2.6+ recommended)
 
 ## Compiling and Running Example Codes
-To compile an Elang source code from example directory, type:
-`ruby elang.rb examples/person.elang`
-
-To run compiled output, type:
+To compile an Elang source code from example directory, type:<br/>
+`ruby elang.rb examples/person.elang`<br/>
+<br/>
+To run compiled output, type:<br/>
 `person.com`
 
 ## Code Examples

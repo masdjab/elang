@@ -1,28 +1,28 @@
 class Person
-  def set_age(age)
-    @age = age
-  end
-  def get_age
+  def age
     @age
+  end
+  def age=(age)
+    @age = age
   end
 end
 
 class Programmer < Person
-  def set_lang(lang)
-    @lang = lang
-  end
-  def get_lang
+  def lang
     @lang
+  end
+  def lang=(lang)
+    @lang = lang
   end
 end
 
 
 p1 = Person.new
-p1.set_age 32
-puts "p1.age = " + p1.get_age.to_s
+p1.age = 32
+puts "p1.age = " + p1.age.to_s
 
 p2 = Programmer.new
-p2.set_age 21
-p2.set_lang "Ruby"
-puts "p2.age = " + p2.get_age.to_s
-puts "p2.lang = " + p2.get_lang
+p2.age = 21
+p2.lang = "Ruby"
+puts "p2.age = " + p2.age.to_s
+puts "p2.lang = " + p2.lang

@@ -1,16 +1,20 @@
 class TestClass
-  def set_value(v)
+  def value=(v)
     @value = v
   end
   def value
     @value
   end
-  def +(v)
+  def add(v)
     _int_pack(_int_add(_int_unpack(@value), _int_unpack(v)))
+  end
+  def +(v)
+    _int_pack _int_add _int_unpack(@value), _int_unpack v
   end
 end
 
 tc = TestClass.new
-tc.set_value 2
-puts "tc.value = ".concat tc.value.to_s
-puts "tc + 3 = ".concat((tc + 3).to_s)
+tc.value = 2
+puts "tc.value = " + tc.value.to_s
+puts "tc.add(3) = " + tc.add(3).to_s
+puts "tc + 3 = " + (tc + 3).to_s

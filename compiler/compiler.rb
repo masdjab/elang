@@ -3,15 +3,13 @@ require_relative 'file_info'
 require_relative 'source_code'
 require_relative 'parser'
 require_relative 'lexer'
-require_relative 'codeset_base'
-require_relative 'codeset_binary'
-require_relative 'base_language'
-require_relative 'assembly_instruction'
-require_relative 'machine_language'
+require_relative 'assembly/instruction'
+require_relative 'codeset/_load'
+require_relative 'language/_load'
 require_relative 'scope'
 require_relative 'scope_stack'
 require_relative 'code_generator'
-require_relative 'symbols'
+require_relative 'symbol/_load'
 require_relative 'linker'
 
 
@@ -93,8 +91,8 @@ module Elang
     def generate_output_file(symbols, nodes)
       linker = Elang::Linker.new
       linker.load_library get_lib_file("stdlib.bin")
-      codeset = BinaryCodeSet.new
-      codegen = Elang::CodeGenerator.new(MachineLanguage.new(symbols, codeset))
+      codeset = Codeset::Binary.new
+      codegen = Elang::CodeGenerator.new(Language::Machine.new(symbols, codeset))
       success = false
       
       delete_output_file @output_file.full

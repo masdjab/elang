@@ -1,6 +1,5 @@
 require_relative 'lex'
 require_relative 'node_fetcher'
-require_relative 'ast_node'
 require_relative 'operation'
 require_relative 'shunting_yard'
 

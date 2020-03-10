@@ -34,7 +34,7 @@ puts "4 + 3 = " + add(4, 3).to_s
 ```
 
 Output:
-4 + 3 = 7
+```4 + 3 = 7```
 
 ### escape.elang
 ```
@@ -43,10 +43,12 @@ puts "Text \"with\" tab\tcharacter"
 ```
 
 Output:
+```
 Text "with" linefeed
   Second text
   Third text
 Text "with" tab character
+```
 
 ### fn_name.elang
 ```
@@ -119,6 +121,7 @@ puts "tc[2] = 3 = " + (tc[2] = 3).to_s
 ```
 
 Output:
+```
 tc.value = 5
 tc.empty! = 51
 tc.empty? = 52
@@ -133,6 +136,7 @@ tc << 2 = 10
 tc >> 2 = 2
 tc[2] = 53
 tc[2] = 3 = 54
+```
 
 ### if1.elang
 ```
@@ -153,11 +157,13 @@ end
 ```
 
 Output:
+```
 false
 true
 true
 false
 a == 3
+```
 
 ### int.elang
 ```
@@ -171,10 +177,12 @@ puts (6 + 3).to_s
 ```
 
 Output:
+```
 2805
 0AF5
 7
 9
+```
 
 ### numeric_operations.elang
 ```
@@ -190,10 +198,12 @@ puts "d = c * 2 = " + d.to_s
 ```
 
 Output:
+```
 a = 21 + 3 = 24
 b = a - 3 = 21
 c = b / 7 = 3
 d = c * 2 = 6
+```
 
 ### object.elang
 ```
@@ -236,12 +246,14 @@ puts Programmer.new.to_s
 ```
 
 Output:
+```
 1258
 a nil object
 a FalseClass object
 a TrueClass object
 a Person object
 a Programmer object
+```
 
 ### person.elang
 ```
@@ -276,9 +288,11 @@ puts "p2.lang = " + p2.lang
 ```
 
 Output:
+```
 p1.age = 32
 p2.age = 21
 p2.lang = Ruby
+```
 
 ## plus.elang
 ```
@@ -305,9 +319,11 @@ puts "tc + 3 = " + (tc + 3).to_s
 ```
 
 Output:
+```
 tc.value = 2
 tc.add(3) = 5
 tc + 3 = 5
+```
 
 ### string.elang
 ```
@@ -342,6 +358,7 @@ puts "COMPUTING".substr(3, 5)
 ```
 
 Output:
+```
 * Test String.concat
 ComPutIng
 
@@ -356,3 +373,4 @@ COMPUTING
 
 * Test substr
 PUTIN
+```

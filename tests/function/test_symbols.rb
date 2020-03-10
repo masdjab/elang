@@ -1,10 +1,5 @@
 require './compiler/scope'
-require './compiler/constant'
-require './compiler/variable'
-require './compiler/class_variable'
-require './compiler/function'
-require './compiler/class_function'
-require './compiler/symbols'
+require './compiler/symbol/_load'
 
 symbols = Elang::Symbols.new
 scope = Elang::Scope.new

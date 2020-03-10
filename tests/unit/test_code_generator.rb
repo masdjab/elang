@@ -1,15 +1,12 @@
 require 'test-unit'
 require './compiler/exception'
 require './compiler/source_code'
-require './compiler/ast_node'
 require './compiler/lex'
-require './compiler/symbols'
+require './compiler/symbol/_load'
 require './compiler/scope'
 require './compiler/scope_stack'
-require './compiler/codeset_base'
-require './compiler/codeset_binary'
-require './compiler/base_language'
-require './compiler/machine_language'
+require './compiler/codeset/_load'
+require './compiler/language/_load'
 require './compiler/name_detector'
 require './compiler/code_generator'
 require './utils/converter'
@@ -17,7 +14,7 @@ require './utils/converter'
 
 class TestCodeGenerator < Test::Unit::TestCase
   def create_codeset
-    Elang::BinaryCodeSet.new
+    Elang::Codeset::Binary.new
   end
   def nd(type, value)
     Elang::Lex::Node.new(0, 0, nil, type, value)
@@ -79,7 +76,7 @@ class TestCodeGenerator < Test::Unit::TestCase
   def generate_code(nodes, source = nil)
     codeset = create_codeset
     @symbols = Elang::Symbols.new
-    @language = Elang::MachineLanguage.new(@symbols, codeset)
+    @language = Elang::Language::Machine.new(@symbols, codeset)
     @code_generator = Elang::CodeGenerator.new(@language)
     Elang::NameDetector.new(@symbols).detect_names nodes
     @code_generator.generate_code(nodes)

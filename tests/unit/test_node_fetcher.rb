@@ -1,6 +1,6 @@
 require './compiler/exception'
 require './compiler/source_code'
-require './compiler/fetcher_v2'
+require './compiler/fetcher'
 require './compiler/node_fetcher'
 require './compiler/parser'
 require './compiler/lexer'

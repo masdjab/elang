@@ -1,6 +1,6 @@
 require_relative '../utils/converter'
-require_relative 'assembly_instruction'
-require_relative 'assembly_code_builder'
+require_relative 'assembly/instruction'
+require_relative 'assembly/code_builder'
 
 module Elang
   class Linker

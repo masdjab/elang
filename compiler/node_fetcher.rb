@@ -1,5 +1,5 @@
 module Elang
-  class NodeFetcher < FetcherV2
+  class NodeFetcher < Fetcher
     def check(count = 1, skip_space = true, skip_crlf = false, skip_comment = true)
       list = []
       fpos = @pos

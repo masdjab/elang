@@ -1,5 +1,5 @@
 module Elang
-  class FetcherV2
+  class Fetcher
     attr_reader :items, :len, :pos
     
     def initialize(items)

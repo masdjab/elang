@@ -1,4 +1,4 @@
-require_relative 'fetcher_v2'
+require_relative 'fetcher'
 require_relative 'token'
 
 module Elang
@@ -20,7 +20,7 @@ module Elang
     
     def initialize
       @source = nil
-      @fetcher = FetcherV2.new("")
+      @fetcher = Fetcher.new("")
     end
     def _pos_to_row_col(pos)
       if line = @source.lines.find{|x|(x.min..x.max).include?(pos)}
@@ -405,7 +405,7 @@ module Elang
     def parse(source)
       @source = source
       code = @source.text
-      @fetcher = FetcherV2.new(code)
+      @fetcher = Fetcher.new(code)
       raw_tokens = []
       
       while char = @fetcher.element

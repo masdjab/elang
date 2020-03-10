@@ -51,8 +51,8 @@ end
 tc = TestClass.new
 tc.value = 5
 puts "tc.value = " + tc.value.to_s
-puts "tc.empty! = " + (tc.empty!).to_s
-puts "tc.empty? = " + (tc.empty?).to_s
+puts "tc.empty! = " + tc.empty!.to_s
+puts "tc.empty? = " + tc.empty?.to_s
 puts "tc + 2 = " + (tc + 2).to_s
 puts "tc - 1 = " + (tc - 1).to_s
 puts "tc * 2 = " + (tc * 2).to_s
@@ -62,5 +62,5 @@ puts "tc & 6 = " + (tc & 6).to_s
 puts "tc | 2 = " + (tc | 2).to_s
 puts "tc << 2 = " + (tc << 2).to_s
 puts "tc >> 2 = " + (tc >> 2).to_s
-puts "tc[2] = " + (tc[2]).to_s
+puts "tc[2] = " + tc[2].to_s
 puts "tc[2] = 3 = " + (tc[2] = 3).to_s

@@ -2,3 +2,8 @@ a = 21 + 3
 b = a - 3
 c = b / 7
 d = c * 2
+
+puts "a = 21 + 3 = " + a.to_s
+puts "b = a - 3 = " + b.to_s
+puts "c = b / 7 = " + c.to_s
+puts "d = c * 2 = " + d.to_s

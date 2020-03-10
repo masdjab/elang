@@ -4,4 +4,4 @@ puts b.to_s
 puts b.to_h
 c = 4 + 3
 puts c.to_s
-puts((6 + 3).to_s)
+puts (6 + 3).to_s

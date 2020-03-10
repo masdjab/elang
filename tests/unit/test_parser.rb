@@ -8,7 +8,7 @@ class TestParser < Test::Unit::TestCase
   def _parse(code)
     Elang::Parser.new.parse(Elang::StringSourceCode.new(code))
   end
-  def _assert_single_number(code)
+  def assert_single_number(code)
     tokens = _parse(code)
     assert_equal 1, tokens.count
     assert_equal 1, tokens[0].col
@@ -64,20 +64,20 @@ class TestParser < Test::Unit::TestCase
     assert_equal :comment, tokens[1].type
   end
   def test_parse_number
-    _assert_single_number "000"
-    _assert_single_number "001"
-    _assert_single_number "1234567890"
-    _assert_single_number "000.215"
-    _assert_single_number "000.0"
-    _assert_single_number "000.000"
-    _assert_single_number "000.128"
-    _assert_single_number "000.123456789"
-    _assert_single_number "0.123456789"
-    _assert_single_number "22.123456789"
-    _assert_single_number "123456789.456"
-    _assert_single_number "0x213254"
-    _assert_single_number "0xabcdef"
-    _assert_single_number "0x12ac"
+    assert_single_number "000"
+    assert_single_number "001"
+    assert_single_number "1234567890"
+    assert_single_number "000.215"
+    assert_single_number "000.0"
+    assert_single_number "000.000"
+    assert_single_number "000.128"
+    assert_single_number "000.123456789"
+    assert_single_number "0.123456789"
+    assert_single_number "22.123456789"
+    assert_single_number "123456789.456"
+    assert_single_number "0x213254"
+    assert_single_number "0xabcdef"
+    assert_single_number "0x12ac"
     
     tokens = _parse("12345.to_s")
     assert_equal 3, tokens.count
@@ -105,9 +105,13 @@ class TestParser < Test::Unit::TestCase
     tokens = _parse("x='I said \"hello...\", right?'")
     assert_equal 3, tokens.count
     assert_equal [:identifier, :assign, :string], tokens.map{|x|x.type}
-    assert_equal "'I said \"hello...\", right?'", tokens[2].text
+    assert_equal "I said \"hello...\", right?", tokens[2].text
     
-    #todo: need to test escape chars
+    tokens = _parse("'Hello \"programming\" world...'")
+    assert_equal "Hello \"programming\" world...", tokens[0].text
+    
+    tokens = _parse("\"Hello 'programming' world...\r\n\t\"")
+    assert_equal "Hello 'programming' world...\r\n\t", tokens[0].text
   end
   def test_parse_identifier
     tokens = _parse("_=2")

@@ -1,1 +1,1 @@
-@ruby ..\elang.rb %1
+@ruby ..\elang.rb %*

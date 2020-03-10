@@ -1,5 +1,5 @@
-require './compiler/fetcher_v2'
-require './compiler/token'
+require_relative 'fetcher_v2'
+require_relative 'token'
 
 module Elang
   class Parser
@@ -147,7 +147,7 @@ module Elang
         end
       end
       
-      _raw_token cpos, :string, text
+      _raw_token cpos, :string, text[1...-1]
     end
     def _parse_number
       text = ""
@@ -297,6 +297,9 @@ module Elang
       if @fetcher.element == "="
         text << @fetcher.fetch
         type = :equal
+      elsif @fetcher.element == ">"
+        text << @fetcher.fetch
+        type = :to
       end
       
       _raw_token cpos, type, text
@@ -342,10 +345,26 @@ module Elang
       
       _raw_token cpos, tmap[text], text
     end
+    def _parse_dot
+      cpos = @fetcher.pos
+      text = @fetcher.fetch
+      type = :dot
+      
+      if @fetcher.element == "."
+        text << @fetcher.fetch
+        type = :dotdot
+        
+        if @fetcher.element == "."
+          text << @fetcher.fetch
+          type = :dotdotdot
+        end
+      end
+      
+      _raw_token cpos, type, text
+    end
     def _parse_punctuation
       punct_types = 
         {
-          "."   => :dot, 
           ","   => :comma, 
           ":"   => :colon, 
           ";"   => :semicolon, 
@@ -424,6 +443,8 @@ module Elang
           raw_tokens << _parse_greater_than
         elsif "&|".index(char)
           raw_tokens << _parse_logical
+        elsif char == "."
+          raw_tokens << _parse_dot
         else
           raw_tokens << _parse_punctuation
         end
@@ -431,7 +452,7 @@ module Elang
       
       _set_line_numbers raw_tokens
       
-      raw_tokens.map{|x|Token.new(x[:row], x[:col], x[:type], x[:text])}
+      raw_tokens.map{|x|Token.new(x[:row], x[:col], source, x[:type], x[:text])}
     end
   end
 end

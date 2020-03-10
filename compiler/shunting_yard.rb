@@ -23,14 +23,11 @@ module Elang
       }
     
     
-    def initialize
-      @source = nil
-    end
     def raize(msg, node = nil)
       if node
-        raise ParsingError.new(msg, node.row, node.col, @source)
+        raise ParsingError.new(msg, node.row, node.col, node.source)
       else
-        raise ParsingError.new(msg, nil, nil, @source)
+        raise ParsingError.new(msg, nil, nil, nil)
       end
     end
     def takeout(nodes)
@@ -81,8 +78,7 @@ module Elang
       
       (operations + stack)
     end
-    def process(nodes, source = nil)
-      @source = source
+    def process(nodes)
       nodes = reverse_rpns(create_rpns(nodes))
     end
   end

@@ -1,7 +1,6 @@
-require './utils/converter'
-require './compiler/codeset_tool'
-require './compiler/assembly_instruction'
-require './compiler/assembly_code_builder'
+require_relative '../utils/converter'
+require_relative 'assembly_instruction'
+require_relative 'assembly_code_builder'
 
 module Elang
   class Linker
@@ -34,19 +33,19 @@ module Elang
       
       code
     end
-    def build_root_var_indices(codeset)
-      codeset.symbols.items.each do |s|
+    def build_root_var_indices(symbols)
+      symbols.items.each do |s|
         if s.is_a?(Variable) && s.scope.root?
           @root_var_count += 1
           s.index = @root_var_count
         end
       end
     end
-    def build_string_constants(codeset, offset)
+    def build_string_constants(symbols, offset)
       cons = {}
       offs = offset
       
-      codeset.symbols.items.each do |s|
+      symbols.items.each do |s|
         if s.is_a?(Constant)
           text = s.value
           text = text.gsub("\\r", "\r")
@@ -76,10 +75,9 @@ module Elang
       
       cons
     end
-    def build_class_hierarchy(codeset)
-      cs_tool = CodesetTool.new(codeset)
-      @function_names = cs_tool.get_function_names
-      @classes = cs_tool.get_classes_hierarchy
+    def build_class_hierarchy(symbols)
+      @function_names = symbols.get_function_names
+      @classes = symbols.get_classes_hierarchy
     end
     def build_code_initializer(codeset)
       rv_heap_size = Utils::Converter.int_to_whex_be(HEAP_SIZE)
@@ -346,33 +344,45 @@ module Elang
       buff = file.read
       file.close
       
+      eos_char = 0.chr
       head_size = Elang::Utils::Converter.word_to_int(buff[0, 2])
-      func_count = Elang::Utils::Converter.word_to_int(buff[2, 2])
+      read_offset = 2
       
-      read_offset = 4
-      (0...func_count).each do |i|
-        func_address = Elang::Utils::Converter.word_to_int(buff[read_offset, 2]) - head_size
-        name_length = Elang::Utils::Converter.word_to_int(buff[read_offset + 2, 2])
-        func_name = buff[read_offset + 4, name_length]
-        @system_functions[func_name] = {name: func_name, offset: func_address}
-        read_offset = read_offset + name_length + 4
+      loop do
+        begin
+          if buff[read_offset, 5] != "#EOL#"
+            func_address = Elang::Utils::Converter.word_to_int(buff[read_offset, 2]) - head_size
+            eos_position = buff.index(eos_char, read_offset + 2)
+            func_name = buff[(read_offset + 2)...eos_position]
+            @system_functions[func_name] = {name: func_name, offset: func_address}
+            read_offset = read_offset + 2 + func_name.length + 1
+          else
+            break
+          end
+        rescue Exception => ex
+          last_proc = !@system_functions.empty? ? @system_functions.values.last : nil
+          last_name = last_proc ? last_proc[:name] : "(None)"
+          puts "Last processed function names: #{@system_functions.values[-5..-1].map{|x|x[:name]}.join(", ")}"
+          puts "Total processed: #{@system_functions.count}"
+          raise ex
+        end
       end
       
       @library_code = align_code(buff[head_size...-1], 16)
     end
-    def link(codeset)
+    def link(symbols, codeset)
       head_code = align_code(hex2bin("B8000050C3"), 16)
       libs_code = @library_code
-      subs_code = align_code(codeset.subs_code, 16)
-      main_code = codeset.main_code + Elang::Utils::Converter.hex_to_bin("CD20")
+      subs_code = align_code(codeset.render(:subs), 16)
+      main_code = codeset.render(:main) + Elang::Utils::Converter.hex_to_bin("CD20")
       head_size = head_code.length
       libs_size = libs_code.length
       subs_size = subs_code.length
       main_size = main_code.length
       
-      build_root_var_indices(codeset)
+      build_root_var_indices(symbols)
       reserved_image = 0.chr * (2 * Variable::RESERVED_VARIABLE_COUNT)
-      @string_constants = build_string_constants(codeset, reserved_image.length)
+      @string_constants = build_string_constants(symbols, reserved_image.length)
       constant_image = build_constant_data(@string_constants)
       cons_data = !constant_image.empty? ? reserved_image + constant_image : ""
       cons_size = cons_data.length
@@ -380,7 +390,7 @@ module Elang
       @dynamic_area = @variable_offset + (@root_var_count * 2)
       
       
-      build_class_hierarchy codeset
+      build_class_hierarchy symbols
 #puts
 #puts "classes:"
 #puts @classes.inspect
@@ -422,7 +432,7 @@ module Elang
         end
       end
       
-      codeset.symbols.items.each do |s|
+      symbols.items.each do |s|
         if s.is_a?(Function)
           s.offset = s.offset + head_size + libs_size
         end

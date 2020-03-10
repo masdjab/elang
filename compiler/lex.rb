@@ -1,11 +1,15 @@
 module Elang
   module Lex
     class Node
-      attr_reader   :row, :col
+      attr_reader   :row, :col, :source
       attr_accessor :type, :text
       
-      def initialize(row, col, type, text)
-        @row, @col, @type, @text = row, col, type, text
+      def initialize(row, col, source, type, text)
+        @row = row
+        @col = col
+        @source = source
+        @type = type
+        @text = text
       end
       def to_s
         @text

@@ -54,6 +54,21 @@ t1[0] = 1         # [send,t1,[]=,[...]]
 {'a' => 2, 'b' => 1, 'c' => 4}
 EOS
 
+source = <<EOS
+#class NilClass
+#  def to_s
+#    "a nil object"
+#  end
+#end
+
+#puts(1258.to_s)
+puts(nil.to_s)
+puts(false.to_s)
+puts(true.to_s)
+#puts(Person.new.to_s())
+#puts(Programmer.new.to_s())
+EOS
+
 #source = <<EOS
 #puts(3, 5)
 #puts(_int_pack(2))
@@ -82,7 +97,7 @@ source  = Elang::StringSourceCode.new(source)
 parser  = Elang::Parser.new
 lexer   = Elang::Lexer.new
 tokens  = parser.parse(source)
-nodes   = lexer.to_sexp_array(tokens, source)
+nodes   = lexer.to_sexp_array(tokens)
 
 puts Elang::Lexer.sexp_to_s(nodes)
 #puts nodes.inspect

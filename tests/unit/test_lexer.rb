@@ -12,8 +12,8 @@ class TestLexer < Test::Unit::TestCase
   def check_expression(expression, expected)
     source = Elang::StringSourceCode.new(expression)
     tokens = @parser.parse(source)
-    ast_nodes = @lexer.to_sexp_array(tokens, source)
-    display = Elang::Lexer.sexp_to_s(ast_nodes)
+    nodes = @lexer.to_sexp_array(tokens)
+    display = Elang::Lexer.sexp_to_s(nodes)
     
     if expected.is_a?(Array)
       expected = Elang::Lexer.sexp_to_s(expected)

@@ -1,5 +1,5 @@
-require './compiler/fetcher_v2'
-require './compiler/token'
+require_relative 'fetcher_v2'
+require_relative 'token'
 
 module Elang
   class Parser
@@ -452,7 +452,7 @@ module Elang
       
       _set_line_numbers raw_tokens
       
-      raw_tokens.map{|x|Token.new(x[:row], x[:col], x[:type], x[:text])}
+      raw_tokens.map{|x|Token.new(x[:row], x[:col], source, x[:type], x[:text])}
     end
   end
 end

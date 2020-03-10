@@ -1,14 +1,26 @@
 require 'test-unit'
 require './compiler/source_code'
+require './compiler/codeset_base'
+require './compiler/codeset_binary'
+require './compiler/base_language'
+require './compiler/machine_language'
 require './compiler/compiler'
 
 class CompilerTest < Test::Unit::TestCase
-  def setup
-    @compiler = Elang::Compiler.new
-  end
-  def compile(source)
-    codeset = Elang::CodeSet.new
-    @compiler.compile(Elang::StringSourceCode.new(source), codeset)
+  def compile(source_text)
+    source = Elang::StringSourceCode.new(source_text)
+    symbols = Elang::Symbols.new
+    parser = Elang::Parser.new
+    lexer = Elang::Lexer.new
+    name_detector = Elang::NameDetector.new(symbols)
+    codeset = Elang::BinaryCodeSet.new
+    language = Elang::MachineLanguage.new(symbols, codeset)
+    codegen = Elang::CodeGenerator.new(language)
+    
+    tokens = parser.parse(source)
+    nodes = lexer.to_sexp_array(tokens)
+    name_detector.detect_names(nodes)
+    codegen.generate_code(nodes)
     codeset
   end
   def check_binary(actual, expected_str)
@@ -17,8 +29,8 @@ class CompilerTest < Test::Unit::TestCase
   def test_link_main_code
     source = "x = 2\r\ny = 3\r\nz = x + y\r\n"
     codeset = compile(source)
-    check_binary codeset.subs_code, ""
-    check_binary codeset.main_code, "B8050050A1000050E8000058A30000B8070050A1000050E8000058A30000A1000050B8010050B8000050A1000050E8000050A1000050E8000058A30000"
+    check_binary codeset.code[:subs], ""
+    check_binary codeset.code[:main], "B8050050A1000050E8000058A30000B8070050A1000050E8000058A30000A1000050B8010050B8000050A1000050E8000050A1000050E8000058A30000"
   end
   def test_link_simple_combination
     source = <<EOS
@@ -31,8 +43,8 @@ b = multiply_by_two(a)
 EOS
     
     codeset = compile(source)
-    check_binary codeset.subs_code, "5589E5B8030050B8010050B80000508B460050E800005DC20200"
-    check_binary codeset.main_code, "B8050050E8000050A1000050E8000058A30000A1000050E8000050A1000050E8000058A30000"
+    check_binary codeset.code[:subs], "5589E5B8030050B8010050B80000508B460050E800005DC20200"
+    check_binary codeset.code[:main], "B8050050E8000050A1000050E8000058A30000A1000050E8000050A1000050E8000058A30000"
   end
   def test_link_methods
     source = <<EOS

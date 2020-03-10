@@ -1,8 +1,8 @@
-require './compiler/lex'
-require './compiler/node_fetcher'
-require './compiler/ast_node'
-require './compiler/operation'
-require './compiler/shunting_yard'
+require_relative 'lex'
+require_relative 'node_fetcher'
+require_relative 'ast_node'
+require_relative 'operation'
+require_relative 'shunting_yard'
 
 
 module Elang
@@ -21,33 +21,37 @@ module Elang
     
     private
     def initialize(shunting_yard = nil)
-      @source = nil
       @shunting_yard = shunting_yard ? shunting_yard : ShuntingYard.new
       @error_formatter = ParsingExceptionFormatter.new
     end
     def raize(msg, node = nil)
       if node
-        raise ParsingError.new(msg, node.row, node.col, @source)
+        raise ParsingError.new(msg, node.row, node.col, node.source)
       else
-        raise ParsingError.new(msg, nil, nil, @source)
+        raise ParsingError.new(msg, nil, nil, nil)
       end
     end
     def shunt_yard(nodes)
-      @shunting_yard.process(nodes, @source)
+      @shunting_yard.process(nodes)
     end
     def takeout(nodes)
       nodes.is_a?(Array) && (nodes.count == 1) ? nodes[0] : nodes
     end
     def create_send_node(receiver, command, args)
+      values = args.items ? args.items : []
+      
       if receiver.nil? && !args.encloser1.nil? && !args.encloser2.nil? && (args.encloser1.type == :lsbrk) && (args.encloser2.type == :rsbrk)
         if !args.assign.nil?
-          Lex::Send.new(command, Lex::Node.new(0, 0, :wbi, "[]="), args)
+          Lex::Send.new(command, Lex::Node.new(0, 0, nil, :wbi, "[]="), values)
         else
-          Lex::Send.new(command, Lex::Node.new(0, 0, :rbi, "[]"), args)
+          Lex::Send.new(command, Lex::Node.new(0, 0, nil, :rbi, "[]"), values)
         end
       else
-        Lex::Send.new(receiver, command, args)
+        Lex::Send.new(receiver, command, values)
       end
+    end
+    def create_array(values)
+      Lex::Array.new(values)
     end
     def create_hash(values)
       Lex::Hash.new(values.inject([]){|a,b|a += [b[0], b[2]];a})
@@ -346,7 +350,7 @@ module Elang
           val = args.items.count == 1 ? args.items[0] : args.items
         elsif (n1.type == :lsbrk) && !(args = fetch_values(fetcher)).items.empty?
           # ex: [1, 2, 3]
-          val = Lex::Array.new(args.items)
+          val = create_array(args.items)
         elsif (n1.type == :lcbrk) && !(args = fetch_values(fetcher)).items.empty?
           # ex: {"one" => 1, "two" => 2, "three" => 3}
           val = create_hash(args.items)
@@ -363,7 +367,7 @@ module Elang
             val = create_send_node(receiver, node, args)
           elsif is_dot_method
             # ex: .a
-            val = create_send_node(receiver, node, Lex::Values.new([], nil, nil))
+            val = create_send_node(receiver, node, Lex::Values.new(nil, nil, nil))
           else
             # ex: a
             val = node
@@ -434,8 +438,8 @@ module Elang
         elsif cmd.type == :assign
           [cmd, op1, op2]
         else
-          dot_node = Lex::Node.new(cmd.row, cmd.col, :dot, ".")
-          cmd_node = Lex::Node.new(cmd.row, cmd.col, :identifier, cmd.text)
+          dot_node = Lex::Node.new(cmd.row, cmd.col, nil, :dot, ".")
+          cmd_node = Lex::Node.new(cmd.row, cmd.col, nil, :identifier, cmd.text)
           [dot_node, op1, cmd, [op2]]
         end
       else
@@ -491,7 +495,7 @@ module Elang
       Lex::Node.any_to_a sexp
     end
     def self.convert_tokens_to_lex_nodes(tokens)
-      tokens.map{|x|Lex::Node.new(x.row, x.col, x.type, x.text)}
+      tokens.map{|x|Lex::Node.new(x.row, x.col, x.source, x.type, x.text)}
     end
     def find_tokens(tokens, text)
       pat = text.is_a?(Array) ? text : [text]
@@ -505,9 +509,8 @@ module Elang
         pos += 1
       end
     end
-    def to_sexp_array(tokens, source = nil)
+    def to_sexp_array(tokens)
       begin
-        @source = source
         nodes = self.class.convert_tokens_to_lex_nodes(tokens)
         nodes = fetch_sexp(NodeFetcher.new(nodes))
       rescue Exception => e

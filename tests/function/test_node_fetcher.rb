@@ -1,5 +1,6 @@
 require './compiler/source_code'
 require './compiler/parser'
+require './compiler/lex'
 require './compiler/node_fetcher'
 
 source = "  \t\r\n  def #comment 1\r\n \r\nend\r\n"

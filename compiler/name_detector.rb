@@ -1,8 +1,7 @@
 module Elang
   class NameDetector
-    def initialize(codeset)
-      @codeset = codeset
-      @source = nil
+    def initialize(symbols)
+      @symbols = symbols
       @scope_stack = ScopeStack.new
     end
     def current_scope
@@ -10,26 +9,24 @@ module Elang
     end
     def enter_scope(scope)
       @scope_stack.enter_scope(scope)
-      @codeset.enter_subs
     end
     def leave_scope
-      @codeset.leave_subs
       @scope_stack.leave_scope
     end
     def register_variable(name)
-      @codeset.register_variable(current_scope, name)
+      @symbols.register_variable(current_scope, name)
     end
     def register_instance_variable(name)
-      @codeset.register_instance_variable(current_scope, name)
+      @symbols.register_instance_variable(current_scope, name)
     end
     def register_class(name, parent)
-      @codeset.register_class(name, parent)
+      @symbols.register_class(name, parent)
     end
     def register_class_variable(name)
-      @codeset.register_class_variable(current_scope, name)
+      @symbols.register_class_variable(current_scope, name)
     end
     def register_function(rcvr_name, func_name, func_args)
-      @codeset.register_function(current_scope, rcvr_name, func_name, func_args)
+      @symbols.register_function(current_scope, rcvr_name, func_name, func_args)
     end
     def detect_names_from_node(node)
       if node.is_a?(Array)
@@ -49,7 +46,7 @@ module Elang
           
           (0...func_args.count).each do |i|
             param = FunctionParameter.new(current_scope, func_args[i].text, i)
-            @codeset.symbols.add param
+            @symbols.add param
           end
           
           detect_names func_body
@@ -76,7 +73,7 @@ module Elang
           if left_var.type == :identifier
             var_name = left_var.text
             
-            if (receiver = @codeset.symbols.find_nearest(active_scope, var_name)).nil?
+            if (receiver = @symbols.find_nearest(active_scope, var_name)).nil?
               if var_name.index("@@") == 0
                 # #(todo)#class variable
                 receiver = register_class_variable(var_name)
@@ -96,8 +93,7 @@ module Elang
     end
     
     public
-    def detect_names(nodes, source = nil)
-      @source = source
+    def detect_names(nodes)
       detect_names_from_node(nodes)
     end
   end

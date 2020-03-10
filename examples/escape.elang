@@ -1,8 +1,2 @@
-#puts("Text \"with\" linefeed\r\n  Second text\r\n  Third text")
-#puts("Text \"with\" tab\tcharacter")
-
-#a = "Hello " + "wordl..."
-#puts(a)
-
-a = "abc" + "def"
-#a = 2 + 3
+puts("Text \"with\" linefeed\r\n  Second text\r\n  Third text")
+puts("Text \"with\" tab\tcharacter")

@@ -12,7 +12,7 @@ module Elang
         "String"      => 12
       }
     
-    USER_CLASS_ID_BASE  = 11
+    USER_CLASS_ID_BASE  = 14
     
     attr_reader :scope, :name, :parent, :index
     

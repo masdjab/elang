@@ -3,15 +3,24 @@ require './compiler/exception'
 require './compiler/source_code'
 require './compiler/ast_node'
 require './compiler/lex'
+require './compiler/symbols'
+require './compiler/scope'
+require './compiler/scope_stack'
+require './compiler/codeset_base'
+require './compiler/codeset_binary'
+require './compiler/base_language'
+require './compiler/machine_language'
+require './compiler/name_detector'
 require './compiler/code_generator'
 require './utils/converter'
 
+
 class TestCodeGenerator < Test::Unit::TestCase
-  def setup
-    @code_generator = Elang::CodeGenerator.new
+  def create_codeset
+    Elang::BinaryCodeSet.new
   end
   def nd(type, value)
-    Elang::Lex::Node.new(0, 0, type, value)
+    Elang::Lex::Node.new(0, 0, nil, type, value)
   end
   def pun(x)
     nd(:punc, x)
@@ -67,18 +76,19 @@ class TestCodeGenerator < Test::Unit::TestCase
   def bin(h)
     Elang::Utils::Converter.hex_to_bin(h)
   end
-  def symbols
-    @code_generator.symbols
-  end
   def generate_code(nodes, source = nil)
-    codeset = Elang::CodeSet.new
-    @code_generator.generate_code(nodes, codeset, source)
+    codeset = create_codeset
+    @symbols = Elang::Symbols.new
+    @language = Elang::MachineLanguage.new(@symbols, codeset)
+    @code_generator = Elang::CodeGenerator.new(@language)
+    Elang::NameDetector.new(@symbols).detect_names nodes
+    @code_generator.generate_code(nodes)
     codeset
   end
   def check_code_result(nodes, exp_main, exp_subs, source = nil)
     codeset = generate_code(nodes, source)
-    assert_equal exp_main, codeset.main_code
-    assert_equal exp_subs, codeset.subs_code
+    assert_equal exp_main, codeset.code[:main]
+    assert_equal exp_subs, codeset.code[:subs]
     codeset
   end
   def test_simple_assignment
@@ -89,42 +99,42 @@ class TestCodeGenerator < Test::Unit::TestCase
         bin("B8050050A1000050E8000058A30000"), 
         ""
       )
-    assert_equal 1, codeset.symbols.count
+    assert_equal 1, @symbols.count
   end
   def test_simple_numeric_operation
     # mov ax, 01h; mov cx, 02h; add ax, cx; mov mynum, ax
     check_code_result \
-      [send(idt("mynum"),asn,send(num("1"),plus,num("2")))], \
+      [send(idt("mynum"),asn,[send(num("1"),plus,[num("2")])])], \
       bin("B8050050B8010050B8000050B8030050E8000050A1000050E8000058A30000"), 
       ""
       
     # mov ax, 01h; mov cx, 02h; sub ax, cx; mov mynum, ax
     check_code_result \
-      [send(idt("mynum"),asn,send(num("1"),minus,num("2")))], \
+      [send(idt("mynum"),asn,[send(num("1"),minus,[num("2")])])], \
       bin("B8050050B8010050B8000050B8030050E8000050A1000050E8000058A30000"), 
       ""
     
     # mov ax, 01h; mov cx, 02h; mul ax, cx; mov mynum, ax
     check_code_result \
-      [send(idt("mynum"),asn,send(num("1"),star,num("2")))], \
+      [send(idt("mynum"),asn,[send(num("1"),star,[num("2")])])], \
       bin("B8050050B8010050B8000050B8030050E8000050A1000050E8000058A30000"), 
       ""
     
     # mov ax, 01h; mov cx, 02h; div ax, cx; mov mynum, ax
     check_code_result \
-      [send(idt("mynum"),asn,send(num("1"),slash,num("2")))], \
+      [send(idt("mynum"),asn,[send(num("1"),slash,[num("2")])])], \
       bin("B8050050B8010050B8000050B8030050E8000050A1000050E8000058A30000"), 
       ""
     
     # mov ax, 01h; mov cx, 02h; and ax, cx; mov mynum, ax
     check_code_result \
-      [send(idt("mynum"),asn,send(num("1"),pand,num("2")))], \
+      [send(idt("mynum"),asn,[send(num("1"),pand,[num("2")])])], \
       bin("B8050050B8010050B8000050B8030050E8000050A1000050E8000058A30000"), 
       ""
     
     # mov ax, 01h; mov cx, 02h; or ax, cx; mov mynum, ax
     check_code_result \
-      [send(idt("mynum"),asn,send(num("1"),por,num("2")))], \
+      [send(idt("mynum"),asn,[send(num("1"),por,[num("2")])])], \
       bin("B8050050B8010050B8000050B8030050E8000050A1000050E8000058A30000"), 
       ""
     
@@ -133,9 +143,9 @@ class TestCodeGenerator < Test::Unit::TestCase
     # mov ax, v1; mov cx, v2; add ax, cx; mov mynum, ax
     check_code_result \
       [
-        send(idt("v1"),asn,num("18")), 
-        send(idt("v2"),asn,num("52")), 
-        send(idt("mynum"),asn,send(idt("v1"),plus,idt("v2")))
+        send(idt("v1"),asn,[num("18")]), 
+        send(idt("v2"),asn,[num("52")]), 
+        send(idt("mynum"),asn,[send(idt("v1"),plus,[idt("v2")])])
       ], \
       bin("B8250050A1000050E8000058A30000B8690050A1000050E8000058A30000A1000050B8010050B8000050A1000050E8000050A1000050E8000058A30000"), 
       ""
@@ -186,18 +196,18 @@ class TestCodeGenerator < Test::Unit::TestCase
           "00008B460050E800005881C404005DC20400"
         )
       )
-    assert_equal 5, codeset.symbols.count
-    assert_equal "echo", codeset.symbols.items[0].name
-    assert_equal "x", codeset.symbols.items[1].name
-    assert_equal "y", codeset.symbols.items[2].name
-    assert_equal "a", codeset.symbols.items[3].name
-    assert_equal "b", codeset.symbols.items[4].name
+    assert_equal 5, @symbols.count
+    assert_equal "echo", @symbols.items[0].name
+    assert_equal "x", @symbols.items[1].name
+    assert_equal "y", @symbols.items[2].name
+    assert_equal "a", @symbols.items[3].name
+    assert_equal "b", @symbols.items[4].name
   end
   def test_simple_function_call
     check_code_result \
       [
-        func(nil,idt("tambah"),[idt("a"),idt("b")],[send(idt("a"),plus,idt("b"))]), 
-        send(idt("a"),asn,send(nil,idt("tambah"),[num("4"),num("3")]))
+        func(nil,idt("tambah"),[idt("a"),idt("b")],[send(idt("a"),plus,[idt("b")])]), 
+        send(idt("a"),asn,[send(nil,idt("tambah"),[num("4"),num("3")])])
       ], 
       bin("B8070050B8090050E8000050A1000050E8000058A30000"), 
       bin("5589E58B460050B8010050B80000508B460050E800005DC20400")
@@ -207,18 +217,18 @@ class TestCodeGenerator < Test::Unit::TestCase
       check_code_result \
         [
           func(nil,idt("multiply_by_two1"),[idt("x")],[]), 
-          send(nil,idt("multiply_by_two1"),num("3"))
+          send(nil,idt("multiply_by_two1"),[num("3")])
         ], 
         bin("B8070050E80000"), 
         bin("5589E55DC20200")
-    functions = codeset.symbols.items.select{|x|x.is_a?(Elang::Function)}
+    functions = @symbols.items.select{|x|x.is_a?(Elang::Function)}
     assert_equal 1, functions.count
     assert_equal "multiply_by_two1", functions[0].name
     
     check_code_result \
       [
-        send(idt("a"),asn,send(num(1),plus,num(1))),
-        send(nil,idt("puts"),send(str("1 + 1 = "),plus,send(idt("a"),idt("to_s"),[])))
+        send(idt("a"),asn,send(num(1),plus,[num(1)])),
+        send(nil,idt("puts"),[send(str("1 + 1 = "),plus,[send(idt("a"),idt("to_s"),[])])])
       ], 
       bin(
         "B8030050B8010050B8000050B8030050E8000050A1000050E8000058A30000" \
@@ -233,8 +243,8 @@ class TestCodeGenerator < Test::Unit::TestCase
     check_code_result \
       [
         func(nil, idt("multiply_by_two2"), [idt("x"),idt("y")], []), 
-        send(idt("x"), asn, num("2")), 
-        send(idt("y"), asn, num("3")), 
+        send(idt("x"), asn, [num("2")]), 
+        send(idt("y"), asn, [num("3")]), 
         send(nil, idt("multiply_by_two2"), [idt("x"), idt("y")])
       ], 
       bin("B8050050A1000050E8000058A30000B8070050A1000050E8000058A30000A1000050A1000050E80000"), 
@@ -253,12 +263,12 @@ class TestCodeGenerator < Test::Unit::TestCase
           ]
         ), 
         send(idt("p1"), asn, send(idt("Math"), idt("new"), [])), 
-        send(idt("x"), asn, num("2")), 
-        send(idt("y"), asn, num("3")), 
+        send(idt("x"), asn, [num("2")]), 
+        send(idt("y"), asn, [num("3")]), 
         send(idt("p1"), idt("multiply_by_two3"), [idt("x"), idt("y")])
       ], 
       bin(
-        "B8000050B80B0050E8000050A1000050E8000058A30000B8050050A1000050E8000058A30000" \
+        "B8000050B80E0050E8000050A1000050E8000058A30000B8050050A1000050E8000058A30000" \
         "B8070050A1000050E8000058A30000A1000050A1000050B8020050B8000050A1000050E80000"
       ), 
       bin("8B4600508B460050B8020050B80000508B460450E80000C3")
@@ -270,8 +280,8 @@ class TestCodeGenerator < Test::Unit::TestCase
       [
         func(nil, idt("multiply_by_two4"), [idt("x")],
           [
-            send(idt("a"), asn, num("2")), 
-            send(nil, idt("multiply_by_two4"), idt("a"))
+            send(idt("a"), asn, [num("2")]), 
+            send(nil, idt("multiply_by_two4"), [idt("a")])
           ]
         )
       ], 
@@ -289,8 +299,8 @@ class TestCodeGenerator < Test::Unit::TestCase
           [
             func(nil, idt("multiply_by_two5"), [idt("x")], 
               [
-                send(idt("a"), asn, num("2")), 
-                send(nil, idt("multiply_by_two5"), idt("a"))
+                send(idt("a"), asn, [num("2")]), 
+                send(nil, idt("multiply_by_two5"), [idt("a")])
               ]
             )
           ]
@@ -309,7 +319,7 @@ class TestCodeGenerator < Test::Unit::TestCase
       [
         clas(idt("Person"), nil, 
           [
-            func(nil, idt("set_name"), [idt("name")], [send(idt("@name"), asn, idt("name"))]),
+            func(nil, idt("set_name"), [idt("name")], [send(idt("@name"), asn, [idt("name")])]),
             func(nil, idt("get_name"), [], [idt("@name")])
           ]
         )
@@ -326,7 +336,7 @@ class TestCodeGenerator < Test::Unit::TestCase
           clas(idt("FalseClass"), nil, [])
         ]
     
-    classes = codeset.symbols.items.select{|x|x.is_a?(Elang::Class)}
+    classes = @symbols.items.select{|x|x.is_a?(Elang::Class)}
     assert_equal 3, classes.count
     assert_equal [], classes.map{|x|x.name} - ["Integer", "TrueClass", "FalseClass"]
     
@@ -339,7 +349,7 @@ class TestCodeGenerator < Test::Unit::TestCase
           [
             func(nil, idt("to_s"), [], 
               [
-                send(nil, idt("i2s"), send(nil, idt("iunpack"), num("8")))
+                send(nil, idt("i2s"), [send(nil, idt("iunpack"), [num("8")])])
               ]
             )
           ]

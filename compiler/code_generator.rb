@@ -1,26 +1,19 @@
-require './compiler/al_composer'
-require './compiler/il_composer'
-require './compiler/ml_composer'
-require './compiler/name_detector'
-require './compiler/lex'
-require './compiler/shunting_yard'
-require './compiler/constant'
-require './compiler/class'
-require './compiler/function'
-require './compiler/system_function'
-require './compiler/function_parameter'
-require './compiler/function_id'
-require './compiler/variable'
-require './compiler/instance_variable'
-require './compiler/class_variable'
-require './compiler/class_function'
-require './compiler/scope'
-require './compiler/scope_stack'
-require './compiler/symbol_ref'
-require './compiler/ast_node'
-require './compiler/codeset'
-require './compiler/codeset_tool'
-require './utils/converter'
+require_relative 'name_detector'
+require_relative 'lex'
+require_relative 'shunting_yard'
+require_relative 'constant'
+require_relative 'class'
+require_relative 'function'
+require_relative 'system_function'
+require_relative 'function_parameter'
+require_relative 'function_id'
+require_relative 'variable'
+require_relative 'instance_variable'
+require_relative 'class_variable'
+require_relative 'class_function'
+require_relative 'symbol_ref'
+require_relative 'ast_node'
+require_relative '../utils/converter'
 
 
 module Elang
@@ -63,31 +56,18 @@ module Elang
       ]
     
     
-    attr_reader   :symbols, :symbol_refs
+    attr_reader   :symbols
     attr_accessor :error_formatter
     
     private
     def initialize(language)
-      @source = nil
+      @symbols = language.symbols
       @language = language
-      @scope_stack = []
       @error_formatter = ParsingExceptionFormatter.new
-      @composer = nil
-    end
-    def create_composer
-      if @language == "assembly"
-        AssemblyLanguageComposer.new(@codeset)
-      elsif @language == "machine"
-        MachineLanguageComposer.new(@codeset)
-      elsif @language == "intermediate"
-        IntermediateLanguageComposer.new(@codeset)
-      else
-        raise "Invalid language '#{@language}'"
-      end
     end
     def raize(msg, node = nil)
       if node
-        raise ParsingError.new(msg, node.row, node.col, @source)
+        raise ParsingError.new(msg, node.row, node.col, node.source)
       else
         raise ParsingError.new(msg)
       end
@@ -95,47 +75,11 @@ module Elang
     def get_sys_function(name)
       SYS_FUNCTIONS.find{|x|x.name == name}
     end
-    def code_type
-      !current_scope.to_s.empty? ? :subs : :main
-    end
-    def handle_any(node)
-      if node.is_a?(Array)
-        node.each{|x|handle_any(x)}
-      elsif node.is_a?(Lex::Send)
-        @composer.handle_send node
-      elsif node.is_a?(Lex::Function)
-        @composer.handle_function_def node
-      elsif node.is_a?(Lex::Class)
-        @composer.handle_class_def node
-      elsif node.is_a?(Lex::IfBlock)
-        @composer.handle_if node
-      elsif node.is_a?(Lex::Node)
-        if node.type == :identifier
-          @composer.handle_identifier node
-        elsif node.type == :string
-          @composer.handle_string node
-        elsif node.type == :number
-          @composer.handle_number node
-        else
-          raize "Unexpected node type for #{node.inspect}", node
-        end
-      elsif node.is_a?(Lex::Values)
-        node.items.each{|i|handle_any(i)}
-      else
-        raise "Unexpected node: #{node.inspect}"
-      end
-    end
     
     public
-    def generate_code(nodes, codeset, source = nil)
-      @source = source
-      @codeset = codeset
-      
+    def generate_code(nodes)
       begin
-        @scope_stack = []
-        @composer = create_composer
-        NameDetector.new(@codeset).detect_names nodes
-        handle_any nodes
+        @language.handle_any nodes
         true
       rescue Exception => e
         ExceptionHelper.show e, @error_formatter

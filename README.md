@@ -2,7 +2,7 @@
 Programming language written by Heryudi Praja (mr_orche@yahoo.com)
 
 ## What is Elang?
-Elang is a programming language written in Ruby. It has Ruby like syntax, but compiles to native code. Currently, only Windows COM 16-bit format supported. The development of this language is focused mainly for writing operating system in easy way.
+Elang is a programming language written in Ruby and fasm (flat assembler). It has Ruby like syntax, but compiles to native code. Currently, only Windows COM 16-bit format supported. The development of this language is focused mainly for writing operating system in easy way.
 
 ## Objectives and Features
 - Easy

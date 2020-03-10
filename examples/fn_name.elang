@@ -62,5 +62,5 @@ puts "tc & 6 = " + (tc & 6).to_s
 puts "tc | 2 = " + (tc | 2).to_s
 puts "tc << 2 = " + (tc << 2).to_s
 puts "tc >> 2 = " + (tc >> 2).to_s
-#puts "tc[2] = " + (tc[2]).to_s           # not supported yet
-#puts "tc[2] = 3 = " + (tc[2] = 3).to_s   # not supported yet
+puts "tc[2] = " + (tc[2]).to_s
+puts "tc[2] = 3 = " + (tc[2] = 3).to_s

@@ -71,7 +71,7 @@ class TestCodeGenerator < Test::Unit::TestCase
     Elang::Lex::Send.new(receiver, cmd, args)
   end
   def bin(h)
-    Elang::Utils::Converter.hex_to_bin(h)
+    Elang::Utils::Converter.hex2bin(h)
   end
   def generate_code(nodes, source = nil)
     codeset = create_codeset

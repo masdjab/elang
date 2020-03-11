@@ -21,7 +21,7 @@ module Elang
       @variable_offset = 0
     end
     def hex2bin(h)
-      Utils::Converter.hex_to_bin(h)
+      Utils::Converter.hex2bin(h)
     end
     def asm(code = "", desc = "")
       Assembly::Instruction.new(code, desc)
@@ -65,7 +65,7 @@ module Elang
       cons = ""
       
       constants.each do |k,v|
-        lgth = Utils::Converter.int_to_word(v[:length])
+        lgth = Utils::Converter.int2bin(v[:length], :word)
         cons << "#{lgth}#{v[:text]}"
       end
       
@@ -80,13 +80,13 @@ module Elang
       @classes = symbols.get_classes_hierarchy
     end
     def build_code_initializer(codeset)
-      rv_heap_size = Utils::Converter.int_to_whex_be(HEAP_SIZE)
-      first_block_adr = Utils::Converter.int_to_whex_be(FIRST_BLOCK)
-      dynamic_area_adr = Utils::Converter.int_to_whex_be(@dynamic_area)
+      rv_heap_size = Utils::Converter.int2hex(HEAP_SIZE, :word, :be)
+      first_block_adr = Utils::Converter.int2hex(FIRST_BLOCK, :word, :be)
+      dynamic_area_adr = Utils::Converter.int2hex(@dynamic_area, :word, :be)
       
       if @root_var_count > 0
-        cx = Utils::Converter.int_to_whex_be(@root_var_count)
-        di = Utils::Converter.int_to_whex_be(@variable_offset)
+        cx = Utils::Converter.int2hex(@root_var_count, :word, :be)
+        di = Utils::Converter.int2hex(@variable_offset, :word, :be)
         
         commands = 
           [
@@ -152,20 +152,20 @@ module Elang
         asmcode << asm("", "#{code_label}:")
         
         cls[:i_funs].each do |f|
-          func_address = Utils::Converter.int_to_whex_rev(@code_origin + subs_offset + f[:offset]).upcase
-          asmcode << asm("3D" + Utils::Converter.int_to_whex_rev(f[:id]) + "7504", "  cmp ax, #{f[:id]}; jnz + 2")
+          func_address = Utils::Converter.int2hex(@code_origin + subs_offset + f[:offset], :word, :be).upcase
+          asmcode << asm("3D" + Utils::Converter.int2hex(f[:id], :word, :be) + "7504", "  cmp ax, #{f[:id]}; jnz + 2")
           asmcode << asm("B8#{func_address}C3", "  mov ax, #{key.downcase}_obj_#{f[:name]}; ret")
         end
         
         if cls[:parent]
           code_label = "first_method_#{cls[:parent].downcase}"
           jump_distance = code_offset[code_label] - (asmcode.code.length + 3)
-          jump_target = Utils::Converter.int_to_whex_rev(jump_distance).upcase
+          jump_target = Utils::Converter.int2hex(jump_distance, :word, :be).upcase
           asmcode << asm("E9#{jump_target}", "  jmp #{code_label}")
         else
           code_label = "handle_method_not_found"
           code_address = @code_origin + dispatcher_offset + code_offset[code_label]
-          ax_value = Utils::Converter.int_to_whex_rev(code_address).upcase
+          ax_value = Utils::Converter.int2hex(code_address, :word, :be).upcase
           asmcode << asm("B8#{ax_value}C3", "  mov ax, #{code_label}; ret")
         end
       end
@@ -182,31 +182,31 @@ module Elang
       if @classes.key?("Integer")
         asmcode << asm("A90100", "  test ax, 1")
         jump_distance = code_offset["method_selector_integer"] - (asmcode.code.length + 4)
-        jump_target = Utils::Converter.int_to_whex_rev(jump_distance).upcase
+        jump_target = Utils::Converter.int2hex(jump_distance, :word, :be).upcase
         asmcode << asm("0F85#{jump_target}", "  jnz method_selector_integer")
       end
       
       # add nil class
       if @classes.key?("NilClass")
-        asmcode << asm("3D" + Utils::Converter.int_to_whex_rev(Class::ROOT_CLASS_IDS["NilClass"]), "  cmp ax, nil_class_id")
+        asmcode << asm("3D" + Utils::Converter.int2hex(Class::ROOT_CLASS_IDS["NilClass"], :word, :be), "  cmp ax, nil_class_id")
         jump_distance = code_offset["method_selector_nilclass"] - (asmcode.code.length + 4)
-        jump_target = Utils::Converter.int_to_whex_rev(jump_distance).upcase
+        jump_target = Utils::Converter.int2hex(jump_distance, :word, :be).upcase
         asmcode << asm("0F84#{jump_target}", "  jz method_selector_nilclass")
       end
       
       # add false class
       if @classes.key?("FalseClass")
-        asmcode << asm("3D" + Utils::Converter.int_to_whex_rev(Class::ROOT_CLASS_IDS["FalseClass"]), "  cmp ax, false_class_id")
+        asmcode << asm("3D" + Utils::Converter.int2hex(Class::ROOT_CLASS_IDS["FalseClass"], :word, :be), "  cmp ax, false_class_id")
         jump_distance = code_offset["method_selector_falseclass"] - (asmcode.code.length + 4)
-        jump_target = Utils::Converter.int_to_whex_rev(jump_distance).upcase
+        jump_target = Utils::Converter.int2hex(jump_distance, :word, :be).upcase
         asmcode << asm("0F84#{jump_target}", "  jz method_selector_falseclass")
       end
       
       # add true class
       if @classes.key?("TrueClass")
-        asmcode << asm("3D" + Utils::Converter.int_to_whex_rev(Class::ROOT_CLASS_IDS["TrueClass"]), "  cmp ax, true_class_id")
+        asmcode << asm("3D" + Utils::Converter.int2hex(Class::ROOT_CLASS_IDS["TrueClass"], :word, :be), "  cmp ax, true_class_id")
         jump_distance = code_offset["method_selector_trueclass"] - (asmcode.code.length + 4)
-        jump_target = Utils::Converter.int_to_whex_rev(jump_distance).upcase
+        jump_target = Utils::Converter.int2hex(jump_distance, :word, :be).upcase
         asmcode << asm("0F84#{jump_target}", "  jz method_selector_trueclass")
       end
       
@@ -219,10 +219,10 @@ module Elang
       @classes.each do |key, cls|
         if !["Integer", "NilClass", "TrueClass", "FalseClass"].include?(key)
           if clsid = cls[:clsid]
-            asmcode << asm("3D" + Utils::Converter.int_to_whex_rev(cls[:clsid]).upcase, "  cmp ax, #{cls[:clsid]}")
+            asmcode << asm("3D" + Utils::Converter.int2hex(cls[:clsid], :word, :be).upcase, "  cmp ax, #{cls[:clsid]}")
             code_label = "method_selector_#{key.downcase}"
             jump_distance = code_offset[code_label] - (asmcode.code.length + 4)
-            jump_target = Utils::Converter.int_to_whex_rev(jump_distance).upcase
+            jump_target = Utils::Converter.int2hex(jump_distance, :word, :be).upcase
             asmcode << asm("0F84#{jump_target}", "  jz #{code_label}")
           end
         end
@@ -230,7 +230,7 @@ module Elang
       
       code_label = "handle_invalid_class_id"
       func_address = @code_origin + dispatcher_offset + code_offset[code_label]
-      ax_value = Utils::Converter.int_to_whex_rev(func_address).upcase
+      ax_value = Utils::Converter.int2hex(func_address, :word, :be).upcase
       asmcode << asm("B8#{ax_value}C3", "  mov ax, #{code_label}; ret")
       asmcode << asm()
       
@@ -263,14 +263,14 @@ module Elang
       asmcode << asm("89E5", "  mov bp, sp")
       code_label = "_return_to_caller"
       code_address = @code_origin + dispatcher_offset + code_offset[code_label]
-      ax_value = Utils::Converter.int_to_whex_rev(code_address).upcase
+      ax_value = Utils::Converter.int2hex(code_address, :word, :be).upcase
       asmcode << asm("B8#{ax_value}", "  mov ax, #{code_label}")
       asmcode << asm("50", "  push ax")
       asmcode << asm()
       
       code_label = "find_obj_method"
       call_distance = code_offset[code_label] - (asmcode.code.length + 3)
-      call_target = Utils::Converter.int_to_whex_rev(call_distance).upcase
+      call_target = Utils::Converter.int2hex(call_distance, :word, :be).upcase
       asmcode << asm("E8#{call_target}", "  call #{code_label}")
       asmcode << asm("50", "  push ax")
       asmcode << asm("C3", "  ret")
@@ -288,18 +288,18 @@ module Elang
             
             if symbol.is_a?(Constant)
               resolve_value = @string_constants[symbol.name][:offset]
-              code[ref.location, 2] = Utils::Converter.int_to_word(resolve_value)
+              code[ref.location, 2] = Utils::Converter.int2bin(resolve_value, :word)
             elsif symbol.is_a?(FunctionParameter)
               arg_offset = symbol.scope.cls ? 3 : 0
               resolve_value = (arg_offset + symbol.index + 2) * 2
-              code[ref.location, 1] = Utils::Converter.int_to_byte(resolve_value)
+              code[ref.location, 1] = Utils::Converter.int2bin(resolve_value, :byte)
             elsif symbol.is_a?(Variable)
               if symbol.scope.root?
                 resolve_value = @variable_offset + (symbol.index - 1) * 2
-                code[ref.location, 2] = Utils::Converter.int_to_word(resolve_value)
+                code[ref.location, 2] = Utils::Converter.int2bin(resolve_value, :word)
               else
                 resolve_value = -symbol.index * 2
-                code[ref.location, 1] = Utils::Converter.int_to_byte(resolve_value)
+                code[ref.location, 1] = Utils::Converter.int2bin(resolve_value, :byte)
               end
             elsif symbol.is_a?(InstanceVariable)
               if (clsinfo = @classes[symbol.scope.cls]).nil?
@@ -307,18 +307,18 @@ module Elang
               elsif (index = clsinfo[:i_vars].index(symbol.name)).nil?
                 raise "Cannot find instance variable '#{symbol.name}' in '#{symbol.scope.cls}' class info"
               else
-                code[ref.location, 2] = Utils::Converter.int_to_word(index)
+                code[ref.location, 2] = Utils::Converter.int2bin(index, :word)
               end
             elsif symbol.is_a?(Function)
               resolve_value = symbol.offset - (origin + ref.location + 2)
-              code[ref.location, 2] = Utils::Converter.int_to_word(resolve_value)
+              code[ref.location, 2] = Utils::Converter.int2bin(resolve_value, :word)
             elsif symbol.is_a?(SystemFunction)
               if symbol.name == "_send_to_object"
                 resolve_value = @dispatcher_offset - (origin + ref.location + 2)
-                code[ref.location, 2] = Utils::Converter.int_to_word(resolve_value)
+                code[ref.location, 2] = Utils::Converter.int2bin(resolve_value, :word)
               elsif sys_function = @system_functions[symbol.name]
                 resolve_value = sys_function[:offset] - (origin + ref.location + 2)
-                code[ref.location, 2] = Utils::Converter.int_to_word(resolve_value)
+                code[ref.location, 2] = Utils::Converter.int2bin(resolve_value, :word)
               else
                 raise "Undefined system function '#{symbol.name.inspect}'"
               end
@@ -326,7 +326,7 @@ module Elang
               if (resolve_value = @function_names.index(symbol.name)).nil?
                 raise "Unknown method '#{symbol.name}'"
               else
-                code[ref.location, 2] = Utils::Converter.int_to_word(resolve_value)
+                code[ref.location, 2] = Utils::Converter.int2bin(resolve_value, :word)
               end
             elsif symbol.is_a?(Class)
 #puts "Resolving class '#{symbol.name}', index: #{symbol.index}"
@@ -345,13 +345,13 @@ module Elang
       file.close
       
       eos_char = 0.chr
-      head_size = Elang::Utils::Converter.word_to_int(buff[0, 2])
+      head_size = Elang::Utils::Converter.bin2int(buff[0, 2])
       read_offset = 2
       
       loop do
         begin
           if buff[read_offset, 5] != "#EOL#"
-            func_address = Elang::Utils::Converter.word_to_int(buff[read_offset, 2]) - head_size
+            func_address = Elang::Utils::Converter.bin2int(buff[read_offset, 2]) - head_size
             eos_position = buff.index(eos_char, read_offset + 2)
             func_name = buff[(read_offset + 2)...eos_position]
             @system_functions[func_name] = {name: func_name, offset: func_address}
@@ -374,7 +374,7 @@ module Elang
       head_code = align_code(hex2bin("B8000050C3"), 16)
       libs_code = @library_code
       subs_code = align_code(codeset.render(:subs), 16)
-      main_code = codeset.render(:main) + Elang::Utils::Converter.hex_to_bin("CD20")
+      main_code = codeset.render(:main) + Elang::Utils::Converter.hex2bin("CD20")
       head_size = head_code.length
       libs_size = libs_code.length
       subs_size = subs_code.length
@@ -420,11 +420,11 @@ module Elang
         ds_offset = ds_offset + pad_count
       end
       
-      init_code[3, 2] = Utils::Converter.int_to_word((ds_offset + @code_origin) >> 4)
+      init_code[3, 2] = Utils::Converter.int2bin((ds_offset + @code_origin) >> 4, :word)
       
       
       main_offset = @code_origin + head_size + libs_size + subs_size + dispatcher_size
-      head_code[1, 2] = Elang::Utils::Converter.int_to_word(main_offset)
+      head_code[1, 2] = Elang::Utils::Converter.int2bin(main_offset, :word)
       
       if libs_size > 0
         @system_functions.each do |k,v|

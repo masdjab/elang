@@ -1,61 +1,69 @@
 module Elang
   module Utils
     class Converter
+      def self.lower_byte(value)
+        value & 0xff
+      end
+      def self.upper_byte(value)
+        (value & 0xff00) >> 8
+      end
+      def self.lower_word(value)
+        lo = value & 0xffff
+      end
+      def self.upper_word(value)
+        (value & 0xffff0000) >> 16
+      end
+      def self.lower_dword(value)
+        value & 0xffffffff
+      end
+      def self.upper_dword(value)
+        (value & 0xffffffff00000000) >> 32
+      end
       def self.bytes_to_str(*bytes)
         bytes.map{|x|x.chr}.join
       end
-      def self.int_to_byte(value)
-        (value & 0xff).chr
+      def self.int2bin(value, size)
+        if size == :byte
+          (value & 0xff).chr
+        elsif size == :word
+          self.int2bin(self.lower_byte(value), :byte) + self.int2bin(self.upper_byte(value), :byte)
+        elsif size == :dword
+          self.int2bin(self.lower_word(value), :word) + self.int2bin(self.upper_word(value), :word)
+        elsif size == :qword
+          self.int2bin(self.lower_dword(value), :dword) + self.int2bin(self.upper_dword(value), :dword)
+        else
+          raise "Invalid byte size code: #{size.inspect}."
+        end
       end
-      def self.int_to_word(value)
-        hi = (value & 0xff00) >> 8
-        lo = value & 0xff
-        lo.chr + hi.chr
+      def self.bin2int(value)
+        result = 0
+        factor = [1, 0x100, 0x10000, 0x1000000, 0x100000000]
+        rbytes = value.bytes
+        (0...rbytes.count).each{|i|result += rbytes[i] * factor[i]}
+        result
       end
-      def self.int_to_dword(value)
-        word1 = value & 0xffff
-        word2 = (value & 0xffff0000) >> 16
-        self.int_to_word(word1) + self.int_to_word(word2)
+      def self.int2hex(value, size, mode = :le)
+        if size == :byte
+          t = "0#{value.to_s(16)}"[-2..-1]
+          "0" * (2 - t.length) + t
+        elsif size == :word
+          parts = [self.int2hex(self.upper_byte(value), :byte), self.int2hex(self.lower_byte(value), :byte)]
+          (mode == :be ? parts.reverse : parts).join
+        elsif size == :dword
+          parts = [self.int2hex(self.upper_word(value), :word), self.int2hex(self.lower_word(value), :word)]
+          (mode == :be ? parts.reverse : parts).join
+        elsif size == :qword
+          parts = [self.int2hex(self.upper_dword(value), :dword), self.int2hex(self.lower_dword(value), :dword)]
+          (mode == :be ? parts.reverse : parts).join
+        else
+          raise "Invalid byte size code: #{size.inspect}."
+        end
       end
-      def self.byte_to_int(value)
-        value.bytes[0]
+      def self.hex2bin(value)
+        (0...(value.length / 2)).map{|i|value[2 * i, 2].hex.chr}.join
       end
-      def self.word_to_int(value)
-        bytes = value.bytes
-        (1 << 8) * bytes[1] + bytes[0]
-      end
-      def self.dword_to_int(value)
-        bytes = value.bytes
-        (1 << 24) * bytes[3] + (1 << 16) * bytes[2] + (1 << 8) * bytes[1] + bytes[0]
-      end
-      def self.int_to_bhex(value)
-        t = "0#{value.to_s(16)}"[-2..-1]
-        "0" * (2 - t.length) + t
-      end
-      def self.int_to_whex(value)
-        t = "000#{value.to_s(16)}"[-4..-1]
-        "0" * (4 - t.length) + t
-      end
-      def self.int_to_bhex_rev(value)
-        t = "0#{value.to_s(16)}"[-2..-1]
-        "0" * (2 - t.length) + t
-      end
-      def self.int_to_whex_rev(value)
-        hi = (value & 0xff00) >> 8
-        lo = value & 0xff
-        self.int_to_bhex_rev(lo) + self.int_to_bhex_rev(hi)
-      end
-      def self.int_to_bhex_be(value)
-        self.int_to_byte(value).bytes.map{|x|self.int_to_bhex(x.ord)}.join
-      end
-      def self.int_to_whex_be(value)
-        self.int_to_word(value).bytes.map{|x|self.int_to_bhex(x.ord)}.join
-      end
-      def self.hex_to_bin(hexstr)
-        (0...(hexstr.length / 2)).map{|i|hexstr[2 * i, 2].hex.chr}.join
-      end
-      def self.bin_to_hex(binstr)
-        binstr.bytes.map{|x|self.int_to_bhex(x.ord)}.join
+      def self.bin2hex(value)
+        value.bytes.map{|x|self.int2hex(x.ord, :byte)}.join
       end
     end
   end

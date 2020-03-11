@@ -9,7 +9,7 @@ module Elang
       end
       def <<(instruction)
         if !instruction.code.empty?
-          @code = @code + Utils::Converter.hex_to_bin(instruction.code)
+          @code = @code + Utils::Converter.hex2bin(instruction.code)
         end
         
         @instructions << instruction

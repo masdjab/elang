@@ -229,7 +229,7 @@ module Elang
             else
               iv = @symbols.get_instance_variables(cls)
               sz = Utils::Converter.int2hex(iv.count, :word, :be)
-              ci = Utils::Converter.int2hex(Symbols.create_class_id(cls), :word, :be)
+              ci = Utils::Converter.int2hex(cls.clsid, :word, :be)
               hc = "B8#{sz}50B8#{ci}50E80000"
               
               add_function_ref get_sys_function("_alloc_object"), code_len + 9

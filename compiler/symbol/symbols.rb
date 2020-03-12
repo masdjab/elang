@@ -17,15 +17,6 @@ module Elang
       
       @symbols = []
     end
-    def self.create_class_id(cls)
-      if cls.name == "Integer"
-        nil
-      elsif Class::ROOT_CLASS_IDS.key?(cls.name)
-        Class::ROOT_CLASS_IDS[cls.name]
-      else
-        Class::USER_CLASS_ID_BASE + (cls.index * 2)
-      end
-    end
     def find_matching(context, name)
       alt1 = nil
       alt2 = nil 
@@ -97,8 +88,13 @@ module Elang
       clist = self.items.select{|x|x.is_a?(Class)}
       
       if (cls = clist.find{|x|x.name == name}).nil?
-        idx = clist.inject(0){|a,b|b.index >= a ? b.index + 1 : a}
-        cls = self.add(Class.new(scope, name, parent, idx))
+        if Class::ROOT_CLASS_IDS.key?(name)
+          clsid = Class::ROOT_CLASS_IDS[name]
+        else
+          clsid = Class::USER_CLASS_ID_BASE + clist.select{|x|!Class::ROOT_CLASS_IDS.key?(x.name)}.count * 2
+        end
+        
+        cls = self.add(Class.new(scope, name, parent, clsid))
       end
       
       cls
@@ -148,7 +144,7 @@ module Elang
           if !classes.key?(s.name)
             classes[s.name] = 
               {
-                :clsid  => self.class.create_class_id(s), 
+                :clsid  => s.clsid, 
                 :parent => s.parent, 
                 :i_vars => get_instance_variables(s), 
                 :i_funs => get_instance_methods(s)

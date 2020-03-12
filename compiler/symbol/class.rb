@@ -12,12 +12,12 @@ module Elang
         "String"      => 12
       }
     
-    USER_CLASS_ID_BASE  = 14
+    USER_CLASS_ID_BASE  = 0x100
     
-    attr_reader :scope, :name, :parent, :index
+    attr_reader :scope, :name, :parent, :clsid
     
-    def initialize(scope, name, parent, index)
-      @index = index
+    def initialize(scope, name, parent, clsid)
+      @clsid = clsid
       @scope = scope
       @name = name
       @parent = parent

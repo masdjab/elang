@@ -91,6 +91,13 @@ class String
   end
 end
 
+class Array
+  def [](index)
+  end
+  def []=(index, value)
+  end
+end
+
 class Exception
   def to_s
     "Exception"

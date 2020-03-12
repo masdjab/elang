@@ -365,6 +365,9 @@ module Elang
         handle_any node.body
         leave_scope
       end
+      def handle_array(node)
+#puts "got array: #{node.inspect}"
+      end
       def handle_if(node)
         cond_node = node.condition
         exp1_node = node.body1

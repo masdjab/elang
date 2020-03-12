@@ -236,36 +236,36 @@ module Elang
       
       code_label = "_return_to_caller"
       code_offset[code_label] = asmcode.code.length
-      asmcode << asm("", "#{code_label}:")
-      asmcode << asm("50", "  push ax")
-      asmcode << asm("56", "  push si")
-      asmcode << asm("89EE", "  mov si, bp")
-      asmcode << asm("8B4608", "  mov ax, [bp + 8]")
-      asmcode << asm("83C004", "  add ax, 4")
-      asmcode << asm("D1E0", "  shl ax, 1")
-      asmcode << asm("01C6", "  add si, ax")
-      asmcode << asm("8B4602", "  mov ax, [bp + 2]")
-      asmcode << asm("87EE", "  xchg bp, si")
-      asmcode << asm("894600", "  mov [bp], ax")
-      asmcode << asm("87EE", "  xchg bp, si")
-      asmcode << asm("897602", "  mov [bp + 2], si")
-      asmcode << asm("5E", "  pop si")
-      asmcode << asm("58", "  pop ax")
-      asmcode << asm("5D", "  pop bp")
-      asmcode << asm("5C", "  pop sp")
-      asmcode << asm("C3", "  ret")
+      asmcode << asm("",        "#{code_label}:")
+      asmcode << asm("50",      "  push ax")
+      asmcode << asm("56",      "  push si")
+      asmcode << asm("89EE",    "  mov si, bp")
+      asmcode << asm("8B4608",  "  mov ax, [bp + 8]")
+      asmcode << asm("83C004",  "  add ax, 4")
+      asmcode << asm("D1E0",    "  shl ax, 1")
+      asmcode << asm("01C6",    "  add si, ax")
+      asmcode << asm("8B4602",  "  mov ax, [bp + 2]")
+      asmcode << asm("87EE",    "  xchg bp, si")
+      asmcode << asm("894600",  "  mov [bp], ax")
+      asmcode << asm("87EE",    "  xchg bp, si")
+      asmcode << asm("897602",  "  mov [bp + 2], si")
+      asmcode << asm("5E",      "  pop si")
+      asmcode << asm("58",      "  pop ax")
+      asmcode << asm("5D",      "  pop bp")
+      asmcode << asm("5C",      "  pop sp")
+      asmcode << asm("C3",      "  ret")
       
       asmcode << asm()
       code_label = "dispatch_obj_method"
       code_offset[code_label] = asmcode.code.length
-      asmcode << asm("", "#{code_label}:")
-      asmcode << asm("55", "  push bp")
-      asmcode << asm("89E5", "  mov bp, sp")
+      asmcode << asm("",      "#{code_label}:")
+      asmcode << asm("55",    "  push bp")
+      asmcode << asm("89E5",  "  mov bp, sp")
       code_label = "_return_to_caller"
       code_address = @code_origin + dispatcher_offset + code_offset[code_label]
       ax_value = Utils::Converter.int2hex(code_address, :word, :be).upcase
       asmcode << asm("B8#{ax_value}", "  mov ax, #{code_label}")
-      asmcode << asm("50", "  push ax")
+      asmcode << asm("50",    "  push ax")
       asmcode << asm()
       
       code_label = "find_obj_method"

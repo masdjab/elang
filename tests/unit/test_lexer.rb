@@ -356,4 +356,9 @@ EOS
   end
   def test_function_name
   end
+  def test_array
+    check_expression \
+      "a = [1, 2, 3]\r\nb = a[0]\r\n", 
+      "[[.,a,=,[[1,2,3]]],[.,b,=,[[.,a,[],[0]]]]]"
+  end
 end

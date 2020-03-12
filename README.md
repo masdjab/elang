@@ -9,7 +9,6 @@ Elang is a programming language written in Ruby and fasm (flat assembler). It ha
 - Compiler
 - Ability to create output file
 - System programming
-- Intermediate level
 
 ## Requirements
 Ruby (v2.6+ recommended)

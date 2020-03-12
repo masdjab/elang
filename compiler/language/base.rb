@@ -29,6 +29,8 @@ module Elang
       end
       def handle_class_def(node)
       end
+      def handle_array(node)
+      end
       def handle_if(node)
       end
       def handle_any(node)
@@ -40,6 +42,8 @@ module Elang
           self.handle_function_def node
         elsif node.is_a?(Lex::Class)
           self.handle_class_def node
+        elsif node.is_a?(Lex::Array)
+          self.handle_array node
         elsif node.is_a?(Lex::IfBlock)
           self.handle_if node
         elsif node.is_a?(Lex::Node)

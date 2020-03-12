@@ -1,5 +1,9 @@
 dw code
 
+dw _pass_arguments
+  db "_pass_arguments", 0
+dw _set_result
+  db "_set_result", 0
 dw _mem_block_init
   db "_mem_block_init", 0
 dw mem_find_free_block
@@ -20,6 +24,8 @@ dw _mem_get_data_offset
   db "_mem_get_data_offset", 0
 dw _mem_get_container_block
   db "_mem_get_container_block", 0
+dw _expand_data_block_if_needed
+  db "_expand_data_block_if_needed", 0
 dw mem_copy
   db "mem_copy", 0
 dw mem_reverse
@@ -108,6 +114,16 @@ dw _is_equal
   db "_is_equal", 0
 dw _is_not_equal
   db "_is_not_equal", 0
+dw _create_array
+  db "_create_array", 0
+dw _array_length
+  db "_array_length", 0
+dw _array_get_item
+  db "_array_get_item", 0
+dw _array_set_item
+  db "_array_set_item", 0
+dw _array_append
+  db "_array_append", 0
 dw _get_obj_var
   db "_get_obj_var", 0
 dw _set_obj_var

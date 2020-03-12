@@ -41,7 +41,15 @@ module Elang
         SystemFunction.new("_unassign_object"), 
         SystemFunction.new("_collect_garbage"), 
         SystemFunction.new("print"), 
-        SystemFunction.new("puts")
+        SystemFunction.new("puts"), 
+        SystemFunction.new("_pass_arguments"), 
+        SystemFunction.new("_set_result"), 
+        SystemFunction.new("_expand_data_block_if_needed"), 
+        SystemFunction.new("_create_array"), 
+        SystemFunction.new("_array_length"), 
+        SystemFunction.new("_array_get_item"), 
+        SystemFunction.new("_array_set_item"), 
+        SystemFunction.new("_array_append")
       ]
     
     

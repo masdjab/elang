@@ -28,6 +28,42 @@ USED_BLOCK_SIZE           EQU 4
 GARBAGE_COUNT             EQU 6
 
 
+_pass_arguments:
+  ; input: function, mandatory_count, optional count, arguments
+  ; return value should be put at [bp - 2]
+  push bp
+  mov bp, sp
+  push ax
+  mov ax, _pass_arguments_return
+  push ax
+  mov ax, [bp + 4]
+  push ax
+  ret
+_pass_arguments_return:
+  push si
+  mov si, bp
+  mov ax, [bp + 6]
+  add ax, [bp + 8]
+  add ax, 5
+  shl ax, 1
+  add si, ax
+  mov ax, [bp + 2]
+  xchg bp, si
+  mov [bp], ax
+  xchg bp, si
+  mov [bp + 2], si
+  pop si
+  pop ax
+  pop bp
+  pop sp
+  ret
+  
+  
+_set_result:
+  mov [bp - 2], ax
+  ret
+  
+  
 _mem_block_init:
   ; input: offset, size; output: none
   push bp
@@ -389,6 +425,45 @@ _mem_resize_done:
   pop cx
   pop bp
   ret 4
+  
+  
+_expand_data_block_if_needed:
+  ; input: data_block, new size; output: old/new block address or NO_MORE
+  push bp
+  mov bp, sp
+  push cx
+  push bx
+  push si
+  mov bx, [bp + 4]
+  mov cx, [bp + 6]
+  cmp cx, [bx - 6]
+  jbe _expand_data_block_if_needed_skip
+  mov ax, cx
+  shr ax, 1
+  add ax, cx
+  push ax
+  call _mem_alloc
+  cmp ax, NO_MORE
+  jz _expand_data_block_if_needed_done
+  push ax
+  call _mem_get_data_offset
+  mov si, ax
+  push cx
+  push si
+  push bx
+  call mem_copy
+  push bx
+  call _mem_dealloc
+  mov ax, si
+  jmp _expand_data_block_if_needed_done
+_expand_data_block_if_needed_skip:
+  mov ax, bx
+_expand_data_block_if_needed_done:
+  pop si
+  pop bx
+  pop cx
+  pop bp
+  ret
   
   
 _is_object:
@@ -1410,6 +1485,109 @@ _is_not_equal_done:
   pop si
   pop bp
   ret 4
+  
+  
+_create_array:
+  ; creates empty array
+  ; input: none; output: array object
+  push bx
+  push si
+  xor ax, ax
+  push ax
+  call _mem_alloc
+  cmp ax, NO_MORE
+  jz _create_array_done
+  push ax
+  call _mem_get_data_offset
+  mov si, ax
+  mov ax, 2                 ; iv count: length, data offset
+  push ax
+  mov ax, CLS_ID_ARRAY
+  push ax
+  call _alloc_object
+  cmp ax, NO_MORE
+  jz _create_array_done
+  mov bx, ax
+  xor ax, ax
+  mov [bx + 2], ax          ; element count
+  mov [bx + 4], si          ; data offset
+  mov ax, bx
+_create_array_done:
+  call _set_result
+  pop si
+  pop bx
+  ret
+  
+  
+_array_length:
+  ; input: array; output: ax
+  push bx
+  mov bx, [bp + 4]
+  mov ax, [bx + 2]
+  pop bx
+  ret
+  
+  
+_array_get_item:
+  ; input: array, index
+  push bx
+  push si
+  mov bx, [bp + 4]
+  mov si, [bx + 4]
+  mov ax, [bp + 6]
+  shr ax, 1
+  add si, ax
+  mov ax, [si]
+  pop si
+  pop bx
+  ret
+  
+  
+_array_set_item:
+  ; input: array, index, value
+  push bx
+  push si
+  mov bx, [bp + 4]
+  mov si, [bx + 4]
+  mov ax, [bp + 6]
+  shr ax, 1
+  add si, ax
+  mov ax, [bp + 8]
+  mov [si], ax
+  pop si
+  pop bx
+  ret
+  
+  
+_array_append:
+  ; input: array, value; output: array object
+  push bx
+  push si
+  mov bx, [bp + 4]
+  mov ax, [bx + 2]
+  inc ax
+  shl ax, 1
+  push bx
+  push ax
+  call _expand_data_block_if_needed
+  cmp ax, NO_MORE
+  jz _array_append_failed
+  cmp ax, bx
+  jz _array_append_block_relocated
+  mov [bx + 4], ax
+_array_append_block_relocated:
+  mov si, [bx + 4]
+  mov ax, [bx + 2]
+  shl ax, 1
+  add si, ax
+  mov ax, [bp + 6]
+  mov [si], ax
+  inc word [bx + 2]
+_array_append_failed:
+  mov ax, bx
+  pop si
+  pop bx
+  ret
   
   
 _get_obj_var:

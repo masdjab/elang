@@ -22,7 +22,7 @@ class CompilerTest < Test::Unit::TestCase
     codeset
   end
   def check_binary(actual, expected_str)
-    assert_equal Elang::Utils::Converter.hex2bin(expected_str), actual
+    assert_equal Elang::Converter.hex2bin(expected_str), actual
   end
   def test_link_main_code
     source = "x = 2\r\ny = 3\r\nz = x + y\r\n"

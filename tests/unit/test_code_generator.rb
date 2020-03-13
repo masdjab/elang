@@ -9,7 +9,7 @@ require './compiler/codeset/_load'
 require './compiler/language/_load'
 require './compiler/name_detector'
 require './compiler/code_generator'
-require './utils/converter'
+require './compiler/converter'
 
 
 class TestCodeGenerator < Test::Unit::TestCase
@@ -71,7 +71,7 @@ class TestCodeGenerator < Test::Unit::TestCase
     Elang::Lex::Send.new(receiver, cmd, args)
   end
   def bin(h)
-    Elang::Utils::Converter.hex2bin(h)
+    Elang::Converter.hex2bin(h)
   end
   def generate_code(nodes, source = nil)
     codeset = create_codeset

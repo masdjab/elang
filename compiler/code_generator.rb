@@ -1,8 +1,8 @@
+require_relative 'converter'
 require_relative 'name_detector'
 require_relative 'lex'
 require_relative 'shunting_yard'
 require_relative 'symbol/_load'
-require_relative '../utils/converter'
 
 
 module Elang

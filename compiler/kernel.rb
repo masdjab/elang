@@ -13,13 +13,13 @@ module Elang
       
       lib_functions = {}
       eos_char = 0.chr
-      head_size = Elang::Utils::Converter.bin2int(buff[0, 2])
+      head_size = Elang::Converter.bin2int(buff[0, 2])
       read_offset = 2
       
       loop do
         begin
           if buff[read_offset, 5] != "#EOL#"
-            func_address = Elang::Utils::Converter.bin2int(buff[read_offset, 2]) - head_size
+            func_address = Elang::Converter.bin2int(buff[read_offset, 2]) - head_size
             eos_position = buff.index(eos_char, read_offset + 2)
             func_name = buff[(read_offset + 2)...eos_position]
             lib_functions[func_name] = {name: func_name, offset: func_address}

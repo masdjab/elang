@@ -1,17 +1,17 @@
-require '../utils/converter'
+require '../compiler/converter'
 
 cat_file = File.new("stdlib.bin", "rb")
 content = cat_file.read
 cat_file.close
 
 procs = []
-toc_size = Elang::Utils::Converter.bin2int(content[0, 2])
+toc_size = Elang::Converter.bin2int(content[0, 2])
 read_pos = 2
 eos_char = 0.chr
 loop do
   begin
     if content[read_pos, 5] != "#EOL#"
-      oo = Elang::Utils::Converter.bin2int(content[read_pos + 0, 2]) + 0x110 - toc_size
+      oo = Elang::Converter.bin2int(content[read_pos + 0, 2]) + 0x110 - toc_size
       mp = content.index(eos_char, read_pos + 2)
       fn = content[(read_pos + 2)...mp]
       procs << {addr: oo, name: fn}
@@ -28,7 +28,7 @@ loop do
   end
 end
 
-list = procs.map{|x|"#{Elang::Utils::Converter.int2hex(x[:addr], :word, :le).upcase} #{x[:name]}"}
+list = procs.map{|x|"#{Elang::Converter.int2hex(x[:addr], :word, :le).upcase} #{x[:name]}"}
 File.write("offset.txt", list.join("\r\n") + "\r\n")
 list.each{|i|puts i}
 puts "Total #{procs.count} procs"

@@ -12,7 +12,7 @@ module Elang
         @codeset.length
       end
       def hex2bin(h)
-        Elang::Utils::Converter.hex2bin(h)
+        Elang::Converter.hex2bin(h)
       end
       def intobj(value)
         (value << 1) | 1
@@ -56,7 +56,7 @@ module Elang
       public
       def get_number(number)
         # mov ax, imm
-        value_hex = Elang::Utils::Converter.int2hex(make_int(number), :word, :be).upcase
+        value_hex = Elang::Converter.int2hex(make_int(number), :word, :be).upcase
         append_code hex2bin("B8" + value_hex)
       end
       def get_string_object(text)
@@ -86,11 +86,11 @@ module Elang
         
         if node.type == :identifier
           if (name = node.text) == "nil"
-            append_code hex2bin("B8" + Utils::Converter.int2hex(Class::ROOT_CLASS_IDS["NilClass"], :word, :be))
+            append_code hex2bin("B8" + Converter.int2hex(Class::ROOT_CLASS_IDS["NilClass"], :word, :be))
           elsif name == "false"
-            append_code hex2bin("B8" + Utils::Converter.int2hex(Class::ROOT_CLASS_IDS["FalseClass"], :word, :be))
+            append_code hex2bin("B8" + Converter.int2hex(Class::ROOT_CLASS_IDS["FalseClass"], :word, :be))
           elsif name == "true"
-            append_code hex2bin("B8" + Utils::Converter.int2hex(Class::ROOT_CLASS_IDS["TrueClass"], :word, :be))
+            append_code hex2bin("B8" + Converter.int2hex(Class::ROOT_CLASS_IDS["TrueClass"], :word, :be))
           elsif name == "self"
             if active_scope.cls.nil?
               raize "Symbol 'self' accessed outside class", node
@@ -129,7 +129,7 @@ module Elang
             raize "Cannot get value from '#{name}', symbol type '#{symbol.class}' unknown", node
           end
         elsif node.type == :number
-          append_code hex2bin("B8" + Utils::Converter.int2hex(intobj(node.text.to_i), :word, :be))
+          append_code hex2bin("B8" + Converter.int2hex(intobj(node.text.to_i), :word, :be))
         elsif node.type == :string
           get_string_object node.text
         end
@@ -228,8 +228,8 @@ module Elang
               raize "Class '#{cls_name}' not defined", rcvr_node
             else
               iv = @symbols.get_instance_variables(cls)
-              sz = Utils::Converter.int2hex(iv.count, :word, :be)
-              ci = Utils::Converter.int2hex(cls.clsid, :word, :be)
+              sz = Converter.int2hex(iv.count, :word, :be)
+              ci = Converter.int2hex(cls.clsid, :word, :be)
               hc = "B8#{sz}50B8#{ci}50E80000"
               
               add_function_ref get_sys_function("_alloc_object"), code_len + 9
@@ -268,7 +268,7 @@ module Elang
               
               # push args count
               args_count = func_args.count
-              append_code hex2bin("B8" + Utils::Converter.int2hex(args_count, :word, :be) + "50")
+              append_code hex2bin("B8" + Converter.int2hex(args_count, :word, :be) + "50")
               
               # push object method id
               function_id = FunctionId.new(current_scope, func_name)
@@ -318,7 +318,7 @@ module Elang
         
         if local_var_count > 0
           # sub sp, nn
-          append_code hex2bin("81EC" + Elang::Utils::Converter.int2hex(local_var_count * 2, :word, :be))
+          append_code hex2bin("81EC" + Elang::Converter.int2hex(local_var_count * 2, :word, :be))
           
           local_variables.each do |v|
             # xor ax, ax; mov [v], ax
@@ -340,7 +340,7 @@ module Elang
           append_code hex2bin("58")
           
           # add sp, nn
-          append_code hex2bin("81C4" + Elang::Utils::Converter.int2hex(local_var_count * 2, :word, :be))
+          append_code hex2bin("81C4" + Elang::Converter.int2hex(local_var_count * 2, :word, :be))
         end
         
         if active_scope.cls.nil?
@@ -348,7 +348,7 @@ module Elang
           append_code hex2bin("5D")
           
           # ret [n]
-          hex_code = (params_count > 0 ? "C2#{Elang::Utils::Converter.int2hex(params_count * 2, :word, :be).upcase}" : "C3")
+          hex_code = (params_count > 0 ? "C2#{Elang::Converter.int2hex(params_count * 2, :word, :be).upcase}" : "C3")
           append_code hex2bin(hex_code)
         else
           # ret
@@ -399,13 +399,13 @@ module Elang
           offset2 = code_len
           append_code hex2bin("E90000")
           jmp_distance = code_len - (offset1 + 8)
-          @codeset.code[@codeset.branch][offset1 + 6, 2] = Utils::Converter.int2bin(jmp_distance, :word)
+          @codeset.code[@codeset.branch][offset1 + 6, 2] = Converter.int2bin(jmp_distance, :word)
           handle_any exp2_node
           jmp_distance = code_len - (offset2 + 3)
-          @codeset.code[@codeset.branch][offset2 + 1, 2] = Utils::Converter.int2bin(jmp_distance, :word)
+          @codeset.code[@codeset.branch][offset2 + 1, 2] = Converter.int2bin(jmp_distance, :word)
         else
           jmp_distance = code_len - (offset1 + 8)
-          @codeset.code[@codeset.branch][offset1 + 6, 2] = Utils::Converter.int2bin(jmp_distance, :word)
+          @codeset.code[@codeset.branch][offset1 + 6, 2] = Converter.int2bin(jmp_distance, :word)
         end
         
         add_function_ref get_sys_function("_is_true"), offset1 + 2

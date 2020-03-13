@@ -1,4 +1,6 @@
 require 'test-unit'
+require './compiler/code'
+require './compiler/kernel'
 require './compiler/source_code'
 require './compiler/codeset/_load'
 require './compiler/language/_load'
@@ -6,13 +8,14 @@ require './compiler/compiler'
 
 class CompilerTest < Test::Unit::TestCase
   def compile(source_text)
+    kernel = Elang::Kernel.load_library('./libs/stdlib.bin')
     source = Elang::StringSourceCode.new(source_text)
     symbols = Elang::Symbols.new
     parser = Elang::Parser.new
     lexer = Elang::Lexer.new
     name_detector = Elang::NameDetector.new(symbols)
     codeset = Elang::Codeset::Binary.new
-    language = Elang::Language::Machine.new(symbols, codeset)
+    language = Elang::Language::Machine.new(kernel, symbols, codeset)
     codegen = Elang::CodeGenerator.new(language)
     
     tokens = parser.parse(source)
@@ -22,7 +25,7 @@ class CompilerTest < Test::Unit::TestCase
     codeset
   end
   def check_binary(actual, expected_str)
-    assert_equal Elang::Utils::Converter.hex2bin(expected_str), actual
+    assert_equal Elang::Converter.hex2bin(expected_str), actual
   end
   def test_link_main_code
     source = "x = 2\r\ny = 3\r\nz = x + y\r\n"

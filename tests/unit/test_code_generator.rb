@@ -1,4 +1,6 @@
 require 'test-unit'
+require './compiler/code'
+require './compiler/kernel'
 require './compiler/exception'
 require './compiler/source_code'
 require './compiler/lex'
@@ -9,7 +11,7 @@ require './compiler/codeset/_load'
 require './compiler/language/_load'
 require './compiler/name_detector'
 require './compiler/code_generator'
-require './utils/converter'
+require './compiler/converter'
 
 
 class TestCodeGenerator < Test::Unit::TestCase
@@ -71,12 +73,13 @@ class TestCodeGenerator < Test::Unit::TestCase
     Elang::Lex::Send.new(receiver, cmd, args)
   end
   def bin(h)
-    Elang::Utils::Converter.hex2bin(h)
+    Elang::Converter.hex2bin(h)
   end
   def generate_code(nodes, source = nil)
+    kernel = Elang::Kernel.load_library('./libs/stdlib.bin')
     codeset = create_codeset
     @symbols = Elang::Symbols.new
-    @language = Elang::Language::Machine.new(@symbols, codeset)
+    @language = Elang::Language::Machine.new(kernel, @symbols, codeset)
     @code_generator = Elang::CodeGenerator.new(@language)
     Elang::NameDetector.new(@symbols).detect_names nodes
     @code_generator.generate_code(nodes)

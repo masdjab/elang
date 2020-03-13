@@ -3,7 +3,10 @@ module Elang
     class Base
       attr_reader :symbols, :codeset
       
-      def initialize(symbols, codeset)
+      def initialize(kernel, symbols, codeset)
+        @sys_functions = 
+          kernel.functions.map{|k,v|SystemFunction.new(v[:name])} \
+          + [SystemFunction.new("_send_to_object")]
         @symbols = symbols
         @codeset = codeset
         @scope_stack = ScopeStack.new
@@ -16,7 +19,7 @@ module Elang
         end
       end
       def get_sys_function(name)
-        CodeGenerator::SYS_FUNCTIONS.find{|x|x.name == name}
+        @sys_functions.find{|x|x.name == name}
       end
       def register_instance_variable(name)
         @symbols.register_instance_variable(Scope.new(current_scope.cls), name)

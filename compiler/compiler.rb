@@ -1,6 +1,8 @@
+require_relative 'code'
 require_relative 'exception'
 require_relative 'file_info'
 require_relative 'source_code'
+require_relative 'kernel'
 require_relative 'parser'
 require_relative 'lexer'
 require_relative 'assembly/instruction'
@@ -53,6 +55,10 @@ module Elang
     def delete_output_file(file_name)
       File.delete file_name if File.exist?(file_name)
     end
+    def load_kernel_libraries
+      libfile = get_lib_file("stdlib.bin")
+      Kernel.load_library(libfile)
+    end
     def display_nodes(source, nodes, mode)
       if source.is_a?(FileSourceCode)
         file_type = File.basename(source.file_name) == "libs.elang" ? :libs : :user
@@ -88,11 +94,10 @@ module Elang
     def collect_names(symbols, nodes)
       NameDetector.new(symbols).detect_names nodes
     end
-    def generate_output_file(symbols, nodes)
-      linker = Elang::Linker.new
-      linker.load_library get_lib_file("stdlib.bin")
+    def generate_output_file(kernel, symbols, nodes)
+      linker = Elang::Linker.new(kernel)
       codeset = Codeset::Binary.new
-      codegen = Elang::CodeGenerator.new(Language::Machine.new(symbols, codeset))
+      codegen = Elang::CodeGenerator.new(Language::Machine.new(kernel, symbols, codeset))
       success = false
       
       delete_output_file @output_file.full
@@ -118,10 +123,11 @@ module Elang
           FileSourceCode.new(@source_file.full)
         ]
       success = false
+      kernel = load_kernel_libraries
       
       if nodes = generate_nodes(sources, symbols)
         collect_names symbols, nodes
-        success = generate_output_file(symbols, nodes)
+        success = generate_output_file(kernel, symbols, nodes)
       end
       
       if success

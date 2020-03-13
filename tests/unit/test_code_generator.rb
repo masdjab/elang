@@ -1,4 +1,6 @@
 require 'test-unit'
+require './compiler/code'
+require './compiler/kernel'
 require './compiler/exception'
 require './compiler/source_code'
 require './compiler/lex'
@@ -74,9 +76,10 @@ class TestCodeGenerator < Test::Unit::TestCase
     Elang::Converter.hex2bin(h)
   end
   def generate_code(nodes, source = nil)
+    kernel = Elang::Kernel.load_library('./libs/stdlib.bin')
     codeset = create_codeset
     @symbols = Elang::Symbols.new
-    @language = Elang::Language::Machine.new(@symbols, codeset)
+    @language = Elang::Language::Machine.new(kernel, @symbols, codeset)
     @code_generator = Elang::CodeGenerator.new(@language)
     Elang::NameDetector.new(@symbols).detect_names nodes
     @code_generator.generate_code(nodes)

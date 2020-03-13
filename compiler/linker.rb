@@ -10,13 +10,12 @@ module Elang
     FIRST_BLOCK = 0
     
     private
-    def initialize
+    def initialize(kernel)
+      @kernel = kernel
       @code_origin = 0x100
-      @system_functions = {}
       @classes = {}
       @root_var_count = 0
       @function_names = []
-      @library_code = ""
       @dynamic_area = 0
       @dispatcher_offset = 0
       @string_constants = {}
@@ -311,7 +310,7 @@ module Elang
               if symbol.name == "_send_to_object"
                 resolve_value = @dispatcher_offset - (origin + ref.location + 2)
                 code[ref.location, 2] = Converter.int2bin(resolve_value, :word)
-              elsif sys_function = @system_functions[symbol.name]
+              elsif sys_function = @kernel.functions[symbol.name]
                 resolve_value = sys_function[:offset] - (origin + ref.location + 2)
                 code[ref.location, 2] = Converter.int2bin(resolve_value, :word)
               else
@@ -334,14 +333,9 @@ module Elang
     end
     
     public
-    def load_library(libfile)
-      kernel = Kernel.load_library(libfile)
-      @system_functions = kernel.functions
-      @library_code = kernel.code
-    end
     def link(symbols, codeset)
       head_code = Code.align(hex2bin("B8000050C3"), 16)
-      libs_code = @library_code
+      libs_code = @kernel.code
       subs_code = Code.align(codeset.render(:subs), 16)
       main_code = codeset.render(:main) + Elang::Converter.hex2bin("CD20")
       head_size = head_code.length
@@ -396,7 +390,7 @@ module Elang
       head_code[1, 2] = Elang::Converter.int2bin(main_offset, :word)
       
       if libs_size > 0
-        @system_functions.each do |k,v|
+        @kernel.functions.each do |k,v|
           v[:offset] += head_size
         end
       end

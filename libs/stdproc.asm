@@ -1767,4 +1767,4 @@ _getch:
   push ax
   call _int_pack
   pop bp
-  ret 2
+  ret

@@ -53,6 +53,9 @@ module Elang
     def delete_output_file(file_name)
       File.delete file_name if File.exist?(file_name)
     end
+    def load_kernel_libraries
+      
+    end
     def display_nodes(source, nodes, mode)
       if source.is_a?(FileSourceCode)
         file_type = File.basename(source.file_name) == "libs.elang" ? :libs : :user

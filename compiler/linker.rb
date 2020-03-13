@@ -1,4 +1,6 @@
 require_relative '../utils/converter'
+require_relative 'code'
+require_relative 'kernel'
 require_relative 'assembly/instruction'
 require_relative 'assembly/code_builder'
 
@@ -25,13 +27,6 @@ module Elang
     end
     def asm(code = "", desc = "")
       Assembly::Instruction.new(code, desc)
-    end
-    def align_code(code, align_size = 16)
-      if (extra_size = (code.length % 16)) > 0
-        code = code + (0.chr * (16 - extra_size))
-      end
-      
-      code
     end
     def build_root_var_indices(symbols)
       symbols.items.each do |s|
@@ -340,40 +335,14 @@ module Elang
     
     public
     def load_library(libfile)
-      file = File.new(libfile, "rb")
-      buff = file.read
-      file.close
-      
-      eos_char = 0.chr
-      head_size = Elang::Utils::Converter.bin2int(buff[0, 2])
-      read_offset = 2
-      
-      loop do
-        begin
-          if buff[read_offset, 5] != "#EOL#"
-            func_address = Elang::Utils::Converter.bin2int(buff[read_offset, 2]) - head_size
-            eos_position = buff.index(eos_char, read_offset + 2)
-            func_name = buff[(read_offset + 2)...eos_position]
-            @system_functions[func_name] = {name: func_name, offset: func_address}
-            read_offset = read_offset + 2 + func_name.length + 1
-          else
-            break
-          end
-        rescue Exception => ex
-          last_proc = !@system_functions.empty? ? @system_functions.values.last : nil
-          last_name = last_proc ? last_proc[:name] : "(None)"
-          puts "Last processed function names: #{@system_functions.values[-5..-1].map{|x|x[:name]}.join(", ")}"
-          puts "Total processed: #{@system_functions.count}"
-          raise ex
-        end
-      end
-      
-      @library_code = align_code(buff[head_size...-1], 16)
+      kernel = Kernel.load_library(libfile)
+      @system_functions = kernel.functions
+      @library_code = kernel.code
     end
     def link(symbols, codeset)
-      head_code = align_code(hex2bin("B8000050C3"), 16)
+      head_code = Code.align(hex2bin("B8000050C3"), 16)
       libs_code = @library_code
-      subs_code = align_code(codeset.render(:subs), 16)
+      subs_code = Code.align(codeset.render(:subs), 16)
       main_code = codeset.render(:main) + Elang::Utils::Converter.hex2bin("CD20")
       head_size = head_code.length
       libs_size = libs_code.length
@@ -396,7 +365,7 @@ module Elang
 #puts @classes.inspect
       build_cls_method_dispatcher
       asm = build_obj_method_dispatcher(head_size + libs_size, subs_size)
-      dispatcher_code = align_code(asm.code, 16)
+      dispatcher_code = Code.align(asm.code, 16)
       dispatcher_size = dispatcher_code.length
       mapper_method = asm.instructions.map{|x|x.to_s}.join("\r\n")
       #puts

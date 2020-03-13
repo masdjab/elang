@@ -53,7 +53,15 @@ module Elang
       Lex::Array.new(values)
     end
     def create_hash(values)
-      Lex::Hash.new(values.inject([]){|a,b|a += [b[0], b[2]];a})
+      temp = values.map{|x|x}
+      list = []
+      
+      while !temp.empty?
+        k, a, v = temp.shift, temp.shift, temp.shift
+        list << k << v
+      end
+      
+      Lex::Hash.new(list)
     end
     def fetch_end(fetcher)
       if (end_node = fetcher.fetch).nil? || !end_node.is_a?(Lex::Node)
@@ -248,7 +256,10 @@ module Elang
       
       if lbrk || wspc
         while fetcher.check
-          args << takeout(fetch_expression(fetcher))
+          #args << takeout(fetch_expression(fetcher))
+          if !(val = fetch_expression(fetcher)).empty?
+            args += val
+          end
           
           if !(node = fetcher.check).nil? && node.is_a?(Lex::Node) && (node.type == :comma)
             fetcher.fetch
@@ -275,11 +286,15 @@ module Elang
             echr = {rbrk: ')', rsbrk: ']', rcbrk: '}'}[ebrk]
             raize "Expected '#{echr}'", fetcher.element
           elsif (node = fetcher.check) && (node.is_a?(Lex::Node)) && (node.type == :assign)
-            if lbrk.type == :lbrk
+            if lbrk.type != :lsbrk
               raize "Unexpected '='", node
             else
               asgn = fetcher.fetch
-              args << takeout(fetch_expression(fetcher))
+              #args << takeout(fetch_expression(fetcher))
+              
+              if !(val = fetch_expression(fetcher)).empty?
+                args += val
+              end
             end
           end
         end
@@ -347,12 +362,12 @@ module Elang
         if (n1.type == :lbrk) && !(args = fetch_values(fetcher)).items.empty?
           # ex: (1 + 2)
           val = args.items.count == 1 ? args.items[0] : args.items
-        elsif (n1.type == :lsbrk) && !(args = fetch_values(fetcher)).items.empty?
+        elsif (n1.type == :lsbrk)
           # ex: [1, 2, 3]
-          val = create_array(args.items)
-        elsif (n1.type == :lcbrk) && !(args = fetch_values(fetcher)).items.empty?
+          val = create_array(fetch_values(fetcher).items)
+        elsif (n1.type == :lcbrk)
           # ex: {"one" => 1, "two" => 2, "three" => 3}
-          val = create_hash(args.items)
+          val = create_hash(fetch_values(fetcher).items)
         end
       end
       

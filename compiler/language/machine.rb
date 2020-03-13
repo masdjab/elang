@@ -366,7 +366,22 @@ module Elang
         leave_scope
       end
       def handle_array(node)
-#puts "got array: #{node.inspect}"
+        add_function_ref get_sys_function("_create_array"), code_len + 1
+        append_code hex2bin("E80000")
+        
+        if !node.values.empty?
+          # push dx; mov dx, ax
+          append_code hex2bin("5289C2")
+          
+          node.values.each do |v|
+            handle_any v
+            add_function_ref get_sys_function("_array_append"), code_len + 3
+            append_code hex2bin("5052E80000")
+          end
+          
+          # pop dx
+          append_code hex2bin("5a")
+        end
       end
       def handle_if(node)
         cond_node = node.condition

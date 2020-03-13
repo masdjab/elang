@@ -24,8 +24,8 @@ dw _mem_get_data_offset
   db "_mem_get_data_offset", 0
 dw _mem_get_container_block
   db "_mem_get_container_block", 0
-dw _expand_data_block_if_needed
-  db "_expand_data_block_if_needed", 0
+dw _mem_expand_if_needed
+  db "_mem_expand_if_needed", 0
 dw mem_copy
   db "mem_copy", 0
 dw mem_reverse

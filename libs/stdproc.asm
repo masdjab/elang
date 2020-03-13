@@ -388,7 +388,7 @@ _mem_resize_new_size_aligned:
   mov bx, [bp + 4]
   mov ax, [bx + 2]
   cmp ax, [bp + 6]
-  jz _mem_resize_fail
+  jz _mem_resize_skip
   jc _mem_resize_expand
 _mem_resize_shrink:
   mov ax, [bp + 6]
@@ -418,6 +418,7 @@ _mem_resize_expand:
   call _mem_dealloc
   pop ax
   jmp _mem_resize_done
+_mem_resize_skip:
 _mem_resize_fail:
   mov ax, [bp + 4]
 _mem_resize_done:
@@ -427,43 +428,50 @@ _mem_resize_done:
   ret 4
   
   
-_expand_data_block_if_needed:
-  ; input: data_block, new size; output: old/new block address or NO_MORE
+_mem_expand_if_needed:
+  ; input: target block, new size; output: old/new block address or NO_MORE
   push bp
   mov bp, sp
   push cx
   push bx
-  push si
+  mov ax, [bp + 6]
+  test ax, 1
+  jz _mem_expand_if_needed_new_size_aligned
+  inc ax
+  mov [bp + 6], ax
+_mem_expand_if_needed_new_size_aligned:
   mov bx, [bp + 4]
-  mov cx, [bp + 6]
-  cmp cx, [bx - 6]
-  jbe _expand_data_block_if_needed_skip
-  mov ax, cx
-  shr ax, 1
-  add ax, cx
+  mov ax, [bx + 2]
+  cmp ax, [bp + 6]
+  jnc _mem_expand_if_needed_skip
+  mov ax, [bp + 6]
   push ax
   call _mem_alloc
   cmp ax, NO_MORE
-  jz _expand_data_block_if_needed_done
+  jz _mem_expand_if_needed_fail
+  push ax
+  mov cx, [bx + 2]
+  push cx
   push ax
   call _mem_get_data_offset
-  mov si, ax
-  push cx
-  push si
+  push ax
   push bx
+  call _mem_get_data_offset
+  push ax
   call mem_copy
-  push bx
+  mov ax, [bp + 4]
+  push ax
   call _mem_dealloc
-  mov ax, si
-  jmp _expand_data_block_if_needed_done
-_expand_data_block_if_needed_skip:
-  mov ax, bx
-_expand_data_block_if_needed_done:
-  pop si
+  pop ax
+  jmp _mem_expand_if_needed_done
+_mem_expand_if_needed_skip:
+_mem_expand_if_needed_fail:
+  mov ax, [bp + 4]
+_mem_expand_if_needed_done:
   pop bx
   pop cx
   pop bp
-  ret
+  ret 4
   
   
 _is_object:
@@ -1509,11 +1517,12 @@ _create_array:
   jz _create_array_done
   mov bx, ax
   xor ax, ax
+  push ax
+  call _int_pack
   mov [bx + 2], ax          ; element count
   mov [bx + 4], si          ; data offset
   mov ax, bx
 _create_array_done:
-  call _set_result
   pop si
   pop bx
   ret
@@ -1521,73 +1530,106 @@ _create_array_done:
   
 _array_length:
   ; input: array; output: ax
+  push bp
+  mov bp, sp
   push bx
   mov bx, [bp + 4]
   mov ax, [bx + 2]
   pop bx
-  ret
+  pop bp
+  ret 2
   
   
 _array_get_item:
-  ; input: array, index
+  ; input: array, index; output: ax
+  push bp
+  mov bp, sp
   push bx
   push si
   mov bx, [bp + 4]
   mov si, [bx + 4]
   mov ax, [bp + 6]
-  shr ax, 1
+  push ax
+  call _int_unpack
+  shl ax, 1
   add si, ax
   mov ax, [si]
   pop si
   pop bx
-  ret
+  pop bp
+  ret 4
   
   
 _array_set_item:
   ; input: array, index, value
+  push bp
+  mov bp, sp
+  push ax
   push bx
   push si
   mov bx, [bp + 4]
   mov si, [bx + 4]
   mov ax, [bp + 6]
-  shr ax, 1
+  push ax
+  call _int_unpack
+  shl ax, 1
   add si, ax
   mov ax, [bp + 8]
   mov [si], ax
   pop si
   pop bx
-  ret
+  pop ax
+  pop bp
+  ret 6
   
   
 _array_append:
   ; input: array, value; output: array object
+  push bp
+  mov bp, sp
   push bx
   push si
   mov bx, [bp + 4]
   mov ax, [bx + 2]
+  push ax
+  call _int_unpack
   inc ax
   shl ax, 1
-  push bx
   push ax
-  call _expand_data_block_if_needed
+  mov ax, [bx + 4]
+  push ax
+  call _mem_get_container_block
+  push ax
+  call _mem_expand_if_needed
   cmp ax, NO_MORE
   jz _array_append_failed
-  cmp ax, bx
+  push ax
+  call _mem_get_data_offset
+  cmp ax, [bx + 4]
   jz _array_append_block_relocated
   mov [bx + 4], ax
 _array_append_block_relocated:
   mov si, [bx + 4]
   mov ax, [bx + 2]
+  push ax
+  call _int_unpack
   shl ax, 1
   add si, ax
   mov ax, [bp + 6]
   mov [si], ax
-  inc word [bx + 2]
+  mov ax, [bx + 2]
+  push ax
+  call _int_unpack
+  inc ax
+  push ax
+  call _int_pack
+  mov [bx + 2], ax
 _array_append_failed:
   mov ax, bx
   pop si
   pop bx
-  ret
+  pop bp
+  ret 4
   
   
 _get_obj_var:

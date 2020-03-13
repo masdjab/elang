@@ -92,9 +92,17 @@ class String
 end
 
 class Array
+  def length
+    _get_obj_var(self, _int_unpack(0))
+  end
+  def <<(v)
+    _array_append(self, v)
+  end
   def [](index)
+    _array_get_item(self, index)
   end
   def []=(index, value)
+    _array_set_item(self, index, value)
   end
 end
 

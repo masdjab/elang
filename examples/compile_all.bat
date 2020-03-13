@@ -6,3 +6,4 @@
 @ruby ..\elang.rb object.elang %*
 @ruby ..\elang.rb person.elang %*
 @ruby ..\elang.rb string.elang %*
+@ruby ..\elang.rb array.elang %*

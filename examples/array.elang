@@ -1,3 +1,6 @@
-a = [1, 2, 3]
-b = a[1]
-puts "b: " + b.to_s
+a = [51, 91, 88]
+
+puts "array length: " + a.length.to_s
+puts "array item 0: " + a[0].to_s
+puts "array item 1: " + a[1].to_s
+puts "array item 2: " + a[2].to_s

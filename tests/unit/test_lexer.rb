@@ -354,6 +354,57 @@ EOS
         ]
       ]
   end
+  def test_loop
+    check_expression \
+      "loop\r\nend\r\n", 
+      "[[loop,[]]]"
+    
+    check_expression \
+      "loop do\r\nend\r\n", 
+      "[[loop,[]]]"
+    
+    check_expression \
+      "loop do\r\n  a = 1\r\nend\r\n", 
+      "[[loop,[[.,a,=,[1]]]]]"
+    
+    check_expression \
+      "loop do\r\n  a = 1\r\n  break\r\nend\r\n", 
+      "[[loop,[[.,a,=,[1]],break]]]"
+  end
+  def test_while
+    check_expression \
+      "while x == 1\r\nend\r\n", 
+      "[[while,[[.,x,==,[1]]],[]]]"
+    
+    check_expression \
+      "while x == 1 do\r\nend\r\n", 
+      "[[while,[[.,x,==,[1]]],[]]]"
+    
+    check_expression \
+      "while x == 1 do\r\n  a = 2\r\nend\r\n", 
+      "[[while,[[.,x,==,[1]]],[[.,a,=,[2]]]]]"
+    
+    check_expression \
+      "while x == 1 do\r\n  a = 2\r\n  break\r\nend\r\n", 
+      "[[while,[[.,x,==,[1]]],[[.,a,=,[2]],break]]]"
+  end
+  def test_for
+    check_expression \
+      "for x in []\r\nend\r\n", 
+      "[[for,x,[[]],[]]]"
+    
+    check_expression \
+      "for x in [] do\r\nend\r\n", 
+      "[[for,x,[[]],[]]]"
+    
+    check_expression \
+      "for x in [] do\r\n  a = x\r\nend\r\n", 
+      "[[for,x,[[]],[[.,a,=,[x]]]]]"
+    
+    check_expression \
+      "for x in [] do\r\n  a = x\r\n  break\r\nend\r\n", 
+      "[[for,x,[[]],[[.,a,=,[x]],break]]]"
+  end
   def test_function_name
   end
   def test_array

@@ -1,0 +1,8 @@
+loop
+  key = _getch
+  print _int_to_chr(key)
+  
+  if key == 27
+    break
+  end
+end

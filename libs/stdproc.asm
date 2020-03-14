@@ -1422,6 +1422,30 @@ _int_to_s_loop:
   ret 2
   
   
+_int_to_chr:
+  ; input: int; output: ax
+  push bp
+  mov bp, sp
+  push bx
+  push si
+  mov ax, 2
+  push ax
+  call create_str
+  mov bx, ax
+  mov ax, 1
+  mov [bx + 2], ax
+  mov si, [bx + 4]
+  mov ax, [bp + 4]
+  push ax
+  call _int_unpack
+  mov [si], al
+  mov ax, bx
+  pop si
+  pop bx
+  pop bp
+  ret 2
+  
+  
 _is_true:
   ; input: object; output: ZF
   push bp

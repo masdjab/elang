@@ -115,5 +115,38 @@ module Elang
         [@if_node, @condition, @body1, @body2]
       end
     end
+    
+    class LoopBlock
+      attr_reader :body
+      def initialize(body)
+        @body = body
+      end
+      def to_a
+        ["loop", @body]
+      end
+    end
+    
+    class WhileBlock
+      attr_reader :condition, :body
+      def initialize(condition, body)
+        @condition = condition
+        @body = body
+      end
+      def to_a
+        ["while", @condition, @body]
+      end
+    end
+    
+    class ForBlock
+      attr_reader :variable, :iterator, :body
+      def initialize(variable, iterator, body)
+        @variable = variable
+        @iterator = iterator
+        @body = body
+      end
+      def to_a
+        ["for", @variable, @iterator, @body]
+      end
+    end
   end
 end

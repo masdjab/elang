@@ -49,6 +49,9 @@ module Elang
       def append_code(code)
         @codeset.append code
       end
+      def register_variable(scope, name)
+        @symbols.register_variable(scope, name)
+      end
       def register_instance_variable(name)
         @symbols.register_instance_variable(Scope.new(current_scope.cls), name)
       end
@@ -218,6 +221,10 @@ module Elang
         args_node = node.args
         
         if cmnd_node.type == :assign
+          if @symbols.find_nearest(active_scope, rcvr_node.text).nil?
+            register_variable active_scope, rcvr_node.text
+          end
+          
           handle_any args_node
           set_value rcvr_node.text
         else
@@ -409,6 +416,43 @@ module Elang
         end
         
         add_function_ref get_sys_function("_is_true"), offset1 + 2
+      end
+      def handle_loop(node)
+        enter_breakable_block
+        offset = code_len
+        node.body.each{|b|handle_any(b)}
+        jmp_target = Converter.int2hex(offset - (code_len + 3), :word, :be)
+        append_code hex2bin("E9#{jmp_target}")
+        resolve_breaks
+        leave_breakable_block
+      end
+      def handle_while(node)
+        enter_breakable_block
+        offset1 = code_len
+        handle_any node.condition
+        offset2 = code_len
+        add_function_ref get_sys_function("_is_true"), code_len + 2
+        append_code hex2bin("50E800000F850000")
+        handle_any node.body
+        jmp_target = Converter.int2hex(offset1 - (code_len + 3), :word, :be)
+        append_code hex2bin("E9#{jmp_target}")
+        jmp_target = Converter.int2bin(code_len - (offset2 + 8), :word)
+        @codeset.code[@codeset.branch][offset2 + 6, 2] = jmp_target
+        resolve_breaks
+        leave_breakable_block
+      end
+      def handle_for(node)
+        raize "Syntax for is not supported yet", node
+        #enter_breakable_block
+        #offset = code_len
+        #jmp_target = Converter.int2hex(offset - (code_len + 3), :word, :be)
+        #append_code hex2bin("E9#{jmp_target}")
+        #resolve_breaks
+        #leave_breakable_block
+      end
+      def handle_break(node)
+        append_break
+        append_code hex2bin("E90000")
       end
     end
   end

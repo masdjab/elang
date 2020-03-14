@@ -3,16 +3,34 @@ class TestClass
     @value = value
   end
   def empty!
-    51
+    "special(empty!)"
   end
   def empty?
-    52
+    "special(empty?)"
   end
   def value
     @value
   end
   def value=(v)
     @value = v
+  end
+  def !=(v)
+    "ne"
+  end
+  def ==(v)
+    "eq"
+  end
+  def <(v)
+    "lt"
+  end
+  def >(v)
+    "gt"
+  end
+  def <=(v)
+    "le"
+  end
+  def >=(v)
+    "ge"
   end
   def +(v)
     @value + v
@@ -39,20 +57,24 @@ class TestClass
     @value / 2
   end
   def [](index)
-    #@value[index]
-    53
+    "rbi"
   end
   def []=(index, v)
-    #@value[index] = v
-    54
+    "wbi"
   end
 end
 
 tc = TestClass.new
 tc.value = 5
 puts "tc.value = " + tc.value.to_s
-puts "tc.empty! = " + tc.empty!.to_s
-puts "tc.empty? = " + tc.empty?.to_s
+puts "tc.empty! = " + tc.empty!
+puts "tc.empty? = " + tc.empty?
+puts "tc < 2 = " + (tc < 2)
+puts "tc > 2 = " + (tc > 2)
+puts "tc == 2 = " + (tc == 2)
+puts "tc != 2 = " + (tc != 2)
+puts "tc <= 2 = " + (tc <= 2)
+puts "tc >= 2 = " + (tc >= 2)
 puts "tc + 2 = " + (tc + 2).to_s
 puts "tc - 1 = " + (tc - 1).to_s
 puts "tc * 2 = " + (tc * 2).to_s
@@ -62,5 +84,5 @@ puts "tc & 6 = " + (tc & 6).to_s
 puts "tc | 2 = " + (tc | 2).to_s
 puts "tc << 2 = " + (tc << 2).to_s
 puts "tc >> 2 = " + (tc >> 2).to_s
-puts "tc[2] = " + tc[2].to_s
-puts "tc[2] = 3 = " + (tc[2] = 3).to_s
+puts "tc[2] = " + tc[2]
+puts "tc[2] = 3 = " + (tc[2] = 3)

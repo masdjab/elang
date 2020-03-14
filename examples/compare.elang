@@ -1,0 +1,24 @@
+def check(v)
+  if v < 3
+    puts (v.to_s) + " < 3"
+  elsif v == 5
+    puts (v.to_s) + " == 5"
+  elsif v > 7
+    puts (v.to_s) + " > 7"
+  elsif v <= 4
+    puts (v.to_s) + " <= 4"
+  elsif v >= 6
+    puts (v.to_s) + " >= 6"
+  else
+    puts "comparation fail for " + v.to_s
+  end
+end
+
+
+check 2
+check 3
+check 4
+check 5
+check 6
+check 7
+check 8

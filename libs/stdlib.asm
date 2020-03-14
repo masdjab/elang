@@ -112,6 +112,8 @@ dw _int_to_h16
   db "_int_to_h16", 0
 dw _int_to_s
   db "_int_to_s", 0
+dw _int_to_chr
+  db "_int_to_chr", 0
 dw _is_true
   db "_is_true", 0
 dw _is_equal
@@ -151,4 +153,4 @@ dw _print
 dw _puts
   db "puts", 0
 dw _getch
-  db "getch", 0
+  db "_getch", 0

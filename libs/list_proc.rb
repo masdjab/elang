@@ -1,34 +1,13 @@
+require '../compiler/code'
 require '../compiler/converter'
+require '../compiler/kernel'
 
-cat_file = File.new("stdlib.bin", "rb")
-content = cat_file.read
-cat_file.close
-
-procs = []
-toc_size = Elang::Converter.bin2int(content[0, 2])
-read_pos = 2
-eos_char = 0.chr
-loop do
-  begin
-    if content[read_pos, 5] != "#EOL#"
-      oo = Elang::Converter.bin2int(content[read_pos + 0, 2]) + 0x110 - toc_size
-      mp = content.index(eos_char, read_pos + 2)
-      fn = content[(read_pos + 2)...mp]
-      procs << {addr: oo, name: fn}
-      read_pos = read_pos + 2 + fn.length + 1
-    else
-      break
-    end
-  rescue Exception => ex
-    last_proc = !procs.empty? ? procs.last : nil
-    last_name = last_proc ? last_proc[:name] : "(None)"
-    puts "Last processed function names: #{procs[-5..-1].map{|x|x[:name]}.join(", ")}"
-    puts "Total processed: #{procs.count}"
-    raise ex
+kernel = Elang::Kernel.load_library('stdlib.bin')
+list = 
+  kernel.functions.map do |k,v|
+    "#{Elang::Converter.int2hex(v[:offset], :word, :le).upcase} #{v[:name]}"
   end
-end
-
-list = procs.map{|x|"#{Elang::Converter.int2hex(x[:addr], :word, :le).upcase} #{x[:name]}"}
 File.write("offset.txt", list.join("\r\n") + "\r\n")
 list.each{|i|puts i}
-puts "Total #{procs.count} procs"
+puts
+puts "Total #{list.count} procs"

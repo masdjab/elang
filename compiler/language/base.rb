@@ -10,6 +10,7 @@ module Elang
         @symbols = symbols
         @codeset = codeset
         @scope_stack = ScopeStack.new
+        @break_stack = []
       end
       def raize(msg, node = nil)
         if node
@@ -24,6 +25,24 @@ module Elang
       def register_instance_variable(name)
         @symbols.register_instance_variable(Scope.new(current_scope.cls), name)
       end
+      def enter_breakable_block
+        @break_stack << []
+      end
+      def leave_breakable_block
+        @break_stack.pop
+      end
+      def append_break
+        @break_stack.last << code_len
+      end
+      def break_requests
+        @break_stack.last
+      end
+      def resolve_breaks
+        break_requests.each do |b|
+          jmp_distance = code_len - (b + 3)
+          @codeset.code[@codeset.branch][b + 1, 2] = Converter.int2bin(jmp_distance, :word)
+        end
+      end
       
       public
       def handle_send(node)
@@ -35,6 +54,14 @@ module Elang
       def handle_array(node)
       end
       def handle_if(node)
+      end
+      def handle_loop(node)
+      end
+      def handle_while(node)
+      end
+      def handle_for(node)
+      end
+      def handle_break(node)
       end
       def handle_any(node)
         if node.is_a?(Array)
@@ -49,10 +76,18 @@ module Elang
           self.handle_array node
         elsif node.is_a?(Lex::IfBlock)
           self.handle_if node
+        elsif node.is_a?(Lex::LoopBlock)
+          self.handle_loop node
+        elsif node.is_a?(Lex::WhileBlock)
+          self.handle_while node
+        elsif node.is_a?(Lex::ForBlock)
+          self.handle_for node
         elsif node.is_a?(Lex::Node)
           if node.type == :identifier
             if ["nil", "false", "true", "self"].include?(node.text)
               get_value node
+            elsif ["break"].include?(node.text)
+              handle_break node
             elsif node.text.index("@@")
               register_class_variable node.text
               get_value node

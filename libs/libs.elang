@@ -18,22 +18,22 @@ class Integer
     _int_or(self, v)
   end
   def ==(v)
-    _is_equal(v, self)
+    _is_equal(self, v)
   end
   def !=(v)
-    _is_not_equal(v, self)
+    _is_not_equal(self, v)
   end
   def <(v)
-    false
+    _is_less_than(self, v)
   end
   def >(v)
-    false
+    _is_greater_than(self, v)
   end
   def <=(v)
-    false
+    _is_less_than_or_equal(self, v)
   end
   def >=(v)
-    false
+    _is_greater_than_or_equal(self, v)
   end
   def to_h
     _int_to_h16(_int_unpack(self))
@@ -89,6 +89,12 @@ class String
   def substr(pos, len)
     _str_substr(self, _int_unpack(pos), _int_unpack(len))
   end
+end
+
+class Enumerable
+end
+
+class Enumerator
 end
 
 class Array

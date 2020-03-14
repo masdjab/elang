@@ -1,5 +1,9 @@
-dw code
+dw table
+dw 7 dup 0
 
+include 'stdproc.asm'
+
+table:
 dw _pass_arguments
   db "_pass_arguments", 0
 dw _set_result
@@ -114,6 +118,14 @@ dw _is_equal
   db "_is_equal", 0
 dw _is_not_equal
   db "_is_not_equal", 0
+dw _is_less_than
+  db "_is_less_than", 0
+dw _is_less_than_or_equal
+  db "_is_less_than_or_equal", 0
+dw _is_greater_than
+  db "_is_greater_than", 0
+dw _is_greater_than_or_equal
+  db "_is_greater_than_or_equal", 0
 dw _create_array
   db "_create_array", 0
 dw _array_length
@@ -140,8 +152,3 @@ dw _puts
   db "puts", 0
 dw _getch
   db "getch", 0
-
-db "#EOL#"
-
-code:
-include 'stdproc.asm'

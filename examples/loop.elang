@@ -1,0 +1,11 @@
+x = 1
+
+loop
+  if x <= 5
+    puts "x = " + x.to_s
+  else
+    break
+  end
+  
+  x = x + 1
+end

@@ -4,6 +4,7 @@ NO_MORE                   EQU 0ffffh
 FAILED                    EQU 0ffffh
 GARBAGE                   EQU 0ffffh
 MAX_REF_COUNT             EQU 0fffeh
+CODE_BASE_ADDRESS         EQU 100h
 
 CLS_ID_NULL               EQU 0
 CLS_ID_FALSE              EQU 2
@@ -1441,58 +1442,91 @@ _is_true_done:
   ret 2
   
   
-_is_equal:
-  ; input: object1, object2; output: ax
+_int_compare:
+  ; should be called from compare function
+  ; input: main caller, object1, object2; output: ax
   push bp
   mov bp, sp
   push si
   push di
-  mov si, [bp + 4]
-  mov di, [bp + 6]
-_is_equal_check_integer:
+  mov si, [bp + 6]
+  mov di, [bp + 8]
   push si
   call _is_object
-  jz _is_equal_false
-_is_equal_eval_simple:
-  cmp si, di
-  jnz _is_equal_false
-_is_equal_true:
+  jz _int_compare_false
+  push di
+  call _is_object
+  jz _int_compare_false
+  mov ax, _int_compare_done
+  add ax, CODE_BASE_ADDRESS
+  push ax
+  mov ax, [bp + 2]
+  push ax
   mov ax, CLS_ID_TRUE
-  jmp _is_equal_done
-_is_equal_false:
+  cmp si, di
+  ret
+_int_compare_false:
   mov ax, CLS_ID_FALSE
-_is_equal_done:
+_int_compare_done:
   pop di
   pop si
   pop bp
+  add sp, 2
   ret 4
+  
+  
+_is_equal:
+  ; input: object1, object2; output: ax
+  call _int_compare
+  jz _is_equal_done
+  mov ax, CLS_ID_FALSE
+_is_equal_done:
+  ret
   
   
 _is_not_equal:
   ; input: object1, object2; output: ax
-  push bp
-  mov bp, sp
-  push si
-  push di
-  mov si, [bp + 4]
-  mov di, [bp + 6]
-_is_not_equal_check_integer:
-  push si
-  call _is_object
-  jz _is_not_equal_false
-_is_not_equal_eval_simple:
-  cmp si, di
-  jz _is_not_equal_false
-_is_not_equal_true:
-  mov ax, CLS_ID_TRUE
-  jmp _is_not_equal_done
-_is_not_equal_false:
+  call _int_compare
+  jnz _is_not_equal_done
   mov ax, CLS_ID_FALSE
 _is_not_equal_done:
-  pop di
-  pop si
-  pop bp
-  ret 4
+  ret
+  
+  
+_is_less_than:
+  ; input: object1, object2; output: ax
+  call _int_compare
+  jl _is_less_than_done
+  mov ax, CLS_ID_FALSE
+_is_less_than_done:
+  ret
+  
+  
+_is_less_than_or_equal:
+  ; input: object1, object2; output: ax
+  call _int_compare
+  jle _is_less_than_or_equal_done
+  mov ax, CLS_ID_FALSE
+_is_less_than_or_equal_done:
+  ret
+  
+  
+_is_greater_than:
+  ; input: object1, object2; output: ax
+  call _int_compare
+  jg _is_greater_done
+  mov ax, CLS_ID_FALSE
+_is_greater_done:
+  ret
+  
+  
+_is_greater_than_or_equal:
+  ; input: object1, object2; output: ax
+  call _int_compare
+  jge _is_greater_than_or_equal_done
+  mov ax, CLS_ID_FALSE
+_is_greater_than_or_equal_done:
+  ret
   
   
 _create_array:

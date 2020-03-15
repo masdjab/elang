@@ -57,11 +57,6 @@ module Elang
       end
       
       public
-      def get_number(number)
-        # mov ax, imm
-        value_hex = Elang::Converter.int2hex(make_int(number), :word, :be).upcase
-        append_code hex2bin("B8" + value_hex)
-      end
       def get_string_object(text)
         active_scope = current_scope
         
@@ -132,7 +127,8 @@ module Elang
             raize "Cannot get value from '#{name}', symbol type '#{symbol.class}' unknown", node
           end
         elsif node.type == :number
-          append_code hex2bin("B8" + Converter.int2hex(intobj(node.text.to_i), :word, :be))
+          value = node.text.index("0x") ? node.text.hex : node.text.to_i
+          append_code hex2bin("B8" + Converter.int2hex(intobj(value), :word, :be))
         elsif node.type == :string
           get_string_object node.text
         end
@@ -181,8 +177,6 @@ module Elang
         
         if node.is_a?(Array)
           handle_any([node])
-        elsif node.type == :number
-          get_number node.text.to_i
         elsif node.type == :string
           get_string_object node.text
         else

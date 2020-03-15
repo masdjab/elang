@@ -1815,6 +1815,7 @@ _puts:
   pop bp
   ret 2
   
+  
 _getch:
   ; input: none; output: ax
   push bp
@@ -1826,3 +1827,134 @@ _getch:
   call _int_pack
   pop bp
   ret
+  
+  
+_get_disk_status:
+  ; input: none; output: zf = 1 = ok
+  push ds
+  push ax
+  mov ax, 40h
+  mov ds, ax
+  pop ax
+  mov al, [41h]
+  test al, al
+  pop ax
+  pop ds
+  ret
+  
+  
+_reset_disk:
+  ; input: dl = drive number
+  ; output: cf = 1 if error
+  push ax
+  push cx
+  call _get_disk_status
+  jz _reset_disk_ok
+  mov cx, 7
+  push cx
+_reset_disk_retry:
+  xor ah, ah
+  int 13h
+  pop cx
+  jnc _reset_disk_ok
+  loop _reset_disk_retry
+_reset_disk_ok:
+  pop cx
+  pop ax
+  ret
+  
+  
+_set_disk_ths:
+  ; ax=absolute sector, ch=track, dh=head, cl=sector
+  push ax
+  push bx
+  mov bx, 24h
+  div bl
+  mov ch, al
+  mov bx, 12h
+  xchg ah, al
+  xor ah, ah
+  div bl
+  mov dh, al
+  mov cl, ah
+  inc cl
+  pop bx
+  pop ax
+  ret
+  
+  
+_read_sector:
+  ; input: drive, sector, sectors, buffer
+  ; output:
+  ;   cf = 0 => ah = 0 = success
+  ;   cf = 1 => ah = disk error code
+  push bp
+  mov bp, sp
+  push ax
+  push cx
+  push dx
+  push bx
+  mov bx, [bp + 10]	    ; buffer
+  mov dx, [bp + 6]      ; absolute sector
+  mov cx, [bp + 8]      ; sectors
+_read_sector_load_next:
+  push cx
+  push dx
+  mov cx, 5
+_read_sector_load_retry:
+  push cx
+  mov ax, dx
+  call _set_disk_ths
+  mov ax, [bp + 4]
+  mov dl, al		        ; drive
+  mov ax, 0201h
+  int 13h
+  pop cx
+  jnc _read_sector_ok
+  call _reset_disk
+  loop _read_sector_load_retry
+_read_sector_ok:
+  pop dx
+  pop cx
+  add bx, 200h
+  inc dx
+  loop _read_sector_load_next
+  pop bx
+  pop dx
+  pop cx
+  pop ax
+  pop bp
+  ret 8
+  
+  
+_write_sector:
+  ; input: drive, sector, sectors, buffer
+  push bp
+  mov bp, sp
+  push ax
+  push cx
+  push dx
+  push bx
+  mov dx, [bp + 6]    ; absolute sector
+  mov cx, [bp + 8]    ; number of sectors
+_write_sector_next:
+  push cx
+  push dx
+_write_sector_retry:
+  mov bx, [bp + 10]	  ; buffer
+  mov ax, dx
+  call _set_disk_ths
+  mov dl, [bp + 4]    ; drive number
+  mov ax, 0301h
+  int 13h
+_write_sector_ok:
+  pop dx
+  pop cx
+  inc dx
+  loop _write_sector_next
+  pop bx
+  pop dx
+  pop cx
+  pop ax
+  pop bp
+  ret 8

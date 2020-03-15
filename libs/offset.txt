@@ -73,3 +73,5 @@
 0A99 print
 0AB2 puts
 0AC5 _getch
+0B15 _read_sector
+0B53 _write_sector

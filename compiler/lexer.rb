@@ -278,7 +278,6 @@ module Elang
           else
             raize "Expected method name", fetcher.element
           end
-        else
         end
       end
       

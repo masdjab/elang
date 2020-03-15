@@ -154,3 +154,7 @@ dw _puts
   db "puts", 0
 dw _getch
   db "_getch", 0
+dw _read_sector
+  db "_read_sector", 0
+dw _write_sector
+  db "_write_sector", 0

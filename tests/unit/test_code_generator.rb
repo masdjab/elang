@@ -227,7 +227,7 @@ class TestCodeGenerator < Test::Unit::TestCase
     
     check_code_result \
       [
-        send(idt("a"),asn,send(num(1),plus,[num(1)])),
+        send(idt("a"),asn,send(num("1"),plus,[num("1")])),
         send(nil,idt("puts"),[send(str("1 + 1 = "),plus,[send(idt("a"),idt("to_s"),[])])])
       ], 
       bin(

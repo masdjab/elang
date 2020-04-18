@@ -1,2 +1,4 @@
 require_relative 'compiler/compiler'
-Elang::Compiler.compile
+require_relative 'compiler/command_interface'
+
+Elang::CommandInterface.compile

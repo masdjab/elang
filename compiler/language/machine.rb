@@ -20,32 +20,6 @@ module Elang
       def make_int(value)
         (value << 1) | (value < 0 ? 0x8000 : 0) | 1
       end
-      def current_scope
-        @scope_stack.current_scope
-      end
-      def enter_scope(scope)
-        @codeset.enter_subs
-        @scope_stack.enter_scope scope
-      end
-      def leave_scope
-        @scope_stack.leave_scope
-        @codeset.leave_subs
-      end
-      def code_type
-        !current_scope.to_s.empty? ? :subs : :main
-      end
-      def add_constant_ref(symbol, location)
-        @codeset.add_constant_ref(current_scope, symbol, location, code_type)
-      end
-      def add_variable_ref(symbol, location)
-        @codeset.add_variable_ref(current_scope, symbol, location, code_type)
-      end
-      def add_function_ref(symbol, location)
-        @codeset.add_function_ref(current_scope, symbol, location, code_type)
-      end
-      def add_function_id_ref(symbol, location)
-        @codeset.add_function_id_ref(current_scope, symbol, location, code_type)
-      end
       def append_code(code)
         @codeset.append code
       end

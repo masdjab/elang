@@ -73,7 +73,7 @@ module Elang
       @function_names = symbols.get_function_names
       @classes = symbols.get_classes_hierarchy
     end
-    def build_code_initializer(codeset)
+    def build_code_initializer(symbol_refs, codeset)
       rv_heap_size = Converter.int2hex(HEAP_SIZE, :word, :be)
       first_block_adr = Converter.int2hex(FIRST_BLOCK, :word, :be)
       dynamic_area_adr = Converter.int2hex(@dynamic_area, :word, :be)
@@ -112,7 +112,7 @@ module Elang
         ]
       
       root_scope = Scope.new
-      codeset.symbol_refs << FunctionRef.new(SystemFunction.new("_mem_block_init"), root_scope, 20 + (init_vars.length / 2), :init)
+      symbol_refs << FunctionRef.new(SystemFunction.new("_mem_block_init"), root_scope, 20 + (init_vars.length / 2), :init)
       hex2bin init_cmnd.join
     end
     def build_cls_method_dispatcher
@@ -333,7 +333,7 @@ module Elang
     end
     
     public
-    def link(symbols, codeset)
+    def link(symbols, symbol_refs, codeset)
       head_code = Code.align(hex2bin("B8000050C3"), 16)
       libs_code = @kernel.code
       subs_code = Code.align(codeset.render(:subs), 16)
@@ -368,7 +368,7 @@ module Elang
       #puts
       
       
-      init_code = build_code_initializer(codeset)
+      init_code = build_code_initializer(symbol_refs, codeset)
       init_size = init_code.length
       ds_offset = head_size + libs_size + subs_size + dispatcher_size + init_size + main_size
       
@@ -401,9 +401,9 @@ module Elang
         end
       end
       
-      resolve_references :subs, subs_code, codeset.symbol_refs, head_size + libs_size
-      resolve_references :init, init_code, codeset.symbol_refs, head_size + libs_size + subs_size + dispatcher_size
-      resolve_references :main, main_code, codeset.symbol_refs, head_size + libs_size + subs_size + dispatcher_size + init_size
+      resolve_references :subs, subs_code, symbol_refs, head_size + libs_size
+      resolve_references :init, init_code, symbol_refs, head_size + libs_size + subs_size + dispatcher_size
+      resolve_references :main, main_code, symbol_refs, head_size + libs_size + subs_size + dispatcher_size + init_size
       
       head_code + libs_code + subs_code + dispatcher_code + init_code + main_code + cons_data
     end

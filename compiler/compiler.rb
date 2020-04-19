@@ -116,13 +116,13 @@ module Elang
     def compile
       puts
       
+      success = false
       symbols = Symbols.new
       sources = 
         [
           FileSourceCode.new(get_lib_file("libs.elang")), 
           FileSourceCode.new(@source_file.full)
         ]
-      success = false
       kernel = load_kernel_libraries
       
       if nodes = generate_nodes(sources, symbols)

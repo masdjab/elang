@@ -6,7 +6,7 @@ require_relative 'kernel'
 require_relative 'parser'
 require_relative 'lexer'
 require_relative 'assembly/instruction'
-require_relative 'codeset/_load'
+require_relative 'codeset'
 require_relative 'language/_load'
 require_relative 'scope'
 require_relative 'scope_stack'
@@ -94,16 +94,17 @@ module Elang
     def collect_names(symbols, nodes)
       NameDetector.new(symbols).detect_names nodes
     end
-    def generate_output_file(kernel, symbols, nodes)
+    def generate_output_file(kernel, symbols, symbol_refs, nodes)
       linker = Elang::Linker.new(kernel)
-      codeset = Codeset::Binary.new
-      codegen = Elang::CodeGenerator.new(Language::Machine.new(kernel, symbols, codeset))
+      codeset = Codeset.new
+      language = Language::Machine.new(kernel, symbols, symbol_refs, codeset)
+      codegen = Elang::CodeGenerator.new(language)
       success = false
       
       delete_output_file @output_file.full
       
       if codegen.generate_code(nodes)
-        if !(binary = linker.link(symbols, codeset)).empty?
+        if !(binary = linker.link(symbols, symbol_refs, codeset)).empty?
           write_output_file @output_file.full, binary
           success = true
         end
@@ -118,6 +119,7 @@ module Elang
       
       success = false
       symbols = Symbols.new
+      symbol_refs = []
       sources = 
         [
           FileSourceCode.new(get_lib_file("libs.elang")), 
@@ -127,7 +129,7 @@ module Elang
       
       if nodes = generate_nodes(sources, symbols)
         collect_names symbols, nodes
-        success = generate_output_file(kernel, symbols, nodes)
+        success = generate_output_file(kernel, symbols, symbol_refs, nodes)
       end
       
       success

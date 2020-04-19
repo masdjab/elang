@@ -2,7 +2,7 @@ require 'test-unit'
 require './compiler/code'
 require './compiler/kernel'
 require './compiler/source_code'
-require './compiler/codeset/_load'
+require './compiler/codeset'
 require './compiler/language/_load'
 require './compiler/compiler'
 
@@ -11,11 +11,12 @@ class CompilerTest < Test::Unit::TestCase
     kernel = Elang::Kernel.load_library('./libs/stdlib.bin')
     source = Elang::StringSourceCode.new(source_text)
     symbols = Elang::Symbols.new
+    symbol_refs = []
     parser = Elang::Parser.new
     lexer = Elang::Lexer.new
     name_detector = Elang::NameDetector.new(symbols)
-    codeset = Elang::Codeset::Binary.new
-    language = Elang::Language::Machine.new(kernel, symbols, codeset)
+    codeset = Elang::Codeset.new
+    language = Elang::Language::Machine.new(kernel, symbols, symbol_refs, codeset)
     codegen = Elang::CodeGenerator.new(language)
     
     tokens = parser.parse(source)

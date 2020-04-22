@@ -2,7 +2,7 @@ org 100h
 
 jmp main
 
-include 'stdproc.asm'
+include 'proc16.asm'
 
 main:
 _main_print_rep:

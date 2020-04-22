@@ -4,7 +4,7 @@ mov ax, main
 push ax
 ret
 
-include 'stdproc.asm'
+include 'proc16.asm'
 
 main:
   mov cx, cs

@@ -22,6 +22,16 @@ METHOD_ID_SET_BYTE_AT     EQU 5
 METHOD_ID_GET_WORD_AT     EQU 6
 METHOD_ID_SET_WORD_AT     EQU 7
 
+BLOCK_STRUCT_SIZE         EQU 8
+ATTR_BLOCK_FLAG           EQU 0
+ATTR_BLOCK_SIZE           EQU 2
+ATTR_BLOCK_PREV           EQU 4
+ATTR_BLOCK_NEXT           EQU 6
+
+ATTR_OBJ_CLASS_ID         EQU 0
+ATTR_STR_LENGTH           EQU 2
+ATTR_OBJ_DATA_OFFSET      EQU 4
+
 ; reserved system data
 FIRST_BLOCK               EQU 0
 FREE_BLOCK_SIZE           EQU 2
@@ -73,20 +83,21 @@ _mem_block_init:
   push bx
   mov bx, [bp + 4]
   mov ax, [bp + 6]
-  cmp ax, 10
+  cmp ax, BLOCK_STRUCT_SIZE
   jc _mem_block_init_done
-  sub ax, 8
+  sub ax, BLOCK_STRUCT_SIZE
   mov [FREE_BLOCK_SIZE], ax
-  mov [bx + 2], ax      ; data size
+  mov [bx + ATTR_BLOCK_SIZE], ax      ; data size
   mov ax, NO_MORE
-  mov [bx + 4], ax      ; prev block
-  mov [bx + 6], ax      ; next block
+  mov [bx + ATTR_BLOCK_PREV], ax      ; prev block
+  mov [bx + ATTR_BLOCK_NEXT], ax      ; next block
   xor ax, ax
-  mov [bx], ax          ; flag
+  mov [bx + ATTR_BLOCK_FLAG], ax      ; flag
 _mem_block_init_done:
   xor ax, ax
   mov [USED_BLOCK_SIZE], ax
   mov [GARBAGE_COUNT], ax
+  mov [FIRST_BLOCK], bx
   pop bx
   pop ax
   pop bp
@@ -100,16 +111,16 @@ mem_find_free_block:
   push bx
   mov bx, [FIRST_BLOCK]
 _mem_find_free_block_check_current_block:
-  mov ax, [bx]
+  mov ax, [bx + ATTR_BLOCK_FLAG]
   test ax, ax
   jnz _mem_find_free_block_block_checked
-  mov ax, [bx + 2]
+  mov ax, [bx + ATTR_BLOCK_SIZE]
   cmp ax, [bp + 4]
   jc _mem_find_free_block_block_checked
   mov ax, bx
   jmp _mem_find_free_block_done
 _mem_find_free_block_block_checked:
-  mov bx, [bx + 6]
+  mov bx, [bx + ATTR_BLOCK_NEXT]
   cmp bx, NO_MORE
   jnz _mem_find_free_block_check_current_block
   mov ax, bx
@@ -127,35 +138,35 @@ mem_split_block:
   push bx
   push si
   mov bx, [bp + 4]
-  mov ax, [bx + 2]
+  mov ax, [bx + ATTR_BLOCK_SIZE]
   sub ax, [bp + 6]
   jc _mem_split_block_done
-  sub ax, 8
+  sub ax, BLOCK_STRUCT_SIZE
   jc _mem_split_block_done
   mov ax, [bp + 6]
-  add ax, 8
+  add ax, BLOCK_STRUCT_SIZE
   add ax, bx
   mov si, ax
   xor ax, ax
-  mov [si], ax
-  mov ax, [bx + 2]
+  mov [si + ATTR_BLOCK_FLAG], ax
+  mov ax, [bx + ATTR_BLOCK_SIZE]
   sub ax, [bp + 6]
-  sub ax, 8
-  mov [si + 2], ax
-  mov [si + 4], bx
-  mov ax, [bx + 6]
-  mov [si + 6], ax
+  sub ax, BLOCK_STRUCT_SIZE
+  mov [si + ATTR_BLOCK_SIZE], ax
+  mov [si + ATTR_BLOCK_PREV], bx
+  mov ax, [bx + ATTR_BLOCK_NEXT]
+  mov [si + ATTR_BLOCK_NEXT], ax
   mov ax, [bp + 6]
-  mov [bx + 2], ax
-  mov [bx + 6], si
+  mov [bx + ATTR_BLOCK_SIZE], ax
+  mov [bx + ATTR_BLOCK_NEXT], si
   mov ax, [FREE_BLOCK_SIZE]
-  sub ax, 8
+  sub ax, BLOCK_STRUCT_SIZE
   mov [FREE_BLOCK_SIZE], ax
   mov ax, si
-  mov si, [si + 6]
+  mov si, [si + ATTR_BLOCK_NEXT]
   cmp si, NO_MORE
   jz _mem_split_block_done
-  mov [si + 4], ax
+  mov [si + ATTR_BLOCK_PREV], ax
 _mem_split_block_done:
   pop si
   pop bx
@@ -176,7 +187,7 @@ mem_merge_free_block:
   test ax, ax
   jnz _mem_merge_free_block_done
 _mem_merge_free_block_find_head:
-  mov si, [bx + 4]
+  mov si, [bx + ATTR_BLOCK_PREV]
   cmp si, NO_MORE
   jz _mem_merge_free_block_do_merge
   mov ax, [si]
@@ -185,22 +196,22 @@ _mem_merge_free_block_find_head:
   mov bx, si
   jmp _mem_merge_free_block_find_head
 _mem_merge_free_block_do_merge:
-  mov si, [bx + 6]
+  mov si, [bx + ATTR_BLOCK_NEXT]
   cmp si, NO_MORE
   jz _mem_merge_free_block_done
   mov ax, [si]
   test ax, ax
   jnz _mem_merge_free_block_done
-  mov ax, [bx + 2]
-  add ax, [si + 2]
-  add ax, 8
-  mov [bx + 2], ax
-  mov ax, [si + 6]
-  mov [bx + 6], ax
+  mov ax, [bx + ATTR_BLOCK_SIZE]
+  add ax, [si + ATTR_BLOCK_SIZE]
+  add ax, BLOCK_STRUCT_SIZE
+  mov [bx + ATTR_BLOCK_SIZE], ax
+  mov ax, [si + ATTR_BLOCK_NEXT]
+  mov [bx + ATTR_BLOCK_NEXT], ax
   mov si, ax
-  mov [si + 4], bx
+  mov [si + ATTR_BLOCK_PREV], bx
   mov ax, [FREE_BLOCK_SIZE]
-  add ax, 8
+  add ax, BLOCK_STRUCT_SIZE
   mov [FREE_BLOCK_SIZE], ax
   jmp _mem_merge_free_block_do_merge
 _mem_merge_free_block_done:
@@ -232,12 +243,12 @@ _mem_alloc_size_aligned:
   push bx
   call mem_split_block
   mov ax, 1
-  mov [bx], ax
-  mov ax, [bx + 2]
+  mov [bx + ATTR_BLOCK_FLAG], ax
+  mov ax, [bx + ATTR_BLOCK_SIZE]
   add ax, [USED_BLOCK_SIZE]
   mov [USED_BLOCK_SIZE], ax
   mov ax, [FREE_BLOCK_SIZE]
-  sub ax, [bx + 2]
+  sub ax, [bx + ATTR_BLOCK_SIZE]
   mov [FREE_BLOCK_SIZE], ax
   mov ax, bx
 _mem_alloc_done:
@@ -254,12 +265,12 @@ _mem_dealloc:
   push cx
   push bx
   mov bx, [bp + 4]
-  mov cx, [bx + 2]
-  mov ax, [bx]
+  mov cx, [bx + ATTR_BLOCK_SIZE]
+  mov ax, [bx + ATTR_BLOCK_FLAG]
   test ax, ax
   jz _mem_dealloc_done
   xor ax, ax
-  mov [bx], ax
+  mov [bx + ATTR_BLOCK_FLAG], ax
   push bx
   call mem_merge_free_block
   mov ax, [FREE_BLOCK_SIZE]
@@ -290,7 +301,7 @@ _mem_get_data_offset:
   mov ax, [bp + 4]
   cmp ax, NO_MORE
   jz _mem_get_data_offset_done
-  add ax, 8
+  add ax, BLOCK_STRUCT_SIZE
 _mem_get_data_offset_done:
   pop bp
   ret 2
@@ -301,7 +312,7 @@ _mem_get_container_block:
   push bp
   mov bp, sp
   mov ax, [bp + 4]
-  sub ax, 8
+  sub ax, BLOCK_STRUCT_SIZE
   pop bp
   ret 2
   
@@ -514,7 +525,7 @@ _alloc_object:
   push ax
   mov bx, ax
   mov ax, [bp + 4]
-  mov [bx], ax
+  mov [bx + ATTR_OBJ_CLASS_ID], ax
   pop ax
 _alloc_object_done:
   pop bx
@@ -738,9 +749,9 @@ _create_str_alloc_success:
   cmp ax, NO_MORE
   jz _create_str_failed
   xchg si, ax
-  mov [si + 4], ax
+  mov [si + ATTR_OBJ_DATA_OFFSET], ax
   mov ax, [bp + 4]
-  mov [si + 2], ax
+  mov [si + ATTR_STR_LENGTH], ax
   mov ax, si
 _create_str_failed:
   pop si
@@ -783,7 +794,7 @@ _str_length:
   mov bp, sp
   push bx
   mov bx, [bp + 4]
-  mov ax, [bx + 2]
+  mov ax, [bx + ATTR_STR_LENGTH]
   pop bx
   pop bp
   ret 2
@@ -796,17 +807,17 @@ _str_copy:
   push si
   push di
   mov si, [bp + 4]
-  mov ax, [si + 2]
+  mov ax, [si + ATTR_STR_LENGTH]
   push ax
   call create_str
   cmp ax, CLS_ID_NULL
   jz _str_copy_failed
   mov di, ax
-  mov ax, [si + 2]
+  mov ax, [si + ATTR_STR_LENGTH]
   push ax
-  mov ax, [di + 4]
+  mov ax, [di + ATTR_OBJ_DATA_OFFSET]
   push ax
-  mov ax, [si + 4]
+  mov ax, [si + ATTR_OBJ_DATA_OFFSET]
   push ax
   call mem_copy
   mov ax, di
@@ -827,26 +838,26 @@ _str_concat:
   push di
   mov si, [bp + 4]
   mov di, [bp + 6]
-  mov cx, [si + 2]
-  add cx, [di + 2]
+  mov cx, [si + ATTR_STR_LENGTH]
+  add cx, [di + ATTR_STR_LENGTH]
   push cx
   call create_str
   cmp ax, CLS_ID_NULL
   jz _str_concat_failed
   mov bx, ax
-  mov ax, [si + 2]
+  mov ax, [si + ATTR_STR_LENGTH]
   push ax
-  mov ax, [bx + 4]
+  mov ax, [bx + ATTR_OBJ_DATA_OFFSET]
   push ax
-  mov ax, [si + 4]
+  mov ax, [si + ATTR_OBJ_DATA_OFFSET]
   push ax
   call mem_copy
-  mov ax, [di + 2]
+  mov ax, [di + ATTR_STR_LENGTH]
   push ax
-  mov ax, [bx + 4]
-  add ax, [si + 2]
+  mov ax, [bx + ATTR_OBJ_DATA_OFFSET]
+  add ax, [si + ATTR_STR_LENGTH]
   push ax
-  mov ax, [di + 4]
+  mov ax, [di + ATTR_OBJ_DATA_OFFSET]
   push ax
   call mem_copy
   mov ax, bx
@@ -874,9 +885,9 @@ _str_substr:
   mov si, [bp + 4]
   mov ax, [bp + 8]
   push ax
-  mov ax, [di + 4]
+  mov ax, [di + ATTR_OBJ_DATA_OFFSET]
   push ax
-  mov ax, [si + 4]
+  mov ax, [si + ATTR_OBJ_DATA_OFFSET]
   add ax, [bp + 6]
   push ax
   call mem_copy
@@ -901,10 +912,10 @@ _str_lcase:
   cmp ax, CLS_ID_NULL
   jz _str_lcase_done
   mov bx, ax
-  mov cx, [bx +  2]
+  mov cx, [bx +  ATTR_STR_LENGTH]
   test cx, cx
   jz _str_lcase_processed
-  mov si, [bx + 4]
+  mov si, [bx + ATTR_OBJ_DATA_OFFSET]
 _str_lcase_loop:
   mov al, [si]
   cmp al, 41h
@@ -939,10 +950,10 @@ _str_ucase:
   cmp ax, CLS_ID_NULL
   jz _str_ucase_done
   mov bx, ax
-  mov cx, [bx +  2]
+  mov cx, [bx +  ATTR_STR_LENGTH]
   test cx, cx
   jz _str_ucase_processsed
-  mov si, [bx + 4]
+  mov si, [bx + ATTR_OBJ_DATA_OFFSET]
 _str_ucase_loop:
   mov al, [si]
   cmp al, 61h
@@ -1043,18 +1054,18 @@ _str_reverse:
   push si
   push di
   mov si, [bp + 4]
-  mov ax, [si + 2]
+  mov ax, [si + ATTR_STR_LENGTH]
   push ax
   call create_str
   mov bx, ax
-  mov cx, [si + 2]
+  mov cx, [si + ATTR_STR_LENGTH]
   test cx, cx
   jz _str_reverse_done
-  mov ax, [si + 4]
+  mov ax, [si + ATTR_OBJ_DATA_OFFSET]
   add ax, cx
   dec ax
   mov si, ax
-  mov di, [bx + 4]
+  mov di, [bx + ATTR_OBJ_DATA_OFFSET]
 _str_reverse_copy:
   mov al, [si]
   mov [di], al
@@ -1339,7 +1350,7 @@ _int_to_h8:
   push ax
   call create_str
   mov bx, ax
-  mov si, [bx + 4]
+  mov si, [bx + ATTR_OBJ_DATA_OFFSET]
   mov ax, [bp + 4]
   call _byte_to_h
   xchg ah, al
@@ -1361,7 +1372,7 @@ _int_to_h16:
   push ax
   call create_str
   mov bx, ax
-  mov si, [bx + 4]
+  mov si, [bx + ATTR_OBJ_DATA_OFFSET]
   mov ax, [bp + 4]
   push ax
   call _byte_to_h
@@ -1392,8 +1403,8 @@ _int_to_s:
   call create_str
   mov bx, ax
   xor ax, ax
-  mov [bx + 2], ax
-  mov di, [bx + 4]
+  mov [bx + ATTR_STR_LENGTH], ax
+  mov di, [bx + ATTR_OBJ_DATA_OFFSET]
   mov ax, [bp + 4]
   mov cx, 10
 _int_to_s_loop:
@@ -1404,13 +1415,13 @@ _int_to_s_loop:
   call _nible_to_h
   mov [di], al
   inc di
-  inc word [bx + 2]
+  inc word [bx + ATTR_STR_LENGTH]
   pop ax
   test ax, ax
   jnz _int_to_s_loop
-  mov ax, [bx + 2]
+  mov ax, [bx + ATTR_STR_LENGTH]
   push ax
-  mov ax, [bx + 4]
+  mov ax, [bx + ATTR_OBJ_DATA_OFFSET]
   push ax
   call mem_reverse
   mov ax, bx
@@ -1433,8 +1444,8 @@ _int_to_chr:
   call create_str
   mov bx, ax
   mov ax, 1
-  mov [bx + 2], ax
-  mov si, [bx + 4]
+  mov [bx + ATTR_STR_LENGTH], ax
+  mov si, [bx + ATTR_OBJ_DATA_OFFSET]
   mov ax, [bp + 4]
   push ax
   call _int_unpack

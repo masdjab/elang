@@ -76,11 +76,11 @@ class TestCodeGenerator < Test::Unit::TestCase
     Elang::Converter.hex2bin(h)
   end
   def generate_code(nodes, source = nil)
-    kernel = Elang::Kernel.load_library('./libs/stdlib.bin')
+    kernel = Elang::Kernel.load_library('./libs/stdlib16.bin')
     codeset = create_codeset
     @symbols = Elang::Symbols.new
     @symbol_refs = []
-    @language = Elang::Language::Machine.new(kernel, @symbols, @symbol_refs, codeset)
+    @language = Elang::Language::Intel16.new(kernel, @symbols, @symbol_refs, codeset)
     @code_generator = Elang::CodeGenerator.new(@language)
     Elang::NameDetector.new(@symbols).detect_names nodes
     @code_generator.generate_code(nodes)

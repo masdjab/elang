@@ -8,7 +8,7 @@ require './compiler/compiler'
 
 class CompilerTest < Test::Unit::TestCase
   def compile(source_text)
-    kernel = Elang::Kernel.load_library('./libs/stdlib.bin')
+    kernel = Elang::Kernel.load_library('./libs/stdlib16.bin')
     source = Elang::StringSourceCode.new(source_text)
     symbols = Elang::Symbols.new
     symbol_refs = []
@@ -16,7 +16,7 @@ class CompilerTest < Test::Unit::TestCase
     lexer = Elang::Lexer.new
     name_detector = Elang::NameDetector.new(symbols)
     codeset = Elang::Codeset.new
-    language = Elang::Language::Machine.new(kernel, symbols, symbol_refs, codeset)
+    language = Elang::Language::Intel16.new(kernel, symbols, symbol_refs, codeset)
     codegen = Elang::CodeGenerator.new(language)
     
     tokens = parser.parse(source)

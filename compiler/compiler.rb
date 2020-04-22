@@ -56,7 +56,7 @@ module Elang
       File.delete file_name if File.exist?(file_name)
     end
     def load_kernel_libraries
-      libfile = get_lib_file("stdlib.bin")
+      libfile = get_lib_file("stdlib16.bin")
       Kernel.load_library(libfile)
     end
     def display_nodes(source, nodes, mode)
@@ -94,10 +94,11 @@ module Elang
     def collect_names(symbols, nodes)
       NameDetector.new(symbols).detect_names nodes
     end
-    def generate_output_file(kernel, symbols, symbol_refs, nodes)
+    def generate_output_file(lang_code, kernel, symbols, symbol_refs, nodes)
       linker = Elang::Linker.new(kernel)
       codeset = Codeset.new
-      language = Language::Machine.new(kernel, symbols, symbol_refs, codeset)
+      language = Language::Intel16.new(kernel, symbols, symbol_refs, codeset)
+      #language = Language::Intel32.new(kernel, symbols, symbol_refs, codeset)
       codegen = Elang::CodeGenerator.new(language)
       success = false
       
@@ -129,7 +130,7 @@ module Elang
       
       if nodes = generate_nodes(sources, symbols)
         collect_names symbols, nodes
-        success = generate_output_file(kernel, symbols, symbol_refs, nodes)
+        success = generate_output_file(:intel16, kernel, symbols, symbol_refs, nodes)
       end
       
       success

@@ -139,7 +139,7 @@ var set_obj_var
   db "_set_obj_var", 0
 ;var print
 ;  db "print", 0
-;var puts
-;  db "puts", 0
+var puts
+  db "puts", 0
 ;var getch
 ;  db "_getch", 0

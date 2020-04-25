@@ -2,7 +2,7 @@ require '../compiler/code'
 require '../compiler/converter'
 require '../compiler/kernel'
 
-kernel = Elang::Kernel.load_library('stdlib.bin')
+kernel = Elang::Kernel.load_library('stdlib16.bin')
 list = 
   kernel.functions.map do |k,v|
     "#{Elang::Converter.int2hex(v[:offset], :word, :le).upcase} #{v[:name]}"

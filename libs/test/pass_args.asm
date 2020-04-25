@@ -3,7 +3,7 @@ mov ax, main
 push ax
 ret
 
-include 'proc16.asm'
+include '..\proc16.asm'
 
 func1:
   mov ax, [bp + 4]

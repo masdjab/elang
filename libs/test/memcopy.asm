@@ -1,6 +1,6 @@
 org 100h
 jmp main
-include 'stdlib.asm'
+include '..\stdlib16.asm'
 main:
   mov si, test1
   mov di, si

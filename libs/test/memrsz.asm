@@ -4,7 +4,7 @@ mov ax, main
 push ax
 ret
 
-include 'proc16.asm'
+include '..\proc16.asm'
 
 main:
   mov cx, cs
@@ -19,21 +19,21 @@ main:
   mov ax, dynamic_area
   mov [FIRST_BLOCK], ax
   push ax
-  call mem_block_init
+  call _mem_block_init
   
   mov ax, 16
   push ax
-  call mem_alloc
+  call _mem_alloc
   mov [block1], ax
   
   mov ax, 16
   push ax
-  call mem_alloc
+  call _mem_alloc
   mov [block2], ax
   
   mov ax, 16
   push ax
-  call mem_alloc
+  call _mem_alloc
   mov [block3], ax
   
   mov ax, 0

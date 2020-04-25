@@ -4,7 +4,7 @@ mov ax, main
 push ax
 ret
 
-include 'proc16.asm'
+include '..\proc16.asm'
 
 main:
   mov ax, data_here
@@ -18,7 +18,7 @@ main:
   push ax
   mov ax, dynamic_area
   push ax
-  call mem_block_init
+  call _mem_block_init
   mov [FIRST_BLOCK], ax
   
   ; create string com
@@ -27,7 +27,7 @@ main:
   add si, 2
   push ax
   push si
-  call load_str
+  call _load_str
   mov [str_com], ax
   push ax
   call _puts
@@ -38,7 +38,7 @@ main:
   add si, 2
   push ax
   push si
-  call load_str
+  call _load_str
   mov [str_put], ax
   push ax
   call _puts
@@ -49,7 +49,7 @@ main:
   add si, 2
   push ax
   push si
-  call load_str
+  call _load_str
   mov [str_ing], ax
   push ax
   call _puts
@@ -59,7 +59,7 @@ main:
   push ax
   mov ax, [str_com]
   push ax
-  call str_concat
+  call _str_concat
   push ax
   call _puts
   
@@ -69,29 +69,29 @@ main:
   add si, 2
   push ax
   push si
-  call load_str
+  call _load_str
   mov cx, ax
   mov ax, [str_put]
   push ax
   push cx
-  call str_append
+  call _str_append
   mov ax, [str_ing]
   push ax
   push cx
-  call str_append
+  call _str_append
   push cx
   call _puts
   
   ; computing.lcase
   push cx
-  call str_lcase
+  call _str_lcase
   mov cx, ax
   push ax
   call _puts
   
   ; computing.ucase
   push cx
-  call str_ucase
+  call _str_ucase
   mov cx, ax
   push ax
   call _puts
@@ -102,7 +102,7 @@ main:
   mov ax, 3
   push ax
   push cx
-  call str_substr
+  call _str_substr
   mov bx, ax
   push ax
   call _puts
@@ -119,7 +119,7 @@ main:
   
   ; nitup.reverse
   push ax
-  call str_reverse
+  call _str_reverse
   push ax
   call _puts
   

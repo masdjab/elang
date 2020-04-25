@@ -9,4 +9,5 @@ var table
 var 7 dup 0
 
 include 'proc32.asm'
+include 'dos.asm'
 include 'stdtable.asm'

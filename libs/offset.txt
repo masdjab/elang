@@ -67,4 +67,4 @@
 0A05 _array_append
 0A5E _get_obj_var
 0A76 _set_obj_var
-0A97 puts
+0AF6 puts

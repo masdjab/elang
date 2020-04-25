@@ -100,15 +100,13 @@ module Elang
         
         hex_code = 
           [
-            "BE0000",       # mov si, string constant
-            "8B4400",       # mov ax, [si]
-            "83C602",       # add si, 2
-            "5056",         # push ax; push si
+            "B80000",       # mov ax, string constant
+            "50",           # push ax
             "E80000",       # call load_str
           ]
         
         add_constant_ref symbol, code_len + 1
-        add_function_ref get_sys_function("_load_str"), code_len + 12
+        add_function_ref get_sys_function("_load_str"), code_len + 5
         
         append_code hex2bin(hex_code.join)
       end

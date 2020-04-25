@@ -1800,7 +1800,7 @@ set_obj_var:
   ret 3 * REG_BYTE_SIZE
   
   
-puts:
-  ; input: str object
-  ; jmp print
-  ret 1 * REG_BYTE_SIZE
+;puts:
+;  ; input: str object
+;  ; jmp print
+;  ret 1 * REG_BYTE_SIZE

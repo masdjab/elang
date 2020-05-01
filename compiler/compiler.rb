@@ -10,6 +10,11 @@ require_relative 'codeset'
 require_relative 'language/_load'
 require_relative 'scope'
 require_relative 'scope_stack'
+require_relative 'converter'
+require_relative 'name_detector'
+require_relative 'lex'
+require_relative 'shunting_yard'
+require_relative 'symbol/_load'
 require_relative 'code_generator'
 require_relative 'symbol/_load'
 require_relative 'linker'
@@ -97,14 +102,16 @@ module Elang
     def generate_output_file(lang_code, kernel, symbols, symbol_refs, nodes)
       linker = Elang::Linker.new(kernel)
       codeset = Codeset.new
-      language = Language::Intel16.new(kernel, symbols, symbol_refs, codeset)
-      #language = Language::Intel32.new(kernel, symbols, symbol_refs, codeset)
-      codegen = Elang::CodeGenerator.new(language)
+      #language = Language::Intel16.new(kernel, symbols, symbol_refs, codeset)
+      ##language = Language::Intel32.new(kernel, symbols, symbol_refs, codeset)
+      machinery = Language::Intel16.new(kernel, symbols, symbol_refs, codeset)
+      language = Language::IntelCodeGenerator.new(symbols, machinery)
+      codegen = Elang::CodeGenerator.new
       success = false
       
       delete_output_file @output_file.full
       
-      if codegen.generate_code(nodes)
+      if codegen.generate_code(nodes, language)
         if !(binary = linker.link(symbols, symbol_refs, codeset)).empty?
           write_output_file @output_file.full, binary
           success = true

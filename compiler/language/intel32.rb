@@ -144,16 +144,17 @@ module Elang
         append_code hex2bin(hc)
       end
       def define_function(name, params_count)
-        scope = Scope.new(current_scope.cls, name)
-        enter_scope scope
-        variables = @symbols.items.select{|x|(x.scope.to_s == scope.to_s) && x.is_a?(Variable)}
+        old_scope = current_scope
+        enter_scope new_scope = Scope.new(current_scope.cls, name)
+        variables = @symbols.items.select{|x|(x.scope.to_s == new_scope.to_s) && x.is_a?(Variable)}
+        var_count = variables.count
         
-        if scope.cls.nil?
+        if old_scope.cls.nil?
           # push bp; mov bp, sp
           append_code hex2bin("55" + "89E5")
         end
         
-        if (var_count = variables.count) > 0
+        if var_count > 0
           # sub sp, nn
           append_code hex2bin("83EC" + Elang::Converter.int2hex(var_count * 4, :dword, :be))
           
@@ -166,7 +167,7 @@ module Elang
         
         yield
         
-        if (var_count = variables.count) > 0
+        if var_count > 0
           append_code hex2bin("50")
           variables.each do |v|
             # mov ax, [v]; push v; call _unassign_object
@@ -180,7 +181,7 @@ module Elang
           append_code hex2bin("83C4" + Elang::Converter.int2hex(var_count * 4, :dword, :be))
         end
         
-        if scope.cls.nil?
+        if old_scope.cls.nil?
           # pop bp
           append_code hex2bin("5D")
           

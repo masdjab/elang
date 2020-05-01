@@ -978,7 +978,7 @@ str_lcase:
   cmp r_ax, CLS_ID_NULL
   jz _str_lcase_done
   mov r_bx, r_ax
-  mov r_cx, [r_bx +  ATTR_STR_LENGTH]
+  mov r_cx, [r_bx + ATTR_STR_LENGTH]
   test r_cx, r_cx
   jz _str_lcase_processed
   mov r_si, [r_bx + ATTR_OBJ_DATA_OFFSET]
@@ -1016,7 +1016,7 @@ str_ucase:
   cmp r_ax, CLS_ID_NULL
   jz _str_ucase_done
   mov r_bx, r_ax
-  mov r_cx, [r_bx +  ATTR_STR_LENGTH]
+  mov r_cx, [r_bx + ATTR_STR_LENGTH]
   test r_cx, r_cx
   jz _str_ucase_processsed
   mov r_si, [r_bx + ATTR_OBJ_DATA_OFFSET]

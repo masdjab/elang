@@ -8,6 +8,6 @@ macro var [varargs] {dd varargs}
 var table
 var 7 dup 0
 
-include 'proc32.asm'
+include 'stdproc.asm'
 include 'dos.asm'
 include 'stdtable.asm'

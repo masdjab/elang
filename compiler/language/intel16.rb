@@ -112,7 +112,7 @@ module Elang
       def begin_function(scope, variables)
         if scope.cls.nil?
           # push bp; mov bp, sp
-          append_code hex2bin("55" + "89E5")
+          append_code hex2bin("5589E5")
         end
         
         if (var_count = variables.count) > 0

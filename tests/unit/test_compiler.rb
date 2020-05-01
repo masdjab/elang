@@ -17,7 +17,7 @@ class CompilerTest < Test::Unit::TestCase
     name_detector = Elang::NameDetector.new(symbols)
     codeset = Elang::Codeset.new
     language = Elang::Language::Intel16.new(kernel, symbols, symbol_refs, codeset)
-    codegen = Elang::CodeGenerator.new(language)
+    codegen = Elang::CodeGenerator::Intel.new(symbols, language)
     
     tokens = parser.parse(source)
     nodes = lexer.to_sexp_array(tokens)

@@ -4,7 +4,6 @@ require './compiler/fetcher'
 require './compiler/node_fetcher'
 require './compiler/parser'
 require './compiler/lexer'
-require './compiler/code_generator'
 
 require 'test-unit'
 

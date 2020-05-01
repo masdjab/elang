@@ -11,6 +11,9 @@ module Elang
       
       public
       def load_immediate(value)
+        append_code hex2bin("B8" + Converter.int2hex(value, :dword, :be))
+      end
+      def load_int(value)
         append_code hex2bin("B8" + Converter.int2hex(intobj(value), :dword, :be))
       end
       def load_str(text)
@@ -140,7 +143,11 @@ module Elang
         add_function_ref get_sys_function("_alloc_object"), code_len + 13
         append_code hex2bin(hc)
       end
-      def define_function(scope, params_count, variables)
+      def define_function(name, params_count)
+        scope = Scope.new(current_scope.cls, name)
+        enter_scope scope
+        variables = @symbols.items.select{|x|(x.scope.to_s == scope.to_s) && x.is_a?(Variable)}
+        
         if scope.cls.nil?
           # push bp; mov bp, sp
           append_code hex2bin("55" + "89E5")
@@ -184,6 +191,13 @@ module Elang
           # ret
           append_code hex2bin("C3")
         end
+        
+        leave_scope
+      end
+      def define_class(name)
+        enter_scope Scope.new(name)
+        yield
+        leave_scope
       end
       def begin_array
         add_function_ref get_sys_function("_create_array"), code_len + 1

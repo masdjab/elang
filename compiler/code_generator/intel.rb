@@ -55,7 +55,7 @@ module Elang
             raize "Cannot get value from '#{name}', symbol type '#{symbol.class}' unknown", node
           end
         elsif node.type == :number
-          @language.load_immediate node.text.index("0x") ? node.text.hex : node.text.to_i
+          @language.load_int node.text.index("0x") ? node.text.hex : node.text.to_i
         elsif node.type == :string
           @language.load_str node.text
         end
@@ -207,28 +207,21 @@ module Elang
         func_args = node.params
         func_body = node.body
         
-        #(todo)#count local_var_count
-        @language.enter_scope Scope.new(active_scope.cls, func_name)
-        
         function = @symbols.find_exact(active_scope, func_name)
         function.offset = @language.code_len
-        local_variables = @symbols.items.select{|x|(x.scope.to_s == @language.current_scope.to_s) && x.is_a?(Variable)}
-        local_var_count = local_variables.count
         params_count = func_args.count + (rcvr_name ? 2 : 0)
         
-        @language.define_function(active_scope, params_count, local_variables) do
+        @language.define_function(func_name, params_count) do
           handle_any func_body
         end
-        
-        @language.leave_scope
       end
       def handle_class_def(node)
         cls_name = node.name.text
         cls_prnt = node.parent ? node.parent.text : nil
         
-        @language.enter_scope Scope.new(cls_name)
-        handle_any node.body
-        @language.leave_scope
+        @language.define_class(cls_name) do
+          handle_any node.body
+        end
       end
       def handle_array(node)
         @language.begin_array

@@ -11,6 +11,9 @@ module Elang
       
       public
       def load_immediate(value)
+        append_code hex2bin("B8" + Converter.int2hex(value, :word, :be))
+      end
+      def load_int(value)
         append_code hex2bin("B8" + Converter.int2hex(intobj(value), :word, :be))
       end
       def load_str(text)
@@ -48,32 +51,32 @@ module Elang
       def get_local_variable(symbol)
         # mov ax, [bp + n]
         add_variable_ref symbol, code_len + 2
-        append_code hex2bin("8B4500")
+        append_code hex2bin("8B4600")
       end
       def set_local_variable(symbol)
         # mov [bp + n], ax
         add_variable_ref symbol, code_len + 3
         add_function_ref get_sys_function("_unassign_object"), code_len + 6
         add_variable_ref symbol, code_len + 11
-        append_code hex2bin("508B450050E8000058894500")
+        append_code hex2bin("508B460050E8000058894600")
       end
       def get_instance_variable(symbol)
         add_variable_ref symbol, code_len + 1
         add_function_ref get_sys_function("_get_obj_var"), code_len + 9
-        append_code hex2bin("B80000508B450450E80000")
+        append_code hex2bin("B80000508B460450E80000")
       end
       def set_instance_variable(symbol)
         add_variable_ref symbol, code_len + 2
         add_function_ref get_sys_function("_set_obj_var"), code_len + 10
-        append_code hex2bin("50B80000508B450450E80000")
+        append_code hex2bin("50B80000508B460450E80000")
       end
       def get_parameter_by_index(index)
-        append_code hex2bin("8B45" + Converter.int2hex((index + 2) * 2, :byte, :be))
+        append_code hex2bin("8B46" + Converter.int2hex((index + 2) * 2, :byte, :be))
       end
       def get_parameter_by_symbol(symbol)
         # mov ax, [bp + n]
         add_variable_ref symbol, code_len + 2
-        append_code hex2bin("8B4500")
+        append_code hex2bin("8B4600")
       end
       def get_class(symbol)
         # #(todo)#fix binary command
@@ -109,36 +112,40 @@ module Elang
         add_function_ref get_sys_function("_alloc_object"), code_len + 9
         append_code hex2bin(hc)
       end
-      def begin_function(scope, variables)
+      def define_function(name, params_count)
+        enter_scope scope = Scope.new(current_scope.cls, name)
+        variables = @symbols.items.select{|x|(x.scope.to_s == scope.to_s) && x.is_a?(Variable)}
+        
         if scope.cls.nil?
           # push bp; mov bp, sp
-          append_code hex2bin("5589E5")
+          append_code hex2bin("55" + "89E5")
         end
         
         if (var_count = variables.count) > 0
           # sub sp, nn
-          append_code hex2bin("83EC" + Elang::Converter.int2hex(var_count * 2, :word, :be))
+          append_code hex2bin("81EC" + Elang::Converter.int2hex(var_count * 2, :word, :be))
           
           variables.each do |v|
             # xor ax, ax; mov [v], ax
             add_variable_ref v, code_len + 4
-            append_code hex2bin("31C0894500")
+            append_code hex2bin("31C0894600")
           end
         end
-      end
-      def end_function(scope, params_count, variables)
+        
+        yield
+        
         if (var_count = variables.count) > 0
           append_code hex2bin("50")
           variables.each do |v|
             # mov ax, [v]; push v; call _unassign_object
             add_variable_ref v, code_len + 2
             add_function_ref get_sys_function("_unassign_object"), code_len + 5
-            append_code hex2bin("8B450050E80000")
+            append_code hex2bin("8B460050E80000")
           end
           append_code hex2bin("58")
           
           # add sp, nn
-          append_code hex2bin("83C4" + Elang::Converter.int2hex(var_count * 2, :dword, :be))
+          append_code hex2bin("81C4" + Elang::Converter.int2hex(var_count * 2, :word, :be))
         end
         
         if scope.cls.nil?
@@ -152,6 +159,13 @@ module Elang
           # ret
           append_code hex2bin("C3")
         end
+        
+        leave_scope
+      end
+      def define_class(name)
+        enter_scope Scope.new(name)
+        yield
+        leave_scope
       end
       def begin_array
         add_function_ref get_sys_function("_create_array"), code_len + 1

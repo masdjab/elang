@@ -1,6 +1,8 @@
 module Elang
   module Language
     class IntelBase
+      attr_reader :codeset
+      
       private
       def initialize(kernel, symbols, symbol_refs, codeset)
         @sys_functions = 
@@ -98,6 +100,9 @@ module Elang
       end
       def register_variable(scope, name)
         @symbols.register_variable(scope, name)
+      end
+      def register_instance_variable(name)
+        @symbols.register_instance_variable(Scope.new(current_scope.cls), name)
       end
       def load_immediate(value)
       end

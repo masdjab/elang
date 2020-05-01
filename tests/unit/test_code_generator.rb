@@ -10,7 +10,8 @@ require './compiler/scope_stack'
 require './compiler/codeset'
 require './compiler/language/_load'
 require './compiler/name_detector'
-require './compiler/code_generator'
+require './compiler/language/_load'
+require './compiler/code_generator/_load'
 require './compiler/converter'
 
 
@@ -81,7 +82,7 @@ class TestCodeGenerator < Test::Unit::TestCase
     @symbols = Elang::Symbols.new
     @symbol_refs = []
     @language = Elang::Language::Intel16.new(kernel, @symbols, @symbol_refs, codeset)
-    @code_generator = Elang::CodeGenerator.new(@language)
+    @code_generator = Elang::CodeGenerator::Intel.new(@symbols, @language)
     Elang::NameDetector.new(@symbols).detect_names nodes
     @code_generator.generate_code(nodes)
     codeset
@@ -233,8 +234,7 @@ class TestCodeGenerator < Test::Unit::TestCase
       ], 
       bin(
         "B8030050B8010050B8000050B8030050E8000050A1000050E8000058A30000" \
-        "B8000050B8000050A1000050E8000050B8010050B8000050BE00008B4400" \
-        "83C6025056E8000050E8000050E80000"
+        "B8000050B8000050A1000050E8000050B8010050B8000050B8000050E8000050E8000050E80000"
       ), 
       ""
   end

@@ -10,8 +10,9 @@ module Elang
     FIRST_BLOCK = 0
     
     private
-    def initialize(kernel)
+    def initialize(kernel, language)
       @kernel = kernel
+      @language = language
       @code_origin = 0x100
       @classes = {}
       @root_var_count = 0

@@ -10,8 +10,9 @@ module Elang
     FIRST_BLOCK = 0
     
     private
-    def initialize(kernel)
+    def initialize(kernel, language)
       @kernel = kernel
+      @language = language
       @code_origin = 0x100
       @classes = {}
       @root_var_count = 0
@@ -147,7 +148,7 @@ module Elang
         
         cls[:i_funs].each do |f|
           func_address = Converter.int2hex(@code_origin + subs_offset + f[:offset], :word, :be).upcase
-          asmcode << asm("3D" + Converter.int2hex(f[:id], :word, :be) + "7504", "  cmp ax, #{f[:id]}; jnz + 2")
+          asmcode << asm("3D" + Converter.int2hex(f[:id], :word, :be).upcase + "7504", "  cmp ax, #{f[:id]}; jnz + 2")
           asmcode << asm("B8#{func_address}C3", "  mov ax, #{key.downcase}_obj_#{f[:name]}; ret")
         end
         
@@ -362,10 +363,10 @@ module Elang
       dispatcher_code = Code.align(asm.code, 16)
       dispatcher_size = dispatcher_code.length
       mapper_method = asm.instructions.map{|x|x.to_s}.join("\r\n")
-      #puts
-      #puts "*** OBJECT METHOD MAPPER ***"
-      #puts mapper_method
-      #puts
+#puts
+#puts "*** OBJECT METHOD MAPPER ***"
+#puts mapper_method
+#puts
       
       
       init_code = build_code_initializer(symbol_refs, codeset)

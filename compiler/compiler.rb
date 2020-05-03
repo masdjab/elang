@@ -7,10 +7,15 @@ require_relative 'parser'
 require_relative 'lexer'
 require_relative 'assembly/instruction'
 require_relative 'codeset'
-require_relative 'language/_load'
 require_relative 'scope'
 require_relative 'scope_stack'
-require_relative 'code_generator'
+require_relative 'converter'
+require_relative 'name_detector'
+require_relative 'lex'
+require_relative 'shunting_yard'
+require_relative 'symbol/_load'
+require_relative 'language/_load'
+require_relative 'code_generator/_load'
 require_relative 'symbol/_load'
 require_relative 'linker'
 
@@ -39,6 +44,8 @@ module Elang
       @output_file  = @source_file.replace_ext("com")
       @dev_mode     = options.fetch(:dev, false)
       @show_nodes   = options.fetch(:show_nodes, :none)
+      @stdlib       = options.fetch(:stdlib, "stdlib16.bin")
+      @elang_lib    = options[:no_elang_lib] ? nil : "libs.elang"
     end
     def get_lib_file(file_name)
       "#{BASE_DIR}/libs/#{file_name}"
@@ -56,12 +63,12 @@ module Elang
       File.delete file_name if File.exist?(file_name)
     end
     def load_kernel_libraries
-      libfile = get_lib_file("stdlib.bin")
+      libfile = get_lib_file(@stdlib)
       Kernel.load_library(libfile)
     end
     def display_nodes(source, nodes, mode)
       if source.is_a?(FileSourceCode)
-        file_type = File.basename(source.file_name) == "libs.elang" ? :libs : :user
+        file_type = File.basename(source.file_name) == @elang_lib ? :libs : :user
       else
         file_type = :user
       end
@@ -94,11 +101,11 @@ module Elang
     def collect_names(symbols, nodes)
       NameDetector.new(symbols).detect_names nodes
     end
-    def generate_output_file(kernel, symbols, symbol_refs, nodes)
-      linker = Elang::Linker.new(kernel)
+    def generate_output_file(lang_code, kernel, symbols, symbol_refs, nodes)
       codeset = Codeset.new
-      language = Language::Machine.new(kernel, symbols, symbol_refs, codeset)
-      codegen = Elang::CodeGenerator.new(language)
+      language = Language::Intel16.new(kernel, symbols, symbol_refs, codeset)
+      codegen = Elang::CodeGenerator::Intel.new(symbols, language)
+      linker = Elang::Linker.new(kernel, language)
       success = false
       
       delete_output_file @output_file.full
@@ -120,16 +127,16 @@ module Elang
       success = false
       symbols = Symbols.new
       symbol_refs = []
-      sources = 
-        [
-          FileSourceCode.new(get_lib_file("libs.elang")), 
-          FileSourceCode.new(@source_file.full)
-        ]
+      
+      sources = []
+      sources << FileSourceCode.new(get_lib_file(@elang_lib)) if @elang_lib
+      sources << FileSourceCode.new(@source_file.full)
+      
       kernel = load_kernel_libraries
       
       if nodes = generate_nodes(sources, symbols)
         collect_names symbols, nodes
-        success = generate_output_file(kernel, symbols, symbol_refs, nodes)
+        success = generate_output_file(:intel16, kernel, symbols, symbol_refs, nodes)
       end
       
       success

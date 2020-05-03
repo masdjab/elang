@@ -10,7 +10,8 @@ require './compiler/scope_stack'
 require './compiler/codeset'
 require './compiler/language/_load'
 require './compiler/name_detector'
-require './compiler/code_generator'
+require './compiler/language/_load'
+require './compiler/code_generator/_load'
 require './compiler/converter'
 
 
@@ -76,12 +77,12 @@ class TestCodeGenerator < Test::Unit::TestCase
     Elang::Converter.hex2bin(h)
   end
   def generate_code(nodes, source = nil)
-    kernel = Elang::Kernel.load_library('./libs/stdlib.bin')
+    kernel = Elang::Kernel.load_library('./libs/stdlib16.bin')
     codeset = create_codeset
     @symbols = Elang::Symbols.new
     @symbol_refs = []
-    @language = Elang::Language::Machine.new(kernel, @symbols, @symbol_refs, codeset)
-    @code_generator = Elang::CodeGenerator.new(@language)
+    @language = Elang::Language::Intel16.new(kernel, @symbols, @symbol_refs, codeset)
+    @code_generator = Elang::CodeGenerator::Intel.new(@symbols, @language)
     Elang::NameDetector.new(@symbols).detect_names nodes
     @code_generator.generate_code(nodes)
     codeset
@@ -233,8 +234,7 @@ class TestCodeGenerator < Test::Unit::TestCase
       ], 
       bin(
         "B8030050B8010050B8000050B8030050E8000050A1000050E8000058A30000" \
-        "B8000050B8000050A1000050E8000050B8010050B8000050BE00008B4400" \
-        "83C6025056E8000050E8000050E80000"
+        "B8000050B8000050A1000050E8000050B8010050B8000050B8000050E8000050E8000050E80000"
       ), 
       ""
   end
@@ -358,6 +358,21 @@ class TestCodeGenerator < Test::Unit::TestCase
       ], 
       "", 
       bin("5589E55DC202005589E55DC20200B8110050E8000050E80000C3")
+    
+    
+    check_code_result \
+      [
+        func(nil, idt("iunpack"), [idt("v")], []), 
+        clas(idt("Integer"), nil, 
+          [
+            func(nil, idt("unpack_me"), [], 
+              [send(nil, idt("iunpack"), [idt("self")])]
+            )
+          ]
+        )
+      ], 
+      "", 
+      bin("5589E55DC202008B460450E80000C3")
   end
   def test_class_function_call
     #(todo)#test_class_function_call

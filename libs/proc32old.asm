@@ -1,4 +1,5 @@
 ; written by Heryudi Praja
+; this file will be removed later
 
 ARGUMENT1                 EQU 2 * REG_BYTE_SIZE
 ARGUMENT2                 EQU 3 * REG_BYTE_SIZE

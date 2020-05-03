@@ -206,9 +206,6 @@ module Elang
         func_name = node.name.text
         func_args = node.params
         func_body = node.body
-        
-        function = @symbols.find_exact(active_scope, func_name)
-        function.offset = @language.code_len
         params_count = func_args.count + (rcvr_name ? 2 : 0)
         
         @language.define_function(func_name, params_count) do

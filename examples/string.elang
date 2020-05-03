@@ -18,22 +18,14 @@ puts "* Test lcase"
 puts d.lcase
 puts ""
 
-## test String.ucase
-#puts "* Test ucase"
-#puts d.ucase
-#puts ""
+# test String.ucase
+puts "* Test ucase"
+puts d.ucase
+puts ""
 
-## test String.substr
-#puts "* Test substr"
-#puts "COMPUTING".substr(3, 5)
-
-#puts "Test String LCase"
-#e = _str_lcase(d)
-#puts e
-
-puts "Test String Copy"
-e = d.copy
-puts e
+# test String.substr
+puts "* Test substr"
+puts "COMPUTING".substr(3, 5)
 
 _unassign_object a
 _unassign_object b

@@ -115,6 +115,8 @@ module Elang
       def define_function(name, params_count)
         old_scope = current_scope
         enter_scope new_scope = Scope.new(current_scope.cls, name)
+        function = @symbols.find_exact(old_scope, name)
+        function.offset = code_len
         variables = @symbols.items.select{|x|(x.scope.to_s == new_scope.to_s) && x.is_a?(Variable)}
         var_count = variables.count
         

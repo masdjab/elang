@@ -44,6 +44,8 @@ module Elang
       @output_file  = @source_file.replace_ext("com")
       @dev_mode     = options.fetch(:dev, false)
       @show_nodes   = options.fetch(:show_nodes, :none)
+      @stdlib       = options.fetch(:stdlib, "stdlib16.bin")
+      @elang_lib    = options[:no_elang_lib] ? nil : "libs.elang"
     end
     def get_lib_file(file_name)
       "#{BASE_DIR}/libs/#{file_name}"
@@ -61,12 +63,12 @@ module Elang
       File.delete file_name if File.exist?(file_name)
     end
     def load_kernel_libraries
-      libfile = get_lib_file("stdlib16.bin")
+      libfile = get_lib_file(@stdlib)
       Kernel.load_library(libfile)
     end
     def display_nodes(source, nodes, mode)
       if source.is_a?(FileSourceCode)
-        file_type = File.basename(source.file_name) == "libs.elang" ? :libs : :user
+        file_type = File.basename(source.file_name) == @elang_lib ? :libs : :user
       else
         file_type = :user
       end
@@ -125,11 +127,11 @@ module Elang
       success = false
       symbols = Symbols.new
       symbol_refs = []
-      sources = 
-        [
-          FileSourceCode.new(get_lib_file("libs.elang")), 
-          FileSourceCode.new(@source_file.full)
-        ]
+      
+      sources = []
+      sources << FileSourceCode.new(get_lib_file(@elang_lib)) if @elang_lib
+      sources << FileSourceCode.new(@source_file.full)
+      
       kernel = load_kernel_libraries
       
       if nodes = generate_nodes(sources, symbols)

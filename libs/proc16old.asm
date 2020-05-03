@@ -1,4 +1,5 @@
 ; written by Heryudi Praja
+; this file will be removed later
 
 NO_MORE                   EQU 0ffffh
 FAILED                    EQU 0ffffh

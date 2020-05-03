@@ -358,6 +358,21 @@ class TestCodeGenerator < Test::Unit::TestCase
       ], 
       "", 
       bin("5589E55DC202005589E55DC20200B8110050E8000050E80000C3")
+    
+    
+    check_code_result \
+      [
+        func(nil, idt("iunpack"), [idt("v")], []), 
+        clas(idt("Integer"), nil, 
+          [
+            func(nil, idt("unpack_me"), [], 
+              [send(nil, idt("iunpack"), [idt("self")])]
+            )
+          ]
+        )
+      ], 
+      "", 
+      bin("5589E55DC202008B460450E80000C3")
   end
   def test_class_function_call
     #(todo)#test_class_function_call

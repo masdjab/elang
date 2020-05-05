@@ -27,8 +27,11 @@ require_relative 'method_dispatcher_16'
 require_relative 'method_dispatcher_32'
 require_relative 'assembly/instruction'
 require_relative 'assembly/code_builder'
-require_relative 'linker16'
-require_relative 'linker32'
+require_relative 'linker_options'
+require_relative 'code_section'
+require_relative 'mswin_setup_generator'
+require_relative 'dados_setup_generator'
+require_relative 'linker'
 
 
 module Elang
@@ -116,7 +119,13 @@ module Elang
       codeset = Codeset.new
       language = Language::Intel16.new(kernel, symbols, symbol_refs, codeset)
       codegen = Elang::CodeGenerator::Intel.new(symbols, language)
-      linker = Elang::Linker16.new
+      
+      linker_options = LinkerOptions.new
+      linker_options.var_byte_size = 2
+      linker_options.var_size_code = :word
+      linker_options.setup_generator = MsWinSetupGenerator.new
+      
+      linker = Elang::Linker.new(linker_options)
       success = false
       
       delete_output_file @output_file.full

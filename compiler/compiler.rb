@@ -17,7 +17,18 @@ require_relative 'symbol/_load'
 require_relative 'language/_load'
 require_relative 'code_generator/_load'
 require_relative 'symbol/_load'
-require_relative 'linker'
+require_relative 'code'
+require_relative 'kernel'
+require_relative 'converter'
+require_relative 'build_config'
+require_relative 'reference_resolver_16'
+require_relative 'reference_resolver_32'
+require_relative 'method_dispatcher_16'
+require_relative 'method_dispatcher_32'
+require_relative 'assembly/instruction'
+require_relative 'assembly/code_builder'
+require_relative 'linker16'
+require_relative 'linker32'
 
 
 module Elang
@@ -105,13 +116,13 @@ module Elang
       codeset = Codeset.new
       language = Language::Intel16.new(kernel, symbols, symbol_refs, codeset)
       codegen = Elang::CodeGenerator::Intel.new(symbols, language)
-      linker = Elang::Linker.new(kernel, language)
+      linker = Elang::Linker16.new
       success = false
       
       delete_output_file @output_file.full
       
       if codegen.generate_code(nodes)
-        if !(binary = linker.link(symbols, symbol_refs, codeset)).empty?
+        if !(binary = linker.link(kernel, language, symbols, symbol_refs, codeset)).empty?
           write_output_file @output_file.full, binary
           success = true
         end

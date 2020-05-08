@@ -154,13 +154,13 @@ module Elang
               if active_scope.cls.nil?
                 is_obj_method = false
               elsif func_sym.nil?
-                raize "Undefined function '#{func_name}' in scope '#{active_scope.to_s}'", node[2]
+                raize "Undefined function '#{func_name}' in scope '#{active_scope.to_s}'", cmnd_node
               elsif func_sym.is_a?(Function)
                 is_obj_method = func_sym.scope.cls == active_scope.cls
               elsif func_sym.is_a?(SystemFunction)
                 is_obj_method = false
               else
-                raize "Unknown error when handling handle_send for function '#{func_name}' in scope '#{active_scope.to_s}'.", node[2]
+                raize "Unknown error when handling handle_send for function '#{func_name}' in scope '#{active_scope.to_s}'.", cmnd_node
               end
             else
               is_obj_method = true

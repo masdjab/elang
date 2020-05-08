@@ -1,0 +1,2 @@
+require_relative 'reference_resolver_16'
+require_relative 'reference_resolver_32'

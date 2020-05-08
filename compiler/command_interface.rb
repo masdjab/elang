@@ -2,16 +2,6 @@ module Elang
   class CommandInterface
     HELP_HINT = "Use -h or /? to view help."
     
-    def compile(source_file, options = {})
-      compiler = Compiler.new(source_file, options)
-      
-      if compiler.compile
-        puts "Source path: #{compiler.source_file.path}"
-        puts "Source file: #{compiler.source_file.name_ext}"
-        puts "Output file: #{compiler.output_file.name_ext}"
-        puts "Output size: #{File.size(compiler.output_file.full)} byte(s)"
-      end
-    end
     def self.get_file_path_name_ext(filename)
       path = File.dirname(filename)
       path = !path.empty? ? "#{path}/" : ""
@@ -28,11 +18,14 @@ module Elang
       puts "Usage: ruby elang.rb source_file [options]"
       puts
       puts "Available options:"
-      puts "-d              Enable dev mode"
-      puts "-n=mode         Nodes output to show: none, libs, user, all"
-      puts "-stdlib=file    Specify stdlib file"
-      puts "-no-elang-lib   Do not include lib.elang"
-      puts "-h or /?        Show this help"
+      puts "-d                Enable dev mode"
+      puts "-n=mode           Nodes output to show: none, libs, user, all"
+      puts "-p=platform       Target platform: mswin, msdos, dados"
+      puts "-a=arch           Target architecture: 16, 32"
+      puts "-f=output format  com, mz, mzpe"
+      #puts "-stdlib=file     Specify stdlib file"
+      #puts "-no-elang-lib    Do not include lib.elang"
+      puts "-h or /?          Show this help"
     end
     def self.display_error(msg)
       puts msg
@@ -76,7 +69,19 @@ module Elang
     end
     def self.compile
       args, opts = self.parse_arguments(ARGV)
-      valid_options = ["d", "n", "stdlib", "no-elang-lib", "h", "?"]
+      
+      valid_options = 
+        [
+          "d", 
+          "n", 
+          "p", 
+          "a", 
+          "f", 
+          #"stdlib", 
+          #"no-elang-lib", 
+          "h", 
+          "?"
+        ]
       
       self.display_title
       
@@ -88,6 +93,9 @@ module Elang
         self.display_usage
       else
         source_file = args.shift
+        platform = opts["p"]
+        architecture = opts["a"]
+        output_format = opts["f"]
         show_nodes = opts["n"]
         stdlib = opts["stdlib"]
         dev_mode = opts.key?("d")
@@ -103,7 +111,31 @@ module Elang
           options[:stdlib] = stdlib if stdlib
           options[:no_elang_lib] = no_elang_lib if no_elang_lib
           
-          self.new.compile(source_file, options)
+          project = Elang::Project.new
+          project.platform = platform
+          project.architecture = architecture
+          project.output_format = output_format
+          project.source_file = source_file
+          project.options = options
+          
+          pb_factory = Elang::ProjectBuilderFactory.new
+          
+          begin
+            project_builder = pb_factory.create_project_builder(project)
+            
+            result = project_builder.build_project
+            
+            if result[:success]
+              sfi = FileInfo.new(result[:source_file])
+              ofi = FileInfo.new(result[:output_file])
+              puts "Source path: #{sfi.path}"
+              puts "Source file: #{sfi.name_ext}"
+              puts "Output file: #{ofi.name_ext}"
+              puts "Output size: #{File.size(ofi.full)} byte(s)"
+            end
+          rescue RuntimeError => e
+            puts e.message
+          end
         end
       end
     end

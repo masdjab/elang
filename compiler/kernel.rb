@@ -13,18 +13,22 @@ module Elang
       
       lib_functions = {}
       eos_char = 0.chr
-      table_offset = Elang::Converter.bin2int(buff[0, 2])
+      architecture = Elang::Converter.bin2int(buff[0, 2])
+      table_offset = Elang::Converter.bin2int(buff[2, 2])
+      int_width = {1 => 2, 2 => 4}[architecture]
       image_offset = 16
       last_offset = buff.length - 1
       read_offset = table_offset
       
       while read_offset < last_offset
         begin
-          func_address = Elang::Converter.bin2int(buff[read_offset, 2]) - image_offset
-          eos_position = buff.index(eos_char, read_offset + 2)
-          func_name = buff[(read_offset + 2)...eos_position]
-          lib_functions[func_name] = {name: func_name, offset: func_address}
-          read_offset = read_offset + 2 + func_name.length + 1
+          func_address = Elang::Converter.bin2int(buff[read_offset, int_width]) - image_offset
+          eos_position = buff.index(eos_char, read_offset + int_width)
+          func_name = buff[(read_offset + int_width)...eos_position]
+          new_function = {name: func_name, offset: func_address}
+          lib_functions[func_name] = new_function
+          yield(new_function) if block_given?
+          read_offset = read_offset + int_width + func_name.length + 1
         rescue Exception => ex
           last_proc = !lib_functions.empty? ? lib_functions.values.last : nil
           last_name = last_proc ? last_proc[:name] : "(None)"

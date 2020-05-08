@@ -9,7 +9,7 @@ module Elang
       end
       def to_s
         if !@code.empty?
-          "  " + @code + (" " * (12 - @code.length)) + @desc
+          "  " + @code + (" " * (18 - @code.length)) + @desc
         elsif !@desc.empty?
           @desc
         else

@@ -13,6 +13,7 @@ require './compiler/name_detector'
 require './compiler/language/_load'
 require './compiler/code_generator/_load'
 require './compiler/converter'
+require './compiler/build_config'
 
 
 class TestCodeGenerator < Test::Unit::TestCase
@@ -77,15 +78,21 @@ class TestCodeGenerator < Test::Unit::TestCase
     Elang::Converter.hex2bin(h)
   end
   def generate_code(nodes, source = nil)
-    kernel = Elang::Kernel.load_library('./libs/stdlib16.bin')
-    codeset = create_codeset
-    @symbols = Elang::Symbols.new
-    @symbol_refs = []
-    @language = Elang::Language::Intel16.new(kernel, @symbols, @symbol_refs, codeset)
-    @code_generator = Elang::CodeGenerator::Intel.new(@symbols, @language)
-    Elang::NameDetector.new(@symbols).detect_names nodes
+    @build_config = Elang::BuildConfig.new
+    @build_config.kernel = Elang::Kernel.load_library("./libs/stdlib16.bin")
+    @build_config.symbols = Elang::Symbols.new
+    @build_config.symbol_refs = []
+    @build_config.codeset = Elang::Codeset.new
+    @build_config.code_origin = 0x100
+    @build_config.heap_size = 0x8000
+    @build_config.first_block_offs = 0
+    @build_config.reserved_var_count = Elang::Variable::RESERVED_VARIABLE_COUNT
+    
+    @language = Elang::Language::Intel16.new(@build_config)
+    @code_generator = Elang::CodeGenerator::Intel.new(@build_config.symbols, @language)
+    Elang::NameDetector.new(@build_config.symbols).detect_names nodes
     @code_generator.generate_code(nodes)
-    codeset
+    @build_config.codeset
   end
   def check_code_result(nodes, exp_main, exp_subs, source = nil)
     codeset = generate_code(nodes, source)
@@ -101,7 +108,7 @@ class TestCodeGenerator < Test::Unit::TestCase
         bin("B8050050A1000050E8000058A30000"), 
         ""
       )
-    assert_equal 1, @symbols.count
+    assert_equal 1, @build_config.symbols.count
   end
   def test_simple_numeric_operation
     # mov ax, 01h; mov cx, 02h; add ax, cx; mov mynum, ax
@@ -198,12 +205,12 @@ class TestCodeGenerator < Test::Unit::TestCase
           "00008B460050E800005881C404005DC20400"
         )
       )
-    assert_equal 5, @symbols.count
-    assert_equal "echo", @symbols.items[0].name
-    assert_equal "x", @symbols.items[1].name
-    assert_equal "y", @symbols.items[2].name
-    assert_equal "a", @symbols.items[3].name
-    assert_equal "b", @symbols.items[4].name
+    assert_equal 5, @build_config.symbols.count
+    assert_equal "echo", @build_config.symbols.items[0].name
+    assert_equal "x", @build_config.symbols.items[1].name
+    assert_equal "y", @build_config.symbols.items[2].name
+    assert_equal "a", @build_config.symbols.items[3].name
+    assert_equal "b", @build_config.symbols.items[4].name
   end
   def test_simple_function_call
     check_code_result \
@@ -223,7 +230,7 @@ class TestCodeGenerator < Test::Unit::TestCase
         ], 
         bin("B8070050E80000"), 
         bin("5589E55DC20200")
-    functions = @symbols.items.select{|x|x.is_a?(Elang::Function)}
+    functions = @build_config.symbols.items.select{|x|x.is_a?(Elang::Function)}
     assert_equal 1, functions.count
     assert_equal "multiply_by_two1", functions[0].name
     
@@ -337,7 +344,7 @@ class TestCodeGenerator < Test::Unit::TestCase
           clas(idt("FalseClass"), nil, [])
         ]
     
-    classes = @symbols.items.select{|x|x.is_a?(Elang::Class)}
+    classes = @build_config.symbols.items.select{|x|x.is_a?(Elang::Class)}
     assert_equal 3, classes.count
     assert_equal [], classes.map{|x|x.name} - ["Integer", "TrueClass", "FalseClass"]
     

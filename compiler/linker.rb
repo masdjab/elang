@@ -4,6 +4,8 @@ module Elang
     def initialize(linker_options)
       @linker_options = linker_options
       @extra_byte_size = @linker_options.var_byte_size > 2 ? @linker_options.var_byte_size - 2 : 0
+      @dispatcher = @linker_options.method_dispatcher
+      @resolver = @linker_options.reference_resolver
     end
     def imm2hex(value)
       Converter.int2hex(value, @linker_options.var_code_size, :be)
@@ -11,40 +13,16 @@ module Elang
     def hex2bin(h)
       Converter.hex2bin(h)
     end
-    def create_dispatcher(build_config)
-      dispatcher = MethodDispatcher16.new
-      dispatcher.classes = build_config.classes
-      dispatcher.code_origin = build_config.code_origin
-      dispatcher
+    def configure_dispatcher(build_config)
+      @dispatcher.classes = build_config.classes
+      @dispatcher.code_origin = build_config.code_origin
     end
-    def create_resolver(build_config, dispatcher_offset)
-      resolver = ReferenceResolver16.new(build_config.kernel, build_config.language)
-      resolver.function_names = build_config.function_names
-      resolver.classes = build_config.classes
-      resolver.string_constants = build_config.string_constants
-      resolver.variable_offset = build_config.variable_offset
-      resolver.dispatcher_offset = dispatcher_offset
-      resolver
-    end
-    def create_build_config(kernel, language, symbols, symbol_refs, codeset)
-      build_config = BuildConfig.new
-      build_config.kernel = kernel
-      build_config.language = language
-      build_config.symbols = symbols
-      build_config.symbol_refs = symbol_refs
-      build_config.codeset = codeset
-      build_config.code_origin = 0x100
-      build_config.heap_size = 0x8000
-      build_config.first_block_offs = 0
-      build_config.reserved_var_count = Variable::RESERVED_VARIABLE_COUNT
-      build_root_var_indices build_config
-      build_reserved_image build_config
-      build_string_constants build_config
-      build_constant_data build_config
-      calc_variable_offset build_config
-      calc_dynamic_area build_config
-      build_class_hierarchy build_config
-      build_config
+    def configure_resolver(build_config, dispatcher_offset)
+      @resolver.function_names = build_config.function_names
+      @resolver.classes = build_config.classes
+      @resolver.string_constants = build_config.string_constants
+      @resolver.variable_offset = build_config.variable_offset
+      @resolver.dispatcher_offset = dispatcher_offset
     end
     def build_root_var_indices(build_config)
       root_var_count = 0
@@ -109,8 +87,17 @@ module Elang
     end
     
     public
-    def link(kernel, language, symbols, symbol_refs, codeset)
-      build_config = create_build_config(kernel, language, symbols, symbol_refs, codeset)
+    def link(build_config)
+      symbol_refs = build_config.symbol_refs
+      codeset = build_config.codeset
+      
+      build_root_var_indices build_config
+      build_reserved_image build_config
+      build_string_constants build_config
+      build_constant_data build_config
+      calc_variable_offset build_config
+      calc_dynamic_area build_config
+      build_class_hierarchy build_config
       
       sections = 
         {
@@ -132,8 +119,8 @@ module Elang
 #puts
 #puts "classes:"
 #puts build_config.classes.inspect
-      dispatcher = create_dispatcher(build_config)
-      asm = dispatcher.build_obj_method_dispatcher(sections["head"].size + sections["libs"].size, sections["subs"].size)
+      configure_dispatcher build_config
+      asm = @dispatcher.build_obj_method_dispatcher(sections["head"].size + sections["libs"].size, sections["subs"].size)
       sections["disp"].data = Code.align(asm.code, 16)
       mapper_method = asm.instructions.map{|x|x.to_s}.join("\r\n")
 #puts
@@ -158,10 +145,10 @@ module Elang
         end
       end
       
-      resolver = create_resolver(build_config, dispatcher.dispatcher_offset)
-      resolver.resolve_references :subs, sections["subs"].data, symbol_refs, sections["head"].size + sections["libs"].size
-      resolver.resolve_references :init, sections["init"].data, symbol_refs, sections["head"].size + sections["libs"].size + sections["subs"].size + sections["disp"].size
-      resolver.resolve_references :main, sections["main"].data, symbol_refs, sections["head"].size + sections["libs"].size + sections["subs"].size + sections["disp"].size + sections["init"].size
+      configure_resolver build_config, @dispatcher.dispatcher_offset
+      @resolver.resolve_references :subs, sections["subs"].data, symbol_refs, sections["head"].size + sections["libs"].size
+      @resolver.resolve_references :init, sections["init"].data, symbol_refs, sections["head"].size + sections["libs"].size + sections["subs"].size + sections["disp"].size
+      @resolver.resolve_references :main, sections["main"].data, symbol_refs, sections["head"].size + sections["libs"].size + sections["subs"].size + sections["disp"].size + sections["init"].size
       
       sections.map{|k,v|v.data}.join
     end

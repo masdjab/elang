@@ -4,13 +4,14 @@ module Elang
       attr_reader :codeset
       
       private
-      def initialize(kernel, symbols, symbol_refs, codeset)
+      def initialize(build_config)
+        @build_config = build_config
         @sys_functions = 
-          kernel.functions.map{|k,v|SystemFunction.new(v[:name])} \
+          @build_config.kernel.functions.map{|k,v|SystemFunction.new(v[:name])} \
           + [SystemFunction.new("_send_to_object")]
-        @symbols = symbols
-        @symbol_refs = symbol_refs
-        @codeset = codeset
+        @symbols = @build_config.symbols
+        @symbol_refs = @build_config.symbol_refs
+        @codeset = @build_config.codeset
         @scope_stack = ScopeStack.new
         @break_stack = []
       end

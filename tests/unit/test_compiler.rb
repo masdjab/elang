@@ -8,22 +8,30 @@ require './compiler/compiler'
 
 class CompilerTest < Test::Unit::TestCase
   def compile(source_text)
-    kernel = Elang::Kernel.load_library('./libs/stdlib16.bin')
+    build_config = Elang::BuildConfig.new
+    build_config.kernel = Elang::Kernel.load_library("./libs/stdlib16.bin")
+    build_config.symbols = Elang::Symbols.new
+    build_config.symbol_refs = []
+    build_config.codeset = Elang::Codeset.new
+    build_config.code_origin = 0x100
+    build_config.heap_size = 0x8000
+    build_config.first_block_offs = 0
+    build_config.reserved_var_count = Elang::Variable::RESERVED_VARIABLE_COUNT
+    
     source = Elang::StringSourceCode.new(source_text)
     symbols = Elang::Symbols.new
     symbol_refs = []
     parser = Elang::Parser.new
     lexer = Elang::Lexer.new
-    name_detector = Elang::NameDetector.new(symbols)
-    codeset = Elang::Codeset.new
-    language = Elang::Language::Intel16.new(kernel, symbols, symbol_refs, codeset)
-    codegen = Elang::CodeGenerator::Intel.new(symbols, language)
+    name_detector = Elang::NameDetector.new(build_config.symbols)
+    language = Elang::Language::Intel16.new(build_config)
+    codegen = Elang::CodeGenerator::Intel.new(build_config.symbols, language)
     
     tokens = parser.parse(source)
     nodes = lexer.to_sexp_array(tokens)
     name_detector.detect_names(nodes)
     codegen.generate_code(nodes)
-    codeset
+    build_config.codeset
   end
   def check_binary(actual, expected_str)
     assert_equal Elang::Converter.hex2bin(expected_str), actual

@@ -5,9 +5,10 @@ INT_MIN_MASK2             EQU 40000000h
 
 macro var [varargs] {dd varargs}
 
-var table
-var 7 dup 0
+dw 2
+dw table
+dw 7 dup 0
 
 include 'stdproc.asm'
-include 'dos.asm'
+include 'dados.asm'
 include 'stdtable.asm'

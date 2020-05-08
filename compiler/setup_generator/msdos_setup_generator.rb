@@ -1,5 +1,5 @@
 module Elang
-  class MsWinSetupGenerator
+  class MsdosSetupGenerator
     private
     def hex2bin(h)
       Converter.hex2bin(h)

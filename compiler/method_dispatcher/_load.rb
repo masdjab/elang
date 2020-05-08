@@ -1,0 +1,2 @@
+require_relative 'method_dispatcher_16'
+require_relative 'method_dispatcher_32'

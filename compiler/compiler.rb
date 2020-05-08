@@ -21,16 +21,13 @@ require_relative 'code'
 require_relative 'kernel'
 require_relative 'converter'
 require_relative 'build_config'
-require_relative 'reference_resolver_16'
-require_relative 'reference_resolver_32'
-require_relative 'method_dispatcher_16'
-require_relative 'method_dispatcher_32'
+require_relative 'reference_resolver/_load'
+require_relative 'method_dispatcher/_load'
 require_relative 'assembly/instruction'
 require_relative 'assembly/code_builder'
 require_relative 'linker_options'
 require_relative 'code_section'
-require_relative 'mswin_setup_generator'
-require_relative 'dados_setup_generator'
+require_relative 'setup_generator/_load'
 require_relative 'linker'
 
 
@@ -123,7 +120,7 @@ module Elang
       linker_options = LinkerOptions.new
       linker_options.var_byte_size = 2
       linker_options.var_size_code = :word
-      linker_options.setup_generator = MsWinSetupGenerator.new
+      linker_options.setup_generator = MsdosSetupGenerator.new
       
       linker = Elang::Linker.new(linker_options)
       success = false

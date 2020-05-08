@@ -113,8 +113,9 @@ module Elang
       NameDetector.new(symbols).detect_names nodes
     end
     def generate_output_file(nodes)
-      language = Language::Intel16.new(@build_config)
-      codegen = Elang::CodeGenerator::Intel.new(@build_config.symbols, language)
+      #language = Language::Intel16.new(@build_config)
+      #codegen = Elang::CodeGenerator::Intel.new(@build_config.symbols, language)
+      codegen = Elang::CodeGenerator::Intel.new(@build_config.symbols, @build_config.language)
       linker = Elang::Linker.new(@linker_options)
       success = false
       

@@ -59,10 +59,11 @@ module Elang
   class MsdosProjectBuilder < ExecutableProjectBuilder
     def create_build_config
       config = BuildConfig.new
-      config.kernel = load_kernel_libraries("stdlib16.bin")
+      config.kernel = load_kernel_libraries("libmsdos.bin")
       config.symbols = Symbols.new
       config.symbol_refs = []
       config.codeset = Codeset.new
+      config.language = Language::Intel16.new(config)
       config.code_origin = 0x100
       config.heap_size = 0x8000
       config.first_block_offs = 0
@@ -80,7 +81,7 @@ module Elang
     end
     def create_compiler(build_config, linker_options)
       compiler = Compiler.new(build_config, linker_options, @project.source_file, @project.options)
-      compiler.stdlib = "stdlib16.bin"
+      compiler.stdlib = "libmsdos.bin"
       compiler.elang_lib = "libs.elang"
       compiler
     end
@@ -90,10 +91,11 @@ module Elang
   class DummyMsdosProjectBuilder < ExecutableProjectBuilder
     def create_build_config
       config = BuildConfig.new
-      config.kernel = load_kernel_libraries("stdlibxx.bin")
+      config.kernel = load_kernel_libraries("libnull.bin")
       config.symbols = Symbols.new
       config.symbol_refs = []
       config.codeset = Codeset.new
+      config.language = Language::Intel16.new(config)
       config.code_origin = 0x100
       config.heap_size = 0x8000
       config.first_block_offs = 0
@@ -110,7 +112,7 @@ module Elang
       options
     end
     def create_compiler(build_config, linker_options)
-      compiler = Compiler.new(build_config, linker_options, @project.source_files, @project.options)
+      compiler = Compiler.new(build_config, linker_options, @project.source_file, @project.options)
       compiler.stdlib = nil
       compiler.elang_lib = nil
       compiler
@@ -121,10 +123,11 @@ module Elang
   class DadosProjectBuilder < ExecutableProjectBuilder
     def create_build_config
       config = BuildConfig.new
-      config.kernel = load_kernel_libraries("dados.bin")
+      config.kernel = load_kernel_libraries("libdados.bin")
       config.symbols = Symbols.new
       config.symbol_refs = []
       config.codeset = Codeset.new
+      config.language = Language::Intel32.new(config)
       config.code_origin = 0
       config.heap_size = 0x8000
       config.first_block_offs = 0
@@ -141,8 +144,8 @@ module Elang
       options
     end
     def create_compiler(build_config, linker_options)
-      compiler = Compiler.new(build_config, linker_options, @project.source_files, @project.options)
-      compiler.stdlib = "dados.bin"
+      compiler = Compiler.new(build_config, linker_options, @project.source_file, @project.options)
+      compiler.stdlib = "libdados.bin"
       compiler.elang_lib = "libs.elang"
       compiler
     end
@@ -152,10 +155,11 @@ module Elang
   class MswinProjectBuilder < ExecutableProjectBuilder
     def create_build_config
       config = BuildConfig.new
-      config.kernel = load_kernel_libraries("mswin32.bin")
+      config.kernel = load_kernel_libraries("libmswin.bin")
       config.symbols = Symbols.new
       config.symbol_refs = []
       config.codeset = Codeset.new
+      config.language = Language::Intel32.new(config)
       config.code_origin = 0
       config.heap_size = 0x8000
       config.first_block_offs = 0
@@ -172,8 +176,8 @@ module Elang
       options
     end
     def create_compiler(build_config, linker_options)
-      compiler = Compiler.new(build_config, linker_options, @project.source_files, @project.options)
-      compiler.stdlib = "mswin32.bin"
+      compiler = Compiler.new(build_config, linker_options, @project.source_file, @project.options)
+      compiler.stdlib = "libmswin.bin"
       compiler.elang_lib = "libs.elang"
       compiler
     end
@@ -193,11 +197,21 @@ module Elang
           MsdosProjectBuilder.new(project)
         end
       elsif project.platform == "mswin"
-        #MswinProjectBuilder.new(project)
-        raise RuntimeError.new("Platform '#{project.platform}' currently not supported.")
+        if !project.architecture.nil? && (project.architecture != "32")
+          raise RuntimeError.new("MSWIN platform only support 32-bit architecture.")
+        elsif !project.output_format.nil? && !["mzpe", "mzpedll"].include?("#{project.output_format}".downcase)
+          raise RuntimeError.new("MSWIN platform only support mzpe and mzpedll formats.")
+        else
+          MswinProjectBuilder.new(project)
+        end
       elsif project.platform == "dados"
-        #DadosProjectBuilder.new(project)
-        raise RuntimeError.new("Platform '#{project.platform}' currently not supported.")
+        if !project.architecture.nil? && (project.architecture != "32")
+          raise RuntimeError.new("Currently, Dados platform only support 32-bit architecture.")
+        elsif !project.output_format.nil?
+          raise RuntimeError.new("Currently, Dados platform only support flat binary file format.")
+        else
+          DadosProjectBuilder.new(project)
+        end
       else
         raise RuntimeError.new("Unsupported platform: #{project.platform}")
       end

@@ -86,3 +86,4 @@ db 0x5f, 0x81, 0, 0, "_get_obj_var", 0
 db 0x64, 0x81, 0, 0, "_set_obj_var", 0
 db 0x69, 0x81, 0, 0, "print", 0
 db 0x6e, 0x81, 0, 0, "puts", 0
+db 0x73, 0x81, 0, 0, "exit_process", 0

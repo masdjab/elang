@@ -107,7 +107,7 @@ module Elang
       end
       def set_jump_target(offset)
         if offset
-          @codeset.code[@codeset.branch][offset - 4, 4] = Converter.int2bin(code_len - offset, :dword, :be)
+          @codeset.code[@codeset.branch][offset - 4, 4] = Converter.int2bin(code_len - offset, :dword)
         end
       end
       def new_jump_target
@@ -115,11 +115,11 @@ module Elang
       end
       def set_jump_source(target, condition = nil)
         if condition.nil?
-          append_code hex2bin("E9" + Converter.int2bin(target - (code_len + 5), :dword, :be))
+          append_code hex2bin("E9" + Converter.int2bin(target - (code_len + 5), :dword))
         elsif condition == :nz
-          append_code hex2bin("0F85" + Converter.int2bin(target - (code_len + 6), :dword, :be))
+          append_code hex2bin("0F85" + Converter.int2bin(target - (code_len + 6), :dword))
         elsif condition == :zr
-          append_code hex2bin("0F84" + Converter.int2bin(target - (code_len + 6), :dword, :be))
+          append_code hex2bin("0F84" + Converter.int2bin(target - (code_len + 6), :dword))
         end
       end
       def push_argument

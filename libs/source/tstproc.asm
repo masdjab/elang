@@ -73,3 +73,4 @@ array_append:
 get_obj_var:
 set_obj_var:
 puts:
+exit_process:

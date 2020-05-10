@@ -63,6 +63,19 @@ class TestConverter < Test::Unit::TestCase
     assert_equal "3412", Elang::Converter.int2hex(0x1234, :word, :be)
     assert_equal "feff", Elang::Converter.int2hex(0xfffe, :word, :be)
     assert_equal "feff", Elang::Converter.int2hex(0x1fffe, :word, :be)
+    
+    assert_equal '00000000', Elang::Converter.int2hex(0, :dword, :le)
+    assert_equal '00005678', Elang::Converter.int2hex(0x5678, :dword, :le)
+    assert_equal '0000ffff', Elang::Converter.int2hex(65535, :dword, :le)
+    assert_equal '00010000', Elang::Converter.int2hex(0x10000, :dword, :le)
+    
+    assert_equal "00000000", Elang::Converter.int2hex(0, :dword, :be)
+    assert_equal "00000100", Elang::Converter.int2hex(0x10000, :dword, :be)
+    assert_equal "01000000", Elang::Converter.int2hex(1, :dword, :be)
+    assert_equal "00800000", Elang::Converter.int2hex(0x8000, :dword, :be)
+    assert_equal "34120000", Elang::Converter.int2hex(0x1234, :dword, :be)
+    assert_equal "feffffff", Elang::Converter.int2hex(0xfffffffe, :dword, :be)
+    assert_equal "feffff1f", Elang::Converter.int2hex(0x1ffffffe, :dword, :be)
   end
   def test_hex2bin
     assert_equal "", Elang::Converter.hex2bin("")

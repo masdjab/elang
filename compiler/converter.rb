@@ -42,18 +42,17 @@ module Elang
       result
     end
     def self.int2hex(value, size, mode = :le)
-      if size == :byte
-        t = "0#{value.to_s(16)}"[-2..-1]
-        "0" * (2 - t.length) + t
-      elsif size == :word
-        parts = [self.int2hex(self.upper_byte(value), :byte), self.int2hex(self.lower_byte(value), :byte)]
-        (mode == :be ? parts.reverse : parts).join
-      elsif size == :dword
-        parts = [self.int2hex(self.upper_word(value), :word), self.int2hex(self.lower_word(value), :word)]
-        (mode == :be ? parts.reverse : parts).join
-      elsif size == :qword
-        parts = [self.int2hex(self.upper_dword(value), :dword), self.int2hex(self.lower_dword(value), :dword)]
-        (mode == :be ? parts.reverse : parts).join
+      if bl = {:byte => 1, :word => 2, :dword => 4, :qword => 8}[size]
+        vx = value
+        hh = []
+        
+        (0...bl).each do |bx|
+          hh << (vx & 0xff).to_s(16).rjust(2, "0")
+          vx = vx >> 8
+        end
+        
+        hh = hh.reverse if mode == :le
+        hh.join
       else
         raise "Invalid byte size code: #{size.inspect}."
       end

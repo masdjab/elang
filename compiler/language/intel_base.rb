@@ -14,6 +14,10 @@ module Elang
         @codeset = @build_config.codeset
         @scope_stack = ScopeStack.new
         @break_stack = []
+        
+        @codeset["main"] = CodeSection.new("main", :code, "")
+        @codeset["subs"] = CodeSection.new("subs", :code, "")
+        @current_section = "main"
       end
       def hex2bin(h)
         Elang::Converter.hex2bin(h)
@@ -24,40 +28,29 @@ module Elang
       def make_int(value)
         (value << 1) | (value < 0 ? 0x80000000 : 0) | 1
       end
-      def current_scope
-        @scope_stack.current_scope
-      end
-      def enter_scope(scope)
-        @codeset.enter_subs
-        @scope_stack.enter_scope scope
-      end
-      def leave_scope
-        @scope_stack.leave_scope
-        @codeset.leave_subs
-      end
-      def code_type
-        !current_scope.to_s.empty? ? :subs : :main
+      def section_name
+        !current_scope.to_s.empty? ? "subs" : "main"
       end
       def code_len
-        @codeset.length
+        @codeset[@current_section].data.length
       end
       def get_sys_function(name)
         @sys_functions.find{|x|x.name == name}
       end
       def append_code(code)
-        @codeset.append code
+        @codeset[@current_section].data << code
       end
       def add_constant_ref(symbol, location)
-        @symbol_refs << ConstantRef.new(symbol, current_scope, location, code_type)
+        @symbol_refs << ConstantRef.new(symbol, current_scope, location, section_name)
       end
       def add_variable_ref(symbol, location)
-        @symbol_refs << VariableRef.new(symbol, current_scope, location, code_type)
+        @symbol_refs << VariableRef.new(symbol, current_scope, location, section_name)
       end
       def add_function_ref(symbol, location)
-        @symbol_refs << FunctionRef.new(symbol, current_scope, location, code_type)
+        @symbol_refs << FunctionRef.new(symbol, current_scope, location, section_name)
       end
       def add_function_id_ref(symbol, location)
-        @symbol_refs << FunctionIdRef.new(symbol, current_scope, location, code_type)
+        @symbol_refs << FunctionIdRef.new(symbol, current_scope, location, section_name)
       end
       def register_variable(scope, name)
         @symbols.register_variable(scope, name)
@@ -71,33 +64,33 @@ module Elang
       
       public
       def code_len
-        @codeset.length
+        @codeset[@current_section].data.length
       end
       def current_scope
         @scope_stack.current_scope
       end
       def enter_scope(scope)
-        @codeset.enter_subs
+        @current_section = "subs"
         @scope_stack.enter_scope scope
       end
       def leave_scope
         @scope_stack.leave_scope
-        @codeset.leave_subs
+        @current_section = "main"
       end
       def get_sys_function(name)
         @sys_functions.find{|x|x.name == name}
       end
       def add_constant_ref(symbol, location)
-        @symbol_refs << ConstantRef.new(symbol, current_scope, location, code_type)
+        @symbol_refs << ConstantRef.new(symbol, current_scope, location, section_name)
       end
       def add_variable_ref(symbol, location)
-        @symbol_refs << VariableRef.new(symbol, current_scope, location, code_type)
+        @symbol_refs << VariableRef.new(symbol, current_scope, location, section_name)
       end
       def add_function_ref(symbol, location)
-        @symbol_refs << FunctionRef.new(symbol, current_scope, location, code_type)
+        @symbol_refs << FunctionRef.new(symbol, current_scope, location, section_name)
       end
       def add_function_id_ref(symbol, location)
-        @symbol_refs << FunctionIdRef.new(symbol, current_scope, location, code_type)
+        @symbol_refs << FunctionIdRef.new(symbol, current_scope, location, section_name)
       end
       def register_variable(scope, name)
         @symbols.register_variable(scope, name)

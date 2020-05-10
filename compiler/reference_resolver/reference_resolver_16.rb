@@ -11,10 +11,10 @@ module Elang
       @variable_offset = 0
       @dispatcher_offset = 0
     end
-    def resolve_references(type, code, refs, origin)
+    def resolve_references(section_name, code, refs, origin)
       if !code.empty?
         refs.each do |ref|
-          if ref.code_type == type
+          if ref.section_name == section_name
             symbol = ref.symbol
             
             if symbol.is_a?(Constant)

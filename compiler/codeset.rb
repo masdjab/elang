@@ -1,32 +1,55 @@
 module Elang
   class Codeset
-    attr_reader :code, :branch
+    attr_reader :branch, :sections
     
+    private
     def initialize
-      self.clear
-      self.enter_subs
-      self.leave_subs
+      @sections = {}
+      @current_section = nil
+      clear_all
     end
-    def enter_subs
-      @branch = :subs
+    def with_section(section_name = nil)
+      ss = section_name ? @sections[section_name] : @current_section
+      ss ? yield(ss) : nil
     end
-    def leave_subs
-      @branch = :main
+    
+    public
+    def create_section(name, type)
+      if !@sections.key?(name)
+        @sections[name] = CodeSection.new(name, type, "")
+      end
+      
+      @sections[name]
     end
-    def append(code)
-      @code[@branch] << code if !code.empty?
+    def select_section(name)
+      if @sections.key?(name)
+        @current_section = @sections[name]
+      end
+    end
+    def [](index, length)
+      @current_section ? @current_section[index, length] : nil
+    end
+    def []=(index, length, data)
+      @current_section[index, length] = data if @current_section
+    end
+    def append(section_name, code = nil)
+      section_name, code = code, section_name if code.nil?
+      with_section(section_name){|s|s.data << code} if !code.empty?
     end
     def length
-      @code[@branch].length
+      @current_section ? @current_section.size : nil
     end
     def clear
-      @code = {main: "", subs: ""}
+      @current_section.data = "" if @current_section
+    end
+    def clear_all
+      @sections.each{|x|x.data = ""}
     end
     def empty?
-      @code[:main].empty? && @code[:subs].empty?
+      @sections.values.map{|x|x.size}.sum == 0
     end
-    def render(branch = nil)
-      @code[branch ? branch : @branch]
+    def render(section_name = nil)
+      with_section(section_name){|s|s.data}
     end
   end
 end

@@ -13,7 +13,7 @@ module Elang
       @language = nil
       @symbols = nil
       @symbol_refs = nil
-      @codeset = nil
+      @codeset = {}
       @code_origin = 0
       @root_var_count = 0
       @classes = {}

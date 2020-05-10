@@ -11,10 +11,10 @@ module Elang
       
       public
       def load_immediate(value)
-        append_code hex2bin("B8" + Converter.int2hex(value, :dword, :be))
+        append_hex "B8" + Converter.int2hex(value, :dword, :be)
       end
       def load_int(value)
-        append_code hex2bin("B8" + Converter.int2hex(intobj(value), :dword, :be))
+        append_hex "B8" + Converter.int2hex(intobj(value), :dword, :be)
       end
       def load_str(text)
         active_scope = current_scope
@@ -34,72 +34,72 @@ module Elang
         add_constant_ref symbol, code_len + 1
         add_function_ref get_sys_function("_load_str"), code_len + 7
         
-        append_code hex2bin(hex_code.join)
+        append_hex hex_code.join
       end
       def get_global_variable(symbol)
         # mov var, ax
         add_variable_ref symbol, code_len + 1
-        append_code hex2bin("A100000000")
+        append_hex "A100000000"
       end
       def set_global_variable(symbol)
         # mov var, ax
         add_variable_ref symbol, code_len + 2
         add_function_ref get_sys_function("_unassign_object"), code_len + 8
         add_variable_ref symbol, code_len + 14
-        append_code hex2bin("50A10000000050E80000000058A300000000")
+        append_hex "50A10000000050E80000000058A300000000"
       end
       def get_local_variable(symbol)
         # mov ax, [bp + n]
         add_variable_ref symbol, code_len + 2
-        append_code hex2bin("8B4500")
+        append_hex "8B4500"
       end
       def set_local_variable(symbol)
         # mov [bp + n], ax
         add_variable_ref symbol, code_len + 3
         add_function_ref get_sys_function("_unassign_object"), code_len + 6
         add_variable_ref symbol, code_len + 13
-        append_code hex2bin("508B450050E80000000058894500")
+        append_hex "508B450050E80000000058894500"
       end
       def get_instance_variable(symbol)
         add_variable_ref symbol, code_len + 1
         add_function_ref get_sys_function("_get_obj_var"), code_len + 11
-        append_code hex2bin("B800000000508B450450E800000000")
+        append_hex "B800000000508B450450E800000000"
       end
       def set_instance_variable(symbol)
         add_variable_ref symbol, code_len + 2
         add_function_ref get_sys_function("_set_obj_var"), code_len + 12
-        append_code hex2bin("50B800000000508B450450E800000000")
+        append_hex "50B800000000508B450450E800000000"
       end
       def get_parameter_by_index(index)
-        append_code hex2bin("8B45" + Converter.int2hex((index + 2) * 4, :byte, :be))
+        append_hex "8B45" + Converter.int2hex((index + 2) * 4, :byte, :be)
       end
       def get_parameter_by_symbol(symbol)
         # mov ax, [bp + n]
         add_variable_ref symbol, code_len + 2
-        append_code hex2bin("8B4500")
+        append_hex "8B4500"
       end
       def get_class(symbol)
         # #(todo)#fix binary command
-        append_code hex2bin("A400000000")
+        append_hex "A400000000"
       end
       def set_class(symbol)
         ## #(todo)#fix binary command
-        append_code hex2bin("A700000000")
+        append_hex "A700000000"
       end
       def get_method_id(func_name)
         function_id = FunctionId.new(current_scope, func_name)
         add_function_id_ref function_id, code_len + 1
-        append_code hex2bin("B800000000")
+        append_hex "B800000000"
       end
       def new_jump_source(condition = nil)
         if condition.nil?
-          append_code hex2bin("E900000000")
+          append_hex "E900000000"
           code_len
         elsif condition == :nz
-          append_code hex2bin("0F8500000000")
+          append_hex "0F8500000000"
           code_len
         elsif condition == :zr
-          append_code hex2bin("0F8400000000")
+          append_hex "0F8400000000"
           code_len
         else
           nil
@@ -115,24 +115,24 @@ module Elang
       end
       def set_jump_source(target, condition = nil)
         if condition.nil?
-          append_code hex2bin("E9" + Converter.int2bin(target - (code_len + 5), :dword))
+          append_hex "E9" + Converter.int2bin(target - (code_len + 5), :dword)
         elsif condition == :nz
-          append_code hex2bin("0F85" + Converter.int2bin(target - (code_len + 6), :dword))
+          append_hex "0F85" + Converter.int2bin(target - (code_len + 6), :dword)
         elsif condition == :zr
-          append_code hex2bin("0F84" + Converter.int2bin(target - (code_len + 6), :dword))
+          append_hex "0F84" + Converter.int2bin(target - (code_len + 6), :dword)
         end
       end
       def push_argument
-        append_code hex2bin("50")
+        append_hex "50"
       end
       def call_function(symbol)
         add_function_ref symbol, code_len + 1
-        append_code hex2bin("E800000000")
+        append_hex "E800000000"
       end
       def call_sys_function(func_name)
         # todo: merge this to call function
         add_function_ref SystemFunction.new(func_name), code_len + 1
-        append_code hex2bin("E800000000")
+        append_hex "E800000000"
       end
       def create_object(cls)
         iv = @symbols.get_instance_variables(cls)
@@ -141,7 +141,7 @@ module Elang
         hc = "B8#{sz}50B8#{ci}50E800000000"
         
         add_function_ref get_sys_function("_alloc_object"), code_len + 13
-        append_code hex2bin(hc)
+        append_hex hc
       end
       def define_function(name, params_count)
         old_scope = current_scope
@@ -153,46 +153,46 @@ module Elang
         
         if old_scope.cls.nil?
           # push bp; mov bp, sp
-          append_code hex2bin("55" + "89E5")
+          append_hex "5589E5"
         end
         
         if var_count > 0
           # sub sp, nn
-          append_code hex2bin("83EC" + Elang::Converter.int2hex(var_count * 4, :dword, :be))
+          append_hex "83EC" + Elang::Converter.int2hex(var_count * 4, :dword, :be)
           
           variables.each do |v|
             # xor ax, ax; mov [v], ax
             add_variable_ref v, code_len + 4
-            append_code hex2bin("31C0894500")
+            append_hex "31C0894500"
           end
         end
         
         yield
         
         if var_count > 0
-          append_code hex2bin("50")
+          append_hex "50"
           variables.each do |v|
             # mov ax, [v]; push v; call _unassign_object
             add_variable_ref v, code_len + 2
             add_function_ref get_sys_function("_unassign_object"), code_len + 5
-            append_code hex2bin("8B450050E800000000")
+            append_hex "8B450050E800000000"
           end
-          append_code hex2bin("58")
+          append_hex "58"
           
           # add sp, nn
-          append_code hex2bin("83C4" + Elang::Converter.int2hex(var_count * 4, :dword, :be))
+          append_hex "83C4" + Elang::Converter.int2hex(var_count * 4, :dword, :be)
         end
         
         if old_scope.cls.nil?
           # pop bp
-          append_code hex2bin("5D")
+          append_hex "5D"
           
           # ret [n]
           hex_code = (params_count > 0 ? "C2#{Elang::Converter.int2hex(params_count * 4, :word, :be).upcase}" : "C3")
-          append_code hex2bin(hex_code)
+          append_hex hex_code
         else
           # ret
-          append_code hex2bin("C3")
+          append_hex "C3"
         end
         
         leave_scope
@@ -204,22 +204,22 @@ module Elang
       end
       def begin_array
         add_function_ref get_sys_function("_create_array"), code_len + 1
-        append_code hex2bin("E800000000")
+        append_hex "E800000000"
         
         # push dx; mov dx, ax
-        append_code hex2bin("5289C2")
+        append_hex "5289C2"
       end
       def array_append_item
         add_function_ref get_sys_function("_array_append"), code_len + 3
-        append_code hex2bin("5052E800000000")
+        append_hex "5052E800000000"
       end
       def end_array
         # pop dx
-        append_code hex2bin("5A")
+        append_hex "5A"
       end
       def jump(target)
         jmp_to = Converter.int2hex(target - (code_len + 5), :dword, :be)
-        append_code hex2bin("E9#{jmp_to}")
+        append_hex "E9#{jmp_to}"
       end
       def enter_breakable_block
         @break_stack << []
@@ -229,7 +229,7 @@ module Elang
       end
       def break_block
         append_break
-        append_code hex2bin("E900000000")
+        append_hex "E900000000"
       end
       def resolve_breaks
         break_requests.each do |b|

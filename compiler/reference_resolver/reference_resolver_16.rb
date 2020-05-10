@@ -61,6 +61,16 @@ module Elang
               end
             elsif symbol.is_a?(Class)
 #puts "Resolving class '#{symbol.name}', index: #{symbol.index}"
+            elsif symbol.is_a?(Label)
+              if ref.is_a?(ShortCodeRef)
+                code[ref.location, 1] = Converter.int2bin(symbol.offset - (ref.location + 1), :byte)
+              elsif ref.is_a?(NearCodeRef)
+                code[ref.location, 2] = Converter.int2bin(symbol.offset - (ref.location + 2), :word)
+              elsif ref.is_a?(FarCodeRef)
+                code[ref.location, 4] = Converter.int2bin(symbol.offset - (ref.location + 4), :dword)
+              else
+                raise "Cannot resolve reference of type '#{ref.class}' to label '#{symbol.name}'."
+              end
             else
               raise "Cannot resolve reference to symbol of type '#{symbol.class}' => #{ref.inspect}"
             end

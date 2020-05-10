@@ -109,6 +109,13 @@ module Elang
       
       fun
     end
+    def register_label(scope, name, offset, ref_context = nil)
+      if (lbl = self.items.find{|x|(x.name == name) && x.is_a?(Label) && (x.scope.to_s == scope.to_s)}).nil?
+        lbl = self.add(Label.new(scope, name, offset, ref_context))
+      end
+      
+      lbl
+    end
     def get_function_names
       predefined = Function::PREDEFINED_FUNCTION_NAMES
       func_names = self.items.select{|x|x.is_a?(Function)}.map{|x|x.name}.uniq

@@ -8,8 +8,17 @@ module Elang
       @type = type
       @data = data
     end
+    def length
+      @data.length
+    end
     def size
       @data.length
+    end
+    def <<(data)
+      @data << data
+    end
+    def to_s
+      @data
     end
   end
 end

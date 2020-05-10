@@ -72,9 +72,14 @@ module Elang
 #puts "classes:"
 #puts build_config.classes.inspect
       configure_dispatcher build_config
-      asm = build_config.method_dispatcher.build_obj_method_dispatcher(build_config.codeset["head"].data.length + build_config.codeset["libs"].data.length, build_config.codeset["subs"].data.length)
-      build_config.codeset["disp"] = CodeSection.new("disp", :code, Code.align(asm.code, 16))
-      mapper_method = asm.instructions.map{|x|x.to_s}.join("\r\n")
+      #asm = build_config.method_dispatcher.build_obj_method_dispatcher(build_config.codeset["head"].data.length + build_config.codeset["libs"].data.length, build_config.codeset["subs"].data.length)
+      #build_config.codeset["disp"] = CodeSection.new("disp", :code, Code.align(asm.code, 16))
+      #mapper_method = asm.instructions.map{|x|x.to_s}.join("\r\n")
+      build_config.codeset["disp"] = CodeSection.new("disp", :code, "")
+      build_config.method_dispatcher.setup build_config.symbols, build_config.symbol_refs, build_config.codeset["disp"]
+      build_config.codeset["disp"].data = Code.align(build_config.method_dispatcher.build_obj_method_dispatcher(build_config.codeset["head"].data.length + build_config.codeset["libs"].data.length, build_config.codeset["subs"].data.length))
+      #build_config.symbol_refs.each{|x|puts x.inspect if x.is_a?(NearCodeRef)}
+      
 #puts
 #puts "*** OBJECT METHOD MAPPER ***"
 #puts mapper_method
@@ -118,6 +123,7 @@ module Elang
       end
       
       configure_resolver build_config, build_config.method_dispatcher.dispatcher_offset
+build_config.reference_resolver.resolve_references "disp", build_config.codeset["disp"].data, build_config.symbol_refs, build_config.codeset["head"].data.length + build_config.codeset["libs"].data.length + build_config.codeset["subs"].data.length
       build_config.reference_resolver.resolve_references "subs", build_config.codeset["subs"].data, build_config.symbol_refs, build_config.codeset["head"].data.length + build_config.codeset["libs"].data.length
       build_config.reference_resolver.resolve_references "init", build_config.codeset["init"].data, build_config.symbol_refs, build_config.codeset["head"].data.length + build_config.codeset["libs"].data.length + build_config.codeset["subs"].data.length + build_config.codeset["disp"].data.length
       build_config.reference_resolver.resolve_references "main", build_config.codeset["main"].data, build_config.symbol_refs, build_config.codeset["head"].data.length + build_config.codeset["libs"].data.length + build_config.codeset["subs"].data.length + build_config.codeset["disp"].data.length + build_config.codeset["init"].data.length

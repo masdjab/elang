@@ -21,4 +21,13 @@ module Elang
   
   class FunctionIdRef < SymbolRef
   end
+  
+  class ShortCodeRef < SymbolRef
+  end
+  
+  class NearCodeRef < SymbolRef
+  end
+  
+  class FarCodeRef < SymbolRef
+  end
 end

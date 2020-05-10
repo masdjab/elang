@@ -75,4 +75,12 @@ module Elang
       build_class_hierarchy build_config
     end
   end
+  
+  public
+  def extension
+    "bin"
+  end
+  def format_output(build_config)
+    ""
+  end
 end

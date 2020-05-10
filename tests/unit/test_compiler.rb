@@ -2,7 +2,6 @@ require 'test-unit'
 require './compiler/code'
 require './compiler/kernel'
 require './compiler/source_code'
-#require './compiler/codeset'
 require './compiler/language/_load'
 require './compiler/compiler'
 

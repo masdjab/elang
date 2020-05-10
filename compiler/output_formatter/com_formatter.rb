@@ -56,6 +56,9 @@ module Elang
     end
     
     public
+    def extension
+      "com"
+    end
     def format_output(build_config)
       build_preformat_values build_config
       

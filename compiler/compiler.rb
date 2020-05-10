@@ -7,7 +7,6 @@ require_relative 'parser'
 require_relative 'lexer'
 require_relative 'assembly/instruction'
 require_relative 'code_section'
-#require_relative 'codeset'
 require_relative 'scope'
 require_relative 'scope_stack'
 require_relative 'converter'
@@ -51,7 +50,7 @@ module Elang
       
       @build_config   = build_config
       @source_file    = FileInfo.new(source_file)
-      @output_file    = @source_file.replace_ext("com")
+      @output_file    = @source_file.replace_ext(@build_config.output_formatter.extension)
       @dev_mode       = options.fetch(:dev, false)
       @show_nodes     = options.fetch(:show_nodes, :none)
     end

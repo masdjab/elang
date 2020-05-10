@@ -51,7 +51,7 @@ module Elang
         ]
       
       root_scope = Scope.new
-      build_config.symbol_refs << FunctionRef.new(SystemFunction.new("_mem_block_init"), root_scope, 20 + (init_vars.length / 2), :init)
+      build_config.symbol_refs << FunctionRef.new(SystemFunction.new("_mem_block_init"), root_scope, 20 + (init_vars.length / 2), "init")
       hex2bin init_cmnd.join
     end
     
@@ -61,13 +61,13 @@ module Elang
       
       sections = 
         {
-          "head" => CodeSection.new("head", CodeSection::OTHER, Code.align(hex2bin("B8000050C3"), 16)), 
-          "libs" => CodeSection.new("libs", CodeSection::CODE, build_config.kernel.code), 
-          "subs" => CodeSection.new("subs", CodeSection::CODE, Code.align(build_config.codeset.render(:subs), 16)), 
-          "disp" => CodeSection.new("disp", CodeSection::CODE, ""), 
-          "init" => CodeSection.new("init", CodeSection::CODE, ""), 
-          "main" => CodeSection.new("main", CodeSection::CODE, build_config.codeset.render(:main) + Elang::Converter.hex2bin("CD20")), 
-          "cons" => CodeSection.new("data", CodeSection::DATA, build_config.constant_image)
+          "head" => CodeSection.new("head", :other, Code.align(hex2bin("B8000050C3"), 16)), 
+          "libs" => CodeSection.new("libs", :code, build_config.kernel.code), 
+          "subs" => CodeSection.new("subs", :code, Code.align(build_config.codeset.render("subs"), 16)), 
+          "disp" => CodeSection.new("disp", :code, ""), 
+          "init" => CodeSection.new("init", :code, ""), 
+          "main" => CodeSection.new("main", :code, build_config.codeset.render("main") + Elang::Converter.hex2bin("CD20")), 
+          "cons" => CodeSection.new("data", :data, build_config.constant_image)
         }
       
 #puts
@@ -115,9 +115,9 @@ module Elang
       end
       
       configure_resolver build_config, build_config.method_dispatcher.dispatcher_offset
-      build_config.reference_resolver.resolve_references :subs, sections["subs"].data, build_config.symbol_refs, sections["head"].size + sections["libs"].size
-      build_config.reference_resolver.resolve_references :init, sections["init"].data, build_config.symbol_refs, sections["head"].size + sections["libs"].size + sections["subs"].size + sections["disp"].size
-      build_config.reference_resolver.resolve_references :main, sections["main"].data, build_config.symbol_refs, sections["head"].size + sections["libs"].size + sections["subs"].size + sections["disp"].size + sections["init"].size
+      build_config.reference_resolver.resolve_references "subs", sections["subs"].data, build_config.symbol_refs, sections["head"].size + sections["libs"].size
+      build_config.reference_resolver.resolve_references "init", sections["init"].data, build_config.symbol_refs, sections["head"].size + sections["libs"].size + sections["subs"].size + sections["disp"].size
+      build_config.reference_resolver.resolve_references "main", sections["main"].data, build_config.symbol_refs, sections["head"].size + sections["libs"].size + sections["subs"].size + sections["disp"].size + sections["init"].size
       
       sections.map{|k,v|v.data}.join
     end

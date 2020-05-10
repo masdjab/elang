@@ -96,8 +96,8 @@ class TestCodeGenerator < Test::Unit::TestCase
   end
   def check_code_result(nodes, exp_main, exp_subs, source = nil)
     codeset = generate_code(nodes, source)
-    assert_equal exp_main, codeset.code[:main]
-    assert_equal exp_subs, codeset.code[:subs]
+    assert_equal exp_main, codeset.code["main"]
+    assert_equal exp_subs, codeset.code["subs"]
     codeset
   end
   def test_simple_assignment

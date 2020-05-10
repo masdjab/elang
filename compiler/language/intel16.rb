@@ -203,7 +203,7 @@ module Elang
       def resolve_breaks
         break_requests.each do |b|
           jmp_distance = code_len - (b + 3)
-          @codeset.code[@codeset.branch][b + 1, 2] = Converter.int2bin(jmp_distance, :word)
+          @codeset[b + 1, 2] = Converter.int2bin(jmp_distance, :word)
         end
       end
     end

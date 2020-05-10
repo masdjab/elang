@@ -71,7 +71,7 @@ module Elang
       
       build_config.codeset["head"] = CodeSection.new("head", :other, Code.align(hex2bin("B80000000050C3"), 16))
       build_config.codeset["libs"] = CodeSection.new("libs", :code, build_config.kernel.code)
-      build_config.codeset["init"] = CodeSection.new("init", :code, "")
+      build_config.codeset["init"] = CodeSection.new("init", :code, build_code_initializer(build_config))
       build_config.codeset["cons"] = CodeSection.new("data", :data, build_config.constant_image)
       
 #puts
@@ -89,11 +89,15 @@ module Elang
 #puts mapper_method
 #puts
       
+      build_config.codeset = 
+        ["head", "libs", "subs", "disp", "init", "main", "cons"]
+        .inject({}){|a,b|a[b]=build_config.codeset[b];a}
+      
+      
       main_offset = build_config.code_origin + ["head", "libs", "subs", "disp"].map{|x|build_config.codeset[x].data.length}.sum
       build_config.codeset["head"].data[1, 4] = Elang::Converter.int2bin(main_offset, :dword)
       
       
-      build_config.codeset["init"].data = build_code_initializer(build_config)
       ds_offset = ["head", "libs", "subs", "disp", "init", "main"].map{|x|build_config.codeset[x].data.length}.sum
       
       if (extra_size = (ds_offset % 16)) > 0

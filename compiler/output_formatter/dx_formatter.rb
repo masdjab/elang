@@ -49,6 +49,9 @@ module Elang
       build_config.symbol_refs << FunctionRef.new(SystemFunction.new("_mem_block_init"), root_scope, 14 + (init_vars.length / 2), "init")
       hex2bin init_cmnd.join
     end
+    def calc_sections_size(sections, section_names)
+      section_names.map{|x|sections[x].data.length}.sum
+    end
     
     public
     def extension
@@ -56,6 +59,11 @@ module Elang
     end
     def format_output(build_config)
       build_preformat_values build_config
+      
+      build_config.codeset["head"] = CodeSection.new("head", :other, Code.align(hex2bin("B80000000050C3"), 16))
+      build_config.codeset["libs"] = CodeSection.new("libs", :code, Code.align(build_config.kernel.code, 16))
+      build_config.codeset["init"] = CodeSection.new("init", :code, build_code_initializer(build_config))
+      build_config.codeset["cons"] = CodeSection.new("data", :data, build_config.constant_image)
       
       build_config.codeset["subs"].data = Code.align(build_config.codeset["subs"].data, 16)
       
@@ -69,20 +77,19 @@ module Elang
       build_config.symbol_refs << symbol_ref
       
       
-      build_config.codeset["head"] = CodeSection.new("head", :other, Code.align(hex2bin("B80000000050C3"), 16))
-      build_config.codeset["libs"] = CodeSection.new("libs", :code, build_config.kernel.code)
-      build_config.codeset["init"] = CodeSection.new("init", :code, build_code_initializer(build_config))
-      build_config.codeset["cons"] = CodeSection.new("data", :data, build_config.constant_image)
+      head_size = build_config.codeset["head"].data.length
+      libs_size = build_config.codeset["libs"].data.length
+      subs_size = build_config.codeset["subs"].data.length
+      init_size = build_config.codeset["init"].data.length
+      cons_size = build_config.codeset["cons"].data.length
       
 #puts
 #puts "classes:"
 #puts build_config.classes.inspect
       configure_dispatcher build_config
-      asm = 
-        build_config.method_dispatcher.build_obj_method_dispatcher \
-          build_config.codeset["head"].data.length + build_config.codeset["libs"].data.length, 
-          build_config.codeset["subs"].data.length
+      asm = build_config.method_dispatcher.build_obj_method_dispatcher(head_size + libs_size, subs_size)
       build_config.codeset["disp"] = CodeSection.new("disp", :code, Code.align(asm.code, 16))
+      disp_size = build_config.codeset["disp"].data.length
       mapper_method = asm.instructions.map{|x|x.to_s}.join("\r\n")
 #puts
 #puts "*** OBJECT METHOD MAPPER ***"
@@ -94,41 +101,35 @@ module Elang
         .inject({}){|a,b|a[b]=build_config.codeset[b];a}
       
       
-      main_offset = build_config.code_origin + ["head", "libs", "subs", "disp"].map{|x|build_config.codeset[x].data.length}.sum
+      main_offset = build_config.code_origin + head_size + libs_size + subs_size + disp_size
       build_config.codeset["head"].data[1, 4] = Elang::Converter.int2bin(main_offset, :dword)
       
       
-      ds_offset = ["head", "libs", "subs", "disp", "init", "main"].map{|x|build_config.codeset[x].data.length}.sum
-      
-      if (extra_size = (ds_offset % 16)) > 0
-        pad_count = 16 - extra_size
+      if cons_size > 0
+        x_size = calc_sections_size(build_config.codeset, ["init", "main"])
         
-        if build_config.codeset["cons"].data.length > 0
+        if (extra_size = (x_size % 16)) > 0
+          pad_count = 16 - extra_size
           build_config.codeset["main"].data << (0.chr * pad_count)
         end
-        
-        ds_offset = ds_offset + pad_count
       end
       
-      #build_config.codeset["init"].data[3, 2] = Converter.int2bin((ds_offset + build_config.code_origin) >> 4, :word)
-      
-      
-      if build_config.codeset["libs"].data.length > 0
-        build_config.kernel.functions.each do |k,v|
-          v[:offset] += build_config.codeset["head"].data.length
-        end
+      if head_size > 0
+        build_config.kernel.functions.each{|k,v|v[:offset] += head_size}
       end
       
-      build_config.symbols.items.each do |s|
-        if s.is_a?(Function)
-          s.offset = s.offset + build_config.codeset["head"].data.length + build_config.codeset["libs"].data.length
+      if (sx = head_size + libs_size) > 0
+        build_config.symbols.items.each do |s|
+          if s.is_a?(Function)
+            s.offset = s.offset + sx
+          end
         end
       end
       
       configure_resolver build_config, build_config.method_dispatcher.dispatcher_offset
-      build_config.reference_resolver.resolve_references "subs", build_config.codeset["subs"].data, build_config.symbol_refs, build_config.codeset["head"].data.length + build_config.codeset["libs"].data.length
-      build_config.reference_resolver.resolve_references "init", build_config.codeset["init"].data, build_config.symbol_refs, build_config.codeset["head"].data.length + build_config.codeset["libs"].data.length + build_config.codeset["subs"].data.length + build_config.codeset["disp"].data.length
-      build_config.reference_resolver.resolve_references "main", build_config.codeset["main"].data, build_config.symbol_refs, build_config.codeset["head"].data.length + build_config.codeset["libs"].data.length + build_config.codeset["subs"].data.length + build_config.codeset["disp"].data.length + build_config.codeset["init"].data.length
+      build_config.reference_resolver.resolve_references "subs", build_config.codeset["subs"].data, build_config.symbol_refs, head_size + libs_size
+      build_config.reference_resolver.resolve_references "init", build_config.codeset["init"].data, build_config.symbol_refs, head_size + libs_size + subs_size + disp_size
+      build_config.reference_resolver.resolve_references "main", build_config.codeset["main"].data, build_config.symbol_refs, head_size + libs_size + subs_size + disp_size + init_size
       
       build_config.codeset.map{|k,v|v.data}.join
     end

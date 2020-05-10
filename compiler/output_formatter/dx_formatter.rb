@@ -51,88 +51,9 @@ module Elang
     end
     
     public
-=begin
-    def format_output(build_config)
-      build_preformat_values build_config
-      
-      
-      build_config.codeset.select_section "main"
-      build_config.codeset.append hex2bin("E800000000")
-      symbol_ref = 
-        FunctionRef.new \
-          SystemFunction.new("exit_process"), 
-          Scope.new, 
-          build_config.codeset.length - 8, 
-          "main"
-      build_config.symbol_refs << symbol_ref
-      
-      
-      sections = 
-        {
-          "head" => CodeSection.new("head", :other, Code.align(hex2bin("B80000000050C3"), 16)), 
-          "libs" => CodeSection.new("libs", :code, build_config.kernel.code), 
-          "subs" => CodeSection.new("subs", :code, Code.align(build_config.codeset["subs"].data, 16)), 
-          "disp" => CodeSection.new("disp", :code, ""), 
-          "init" => CodeSection.new("init", :code, ""), 
-          "main" => CodeSection.new("main", :code, build_config.codeset["main"].data), 
-          "cons" => CodeSection.new("data", :data, build_config.constant_image)
-        }
-      
-      exit_pos = sections["main"].data.size - 9
-      
-#puts
-#puts "classes:"
-#puts build_config.classes.inspect
-      configure_dispatcher build_config
-      asm = build_config.method_dispatcher.build_obj_method_dispatcher(sections["head"].size + sections["libs"].size, sections["subs"].size)
-      sections["disp"].data = Code.align(asm.code, 16)
-      mapper_method = asm.instructions.map{|x|x.to_s}.join("\r\n")
-#puts
-#puts "*** OBJECT METHOD MAPPER ***"
-#puts mapper_method
-#puts
-      
-      main_offset = build_config.code_origin + ["head", "libs", "subs", "disp"].map{|x|sections[x].size}.sum
-      sections["head"].data[1, 4] = Elang::Converter.int2bin(main_offset, :dword)
-      
-      
-      sections["init"].data = build_code_initializer(build_config)
-      ds_offset = ["head", "libs", "subs", "disp", "init", "main"].map{|x|sections[x].size}.sum
-      
-      if (extra_size = (ds_offset % 16)) > 0
-        pad_count = 16 - extra_size
-        
-        if sections["cons"].size > 0
-          sections["main"].data = sections["main"].data + (0.chr * pad_count)
-        end
-        
-        ds_offset = ds_offset + pad_count
-      end
-      
-      #sections["init"].data[3, 2] = Converter.int2bin((ds_offset + build_config.code_origin) >> 4, :word)
-      
-      
-      if sections["libs"].size > 0
-        build_config.kernel.functions.each do |k,v|
-          v[:offset] += sections["head"].size
-        end
-      end
-      
-      build_config.symbols.items.each do |s|
-        if s.is_a?(Function)
-          s.offset = s.offset + sections["head"].size + sections["libs"].size
-        end
-      end
-      
-      configure_resolver build_config, build_config.method_dispatcher.dispatcher_offset
-      build_config.reference_resolver.resolve_references "subs", sections["subs"].data, build_config.symbol_refs, sections["head"].size + sections["libs"].size
-      build_config.reference_resolver.resolve_references "init", sections["init"].data, build_config.symbol_refs, sections["head"].size + sections["libs"].size + sections["subs"].size + sections["disp"].size
-      build_config.reference_resolver.resolve_references "main", sections["main"].data, build_config.symbol_refs, sections["head"].size + sections["libs"].size + sections["subs"].size + sections["disp"].size + sections["init"].size
-      
-      sections.map{|k,v|v.data}.join
+    def extension
+      "dx"
     end
-  end
-=end
     def format_output(build_config)
       build_preformat_values build_config
       

@@ -37,8 +37,11 @@ module Elang
       def get_sys_function(name)
         @sys_functions.find{|x|x.name == name}
       end
-      def append_code(code)
+      def append_bin(code)
         @codeset[@current_section].data << code
+      end
+      def append_hex(code)
+        append_bin hex2bin(code)
       end
       def add_constant_ref(symbol, location)
         @symbol_refs << ConstantRef.new(symbol, current_scope, location, section_name)

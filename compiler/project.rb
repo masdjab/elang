@@ -39,18 +39,11 @@ module Elang
     def create_build_config
       nil
     end
-    def create_linker_options(build_config)
-      nil
-    end
-    def create_compiler(build_config, linker_options)
-      nil
-    end
     
     public
     def build_project
       build_config = create_build_config
-      linker_options = create_linker_options(build_config)
-      compiler = create_compiler(build_config, linker_options)
+      compiler = Compiler.new(build_config, @project.source_file, @project.options)
       compiler.compile
     end
   end
@@ -59,6 +52,7 @@ module Elang
   class MsdosProjectBuilder < ExecutableProjectBuilder
     def create_build_config
       config = BuildConfig.new
+      config.elang_lib = "libs.elang"
       config.kernel = load_kernel_libraries("libmsdos.bin")
       config.symbols = Symbols.new
       config.symbol_refs = []
@@ -68,22 +62,12 @@ module Elang
       config.heap_size = 0x8000
       config.first_block_offs = 0
       config.reserved_var_count = Variable::RESERVED_VARIABLE_COUNT
+      config.var_byte_size = 2
+      config.var_size_code = :word
+      config.reference_resolver = ReferenceResolver16.new(config.kernel, config.language)
+      config.method_dispatcher = MethodDispatcher16.new
+      config.output_formatter = ComFormatter.new
       config
-    end
-    def create_linker_options(build_config)
-      options = LinkerOptions.new
-      options.var_byte_size = 2
-      options.var_size_code = :word
-      options.reference_resolver = ReferenceResolver16.new(build_config.kernel, build_config.language)
-      options.method_dispatcher = MethodDispatcher16.new
-      options.setup_generator = MsdosSetupGenerator.new
-      options
-    end
-    def create_compiler(build_config, linker_options)
-      compiler = Compiler.new(build_config, linker_options, @project.source_file, @project.options)
-      compiler.stdlib = "libmsdos.bin"
-      compiler.elang_lib = "libs.elang"
-      compiler
     end
   end
   
@@ -91,6 +75,7 @@ module Elang
   class DummyMsdosProjectBuilder < ExecutableProjectBuilder
     def create_build_config
       config = BuildConfig.new
+      config.elang_lib = nil
       config.kernel = load_kernel_libraries("libnull.bin")
       config.symbols = Symbols.new
       config.symbol_refs = []
@@ -100,22 +85,12 @@ module Elang
       config.heap_size = 0x8000
       config.first_block_offs = 0
       config.reserved_var_count = Variable::RESERVED_VARIABLE_COUNT
+      config.var_byte_size = 2
+      config.var_size_code = :word
+      config.reference_resolver = ReferenceResolver16.new(config.kernel, config.language)
+      config.method_dispatcher = MethodDispatcher16.new
+      config.output_formatter = ComFormatter.new
       config
-    end
-    def create_linker_options(build_config)
-      options = LinkerOptions.new
-      options.var_byte_size = 2
-      options.var_size_code = :word
-      options.reference_resolver = ReferenceResolver16.new(build_config.kernel, build_config.language)
-      options.method_dispatcher = MethodDispatcher16.new
-      options.setup_generator = MsdosSetupGenerator.new
-      options
-    end
-    def create_compiler(build_config, linker_options)
-      compiler = Compiler.new(build_config, linker_options, @project.source_file, @project.options)
-      compiler.stdlib = nil
-      compiler.elang_lib = nil
-      compiler
     end
   end
   
@@ -123,31 +98,22 @@ module Elang
   class DadosProjectBuilder < ExecutableProjectBuilder
     def create_build_config
       config = BuildConfig.new
+      config.elang_lib = "libs.elang"
       config.kernel = load_kernel_libraries("libdados.bin")
       config.symbols = Symbols.new
       config.symbol_refs = []
       config.codeset = Codeset.new
       config.language = Language::Intel32.new(config)
-      config.code_origin = 0
+      config.code_origin = 0xE000
       config.heap_size = 0x8000
       config.first_block_offs = 0
       config.reserved_var_count = Variable::RESERVED_VARIABLE_COUNT
+      config.var_byte_size = 4
+      config.var_size_code = :dword
+      config.reference_resolver = ReferenceResolver32.new(config.kernel, config.language)
+      config.method_dispatcher = MethodDispatcher32.new
+      config.output_formatter = DxFormatter.new
       config
-    end
-    def create_linker_options(build_config)
-      options = LinkerOptions.new
-      options.var_byte_size = 4
-      options.var_size_code = :dword
-      options.reference_resolver = ReferenceResolver32.new(build_config.kernel, build_config.language)
-      options.method_dispatcher = MethodDispatcher32.new
-      options.setup_generator = DadosSetupGenerator.new
-      options
-    end
-    def create_compiler(build_config, linker_options)
-      compiler = Compiler.new(build_config, linker_options, @project.source_file, @project.options)
-      compiler.stdlib = "libdados.bin"
-      compiler.elang_lib = "libs.elang"
-      compiler
     end
   end
   
@@ -155,6 +121,7 @@ module Elang
   class MswinProjectBuilder < ExecutableProjectBuilder
     def create_build_config
       config = BuildConfig.new
+      config.elang_lib = "libs.elang"
       config.kernel = load_kernel_libraries("libmswin.bin")
       config.symbols = Symbols.new
       config.symbol_refs = []
@@ -164,22 +131,12 @@ module Elang
       config.heap_size = 0x8000
       config.first_block_offs = 0
       config.reserved_var_count = Variable::RESERVED_VARIABLE_COUNT
+      config.var_byte_size = 4
+      config.var_size_code = :dword
+      config.reference_resolver = ReferenceResolver32.new(config.kernel, config.language)
+      config.method_dispatcher = MethodDispatcher32.new
+      config.output_formatter = MzFormatter.new
       config
-    end
-    def create_linker_options(build_config)
-      options = LinkerOptions.new
-      options.var_byte_size = 4
-      options.var_size_code = :dword
-      options.reference_resolver = ReferenceResolver32.new(build_config.kernel, build_config.language)
-      options.method_dispatcher = MethodDispatcher32.new
-      options.setup_generator = DadosSetupGenerator.new
-      options
-    end
-    def create_compiler(build_config, linker_options)
-      compiler = Compiler.new(build_config, linker_options, @project.source_file, @project.options)
-      compiler.stdlib = "libmswin.bin"
-      compiler.elang_lib = "libs.elang"
-      compiler
     end
   end
   

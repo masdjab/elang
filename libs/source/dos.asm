@@ -85,3 +85,6 @@ puts:
   pop r_ax
   pop r_bp
   ret 1 * REG_BYTE_SIZE
+  
+exit_process:
+  ret

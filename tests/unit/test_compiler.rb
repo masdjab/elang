@@ -9,7 +9,7 @@ require './compiler/compiler'
 class CompilerTest < Test::Unit::TestCase
   def compile(source_text)
     build_config = Elang::BuildConfig.new
-    build_config.kernel = Elang::Kernel.load_library("./libs/stdlib16.bin")
+    build_config.kernel = Elang::Kernel.load_library("./libs/libmsdos.bin")
     build_config.symbols = Elang::Symbols.new
     build_config.symbol_refs = []
     build_config.codeset = Elang::Codeset.new

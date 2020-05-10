@@ -143,3 +143,5 @@ var puts
   db "puts", 0
 ;var getch
 ;  db "_getch", 0
+var exit_process
+  db "exit_process", 0

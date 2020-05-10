@@ -18,17 +18,14 @@ require_relative 'language/_load'
 require_relative 'code_generator/_load'
 require_relative 'symbol/_load'
 require_relative 'code'
-require_relative 'kernel'
 require_relative 'converter'
 require_relative 'build_config'
 require_relative 'reference_resolver/_load'
 require_relative 'method_dispatcher/_load'
 require_relative 'assembly/instruction'
 require_relative 'assembly/code_builder'
-require_relative 'linker_options'
 require_relative 'code_section'
-require_relative 'setup_generator/_load'
-require_relative 'linker'
+require_relative 'output_formatter/_load'
 require_relative 'project'
 
 
@@ -45,22 +42,18 @@ module Elang
     # - resolve symbol references
     # - build final binary code
     
-    attr_accessor :stdlib, :elang_lib
     attr_reader   :source_file, :output_file, :dev_mode, :show_nodes
     
-    def initialize(build_config, linker_options, source_file, options = {})
+    def initialize(build_config, source_file, options = {})
       # available options: 
       # - dev(true/false)
       # - show_nodes(none, libs, user, all)
       
       @build_config   = build_config
-      @linker_options = linker_options
       @source_file    = FileInfo.new(source_file)
       @output_file    = @source_file.replace_ext("com")
       @dev_mode       = options.fetch(:dev, false)
       @show_nodes     = options.fetch(:show_nodes, :none)
-      @stdlib         = nil
-      @elang_lib      = nil
     end
     def get_lib_file(file_name)
       "#{BASE_DIR}/libs/#{file_name}"
@@ -79,7 +72,7 @@ module Elang
     end
     def display_nodes(source, nodes, mode)
       if source.is_a?(FileSourceCode)
-        file_type = File.basename(source.file_name) == @elang_lib ? :libs : :user
+        file_type = File.basename(source.file_name) == @build_config.elang_lib ? :libs : :user
       else
         file_type = :user
       end
@@ -113,16 +106,13 @@ module Elang
       NameDetector.new(symbols).detect_names nodes
     end
     def generate_output_file(nodes)
-      #language = Language::Intel16.new(@build_config)
-      #codegen = Elang::CodeGenerator::Intel.new(@build_config.symbols, language)
       codegen = Elang::CodeGenerator::Intel.new(@build_config.symbols, @build_config.language)
-      linker = Elang::Linker.new(@linker_options)
       success = false
       
       delete_output_file @output_file.full
       
       if codegen.generate_code(nodes)
-        if !(binary = linker.link(@build_config)).empty?
+        if !(binary = @build_config.output_formatter.format_output(@build_config)).empty?
           write_output_file @output_file.full, binary
           success = true
         end
@@ -139,7 +129,7 @@ module Elang
       symbols = @build_config.symbols
       
       sources = []
-      sources << FileSourceCode.new(get_lib_file(@elang_lib)) if @elang_lib
+      sources << FileSourceCode.new(get_lib_file(@build_config.elang_lib)) if @build_config.elang_lib
       sources << FileSourceCode.new(@source_file.full)
       
       if nodes = generate_nodes(sources, symbols)

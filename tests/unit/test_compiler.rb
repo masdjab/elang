@@ -2,7 +2,7 @@ require 'test-unit'
 require './compiler/code'
 require './compiler/kernel'
 require './compiler/source_code'
-require './compiler/codeset'
+#require './compiler/codeset'
 require './compiler/language/_load'
 require './compiler/compiler'
 
@@ -12,7 +12,7 @@ class CompilerTest < Test::Unit::TestCase
     build_config.kernel = Elang::Kernel.load_library("./libs/libmsdos.bin")
     build_config.symbols = Elang::Symbols.new
     build_config.symbol_refs = []
-    build_config.codeset = Elang::Codeset.new
+    build_config.codeset = {}
     build_config.code_origin = 0x100
     build_config.heap_size = 0x8000
     build_config.first_block_offs = 0
@@ -39,8 +39,8 @@ class CompilerTest < Test::Unit::TestCase
   def test_link_main_code
     source = "x = 2\r\ny = 3\r\nz = x + y\r\n"
     codeset = compile(source)
-    check_binary codeset.code["subs"], ""
-    check_binary codeset.code["main"], "B8050050A1000050E8000058A30000B8070050A1000050E8000058A30000A1000050B8010050B8000050A1000050E8000050A1000050E8000058A30000"
+    check_binary codeset["subs"].data, ""
+    check_binary codeset["main"].data, "B8050050A1000050E8000058A30000B8070050A1000050E8000058A30000A1000050B8010050B8000050A1000050E8000050A1000050E8000058A30000"
   end
   def test_link_simple_combination
     source = <<EOS
@@ -53,8 +53,8 @@ b = multiply_by_two(a)
 EOS
     
     codeset = compile(source)
-    check_binary codeset.code["subs"], "5589E5B8030050B8010050B80000508B460050E800005DC20200"
-    check_binary codeset.code["main"], "B8050050E8000050A1000050E8000058A30000A1000050E8000050A1000050E8000058A30000"
+    check_binary codeset["subs"].data, "5589E5B8030050B8010050B80000508B460050E800005DC20200"
+    check_binary codeset["main"].data, "B8050050E8000050A1000050E8000058A30000A1000050E8000050A1000050E8000058A30000"
   end
   def test_link_methods
     source = <<EOS

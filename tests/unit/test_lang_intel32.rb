@@ -3,7 +3,7 @@ require './compiler/converter'
 require './compiler/code'
 require './compiler/kernel'
 require './compiler/symbol/_load'
-require './compiler/codeset'
+#require './compiler/codeset'
 require './compiler/scope'
 require './compiler/scope_stack'
 require './compiler/language/_load'
@@ -14,11 +14,11 @@ class TestLangIntel32 < Test::Unit::TestCase
     @kernel = Elang::Kernel.load_library("libs/stdlib32.bin")
     @symbols = Elang::Symbols.new
     @symbol_refs = []
-    @codeset = Elang::Codeset.new
+    @codeset = {}
     @language = Elang::Language::Intel32.new(@kernel, @symbols, @symbol_refs, @codeset)
   end
   def check_bin(actual, expected)
-    @codeset.clear
+    @codeset = {}
     assert_equal Elang::Converter.hex2bin(expected), actual
   end
   def test_load_immediate

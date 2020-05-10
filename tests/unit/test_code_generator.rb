@@ -7,7 +7,7 @@ require './compiler/lex'
 require './compiler/symbol/_load'
 require './compiler/scope'
 require './compiler/scope_stack'
-require './compiler/codeset'
+#require './compiler/codeset'
 require './compiler/language/_load'
 require './compiler/name_detector'
 require './compiler/language/_load'
@@ -17,9 +17,6 @@ require './compiler/build_config'
 
 
 class TestCodeGenerator < Test::Unit::TestCase
-  def create_codeset
-    Elang::Codeset.new
-  end
   def nd(type, value)
     Elang::Lex::Node.new(0, 0, nil, type, value)
   end
@@ -82,7 +79,7 @@ class TestCodeGenerator < Test::Unit::TestCase
     @build_config.kernel = Elang::Kernel.load_library("./libs/libmsdos.bin")
     @build_config.symbols = Elang::Symbols.new
     @build_config.symbol_refs = []
-    @build_config.codeset = Elang::Codeset.new
+    @build_config.codeset = {}
     @build_config.code_origin = 0x100
     @build_config.heap_size = 0x8000
     @build_config.first_block_offs = 0
@@ -96,8 +93,8 @@ class TestCodeGenerator < Test::Unit::TestCase
   end
   def check_code_result(nodes, exp_main, exp_subs, source = nil)
     codeset = generate_code(nodes, source)
-    assert_equal exp_main, codeset.code["main"]
-    assert_equal exp_subs, codeset.code["subs"]
+    assert_equal exp_main, codeset["main"].data
+    assert_equal exp_subs, codeset["subs"].data
     codeset
   end
   def test_simple_assignment

@@ -107,7 +107,7 @@ module Elang
       end
       def set_jump_target(offset)
         if offset
-          @codeset[offset - 4, 4] = Converter.int2bin(code_len - offset, :dword)
+          @codeset[@current_section].data[offset - 4, 4] = Converter.int2bin(code_len - offset, :dword)
         end
       end
       def new_jump_target
@@ -234,7 +234,7 @@ module Elang
       def resolve_breaks
         break_requests.each do |b|
           jmp_distance = code_len - (b + 5)
-          @codeset[b + 1, 4] = Converter.int2bin(jmp_distance, :dword)
+          @codeset[@current_section].data[b + 1, 4] = Converter.int2bin(jmp_distance, :dword)
         end
       end
     end

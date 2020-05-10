@@ -56,7 +56,7 @@ module Elang
       config.kernel = load_kernel_libraries("libmsdos.bin")
       config.symbols = Symbols.new
       config.symbol_refs = []
-      config.codeset = Codeset.new
+      config.codeset = {}
       config.language = Language::Intel16.new(config)
       config.code_origin = 0x100
       config.heap_size = 0x8000
@@ -79,7 +79,7 @@ module Elang
       config.kernel = load_kernel_libraries("libnull.bin")
       config.symbols = Symbols.new
       config.symbol_refs = []
-      config.codeset = Codeset.new
+      config.codeset = {}
       config.language = Language::Intel16.new(config)
       config.code_origin = 0x100
       config.heap_size = 0x8000
@@ -102,7 +102,7 @@ module Elang
       config.kernel = load_kernel_libraries("libdados.bin")
       config.symbols = Symbols.new
       config.symbol_refs = []
-      config.codeset = Codeset.new
+      config.codeset = {}
       config.language = Language::Intel32.new(config)
       config.code_origin = 0xE000
       config.heap_size = 0x8000
@@ -125,7 +125,7 @@ module Elang
       config.kernel = load_kernel_libraries("libmswin.bin")
       config.symbols = Symbols.new
       config.symbol_refs = []
-      config.codeset = Codeset.new
+      config.codeset = {}
       config.language = Language::Intel32.new(config)
       config.code_origin = 0
       config.heap_size = 0x8000

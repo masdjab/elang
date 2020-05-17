@@ -9,12 +9,8 @@ dw 2
 dw table
 dw 7 dup 0
 
-include 'stdproc.asm'
-include 'dados.asm'
-
 
 table:
-var pass_arguments
 db 0x10, 0x80, 0, 0, "_pass_arguments", 0
 db 0x15, 0x80, 0, 0, "_set_result", 0
 db 0x1a, 0x80, 0, 0, "_mem_block_init", 0

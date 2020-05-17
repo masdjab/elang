@@ -4,11 +4,12 @@ module Elang
     
     @@index = 0
     
-    attr_reader   :scope, :name
+    attr_reader   :context, :scope, :name
     attr_accessor :index
     
-    def initialize(scope, name)
+    def initialize(context, scope, name)
       @index = @@index = @@index + 1
+      @context = context
       @scope = scope
       @name = name
     end

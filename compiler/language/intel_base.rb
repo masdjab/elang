@@ -6,21 +6,19 @@ module Elang
       private
       def initialize(build_config)
         @build_config = build_config
-        @sys_functions = 
-          @build_config.kernel.functions.map{|k,v|SystemFunction.new(v[:name])} \
-          + [SystemFunction.new("_send_to_object")]
+        @sys_functions = @build_config.kernel.functions
         @symbols = @build_config.symbols
         @symbol_refs = @build_config.symbol_refs
         @codeset = @build_config.codeset
-        @scope_stack = ScopeStack.new
+        @codepad = Elang::CodePad.new(@symbols, @symbol_refs)
         @break_stack = []
         
         @codeset["main"] = CodeSection.new("main", :code, "")
         @codeset["subs"] = CodeSection.new("subs", :code, "")
+        @codeset["cons"] = CodeSection.new("cons", :data, "")
+        
         @current_section = "main"
-      end
-      def hex2bin(h)
-        Elang::Converter.hex2bin(h)
+        @codepad.set_code_page @codeset[@current_section]
       end
       def intobj(value)
         (value << 1) | 1
@@ -28,35 +26,17 @@ module Elang
       def make_int(value)
         (value << 1) | (value < 0 ? 0x80000000 : 0) | 1
       end
-      def section_name
-        !current_scope.to_s.empty? ? "subs" : "main"
-      end
+      #def section_name
+      #  !current_scope.to_s.empty? ? "subs" : "main"
+      #end
       def code_len
-        @codeset[@current_section].data.length
-      end
-      def get_sys_function(name)
-        @sys_functions.find{|x|x.name == name}
+        @codepad.code_len
       end
       def append_bin(code)
-        @codeset[@current_section].data << code
+        @codepad.append_bin code
       end
       def append_hex(code)
-        append_bin hex2bin(code)
-      end
-      def add_constant_ref(symbol, location)
-        @symbol_refs << ConstantRef.new(symbol, current_scope, location, section_name)
-      end
-      def add_variable_ref(symbol, location)
-        @symbol_refs << VariableRef.new(symbol, current_scope, location, section_name)
-      end
-      def add_function_ref(symbol, location)
-        @symbol_refs << FunctionRef.new(symbol, current_scope, location, section_name)
-      end
-      def add_function_id_ref(symbol, location)
-        @symbol_refs << FunctionIdRef.new(symbol, current_scope, location, section_name)
-      end
-      def register_variable(scope, name)
-        @symbols.register_variable(scope, name)
+        @codepad.append_hex code
       end
       def append_break
         @break_stack.last << code_len
@@ -64,42 +44,44 @@ module Elang
       def break_requests
         @break_stack.last
       end
-      
-      public
-      def code_len
-        @codeset[@current_section].data.length
-      end
-      def current_scope
-        @scope_stack.current_scope
-      end
       def enter_scope(scope)
         @current_section = "subs"
-        @scope_stack.enter_scope scope
+        @codepad.set_code_page @codeset[@current_section]
+        @codepad.enter_scope scope
       end
       def leave_scope
-        @scope_stack.leave_scope
+        @codepad.leave_scope
         @current_section = "main"
+        @codepad.set_code_page @codeset[@current_section]
+      end
+      
+      public
+      def current_scope
+        @codepad.current_scope
       end
       def get_sys_function(name)
         @sys_functions.find{|x|x.name == name}
       end
-      def add_constant_ref(symbol, location)
-        @symbol_refs << ConstantRef.new(symbol, current_scope, location, section_name)
-      end
-      def add_variable_ref(symbol, location)
-        @symbol_refs << VariableRef.new(symbol, current_scope, location, section_name)
-      end
-      def add_function_ref(symbol, location)
-        @symbol_refs << FunctionRef.new(symbol, current_scope, location, section_name)
-      end
-      def add_function_id_ref(symbol, location)
-        @symbol_refs << FunctionIdRef.new(symbol, current_scope, location, section_name)
+      def register_constant(scope, name, value)
+        @codepad.register_constant scope, name, value
       end
       def register_variable(scope, name)
-        @symbols.register_variable(scope, name)
+        @codepad.register_variable scope, name
       end
-      def register_instance_variable(name)
-        @symbols.register_instance_variable(Scope.new(current_scope.cls), name)
+      def register_instance_variable(scope, name)
+        @codepad.register_instance_variable scope, name
+      end
+      def add_constant_ref(symbol, location)
+        @codepad.add_constant_ref symbol, location
+      end
+      def add_variable_ref(symbol, location)
+        @codepad.add_variable_ref symbol, location
+      end
+      def add_function_ref(symbol, location)
+        @codepad.add_function_ref symbol, location
+      end
+      def add_function_id_ref(name, location)
+        @codepad.add_function_id_ref name, location
       end
       def load_immediate(value)
       end

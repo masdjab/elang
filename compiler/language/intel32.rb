@@ -20,8 +20,9 @@ module Elang
         active_scope = current_scope
         
         if (symbol = @symbols.find_string(text)).nil?
-          symbol = Elang::Constant.new(active_scope, Elang::Constant.generate_name, text)
-          @symbols.add symbol
+          #symbol = Elang::Constant.new(active_scope, Elang::Constant.generate_name, text)
+          symbol = register_constant(active_scope, Elang::Constant.generate_name, text)
+          #@symbols.add symbol
         end
         
         hex_code = 
@@ -87,8 +88,7 @@ module Elang
         append_hex "A700000000"
       end
       def get_method_id(func_name)
-        function_id = FunctionId.new(current_scope, func_name)
-        add_function_id_ref function_id, code_len + 1
+        add_function_id_ref func_name, code_len + 1
         append_hex "B800000000"
       end
       def new_jump_source(condition = nil)
@@ -115,11 +115,11 @@ module Elang
       end
       def set_jump_source(target, condition = nil)
         if condition.nil?
-          append_hex "E9" + Converter.int2bin(target - (code_len + 5), :dword)
+          append_hex "E9" + Converter.int2bin(target - (code_len + 3), :word)
         elsif condition == :nz
-          append_hex "0F85" + Converter.int2bin(target - (code_len + 6), :dword)
+          append_hex "0F85" + Converter.int2bin(target - (code_len + 4), :word)
         elsif condition == :zr
-          append_hex "0F84" + Converter.int2bin(target - (code_len + 6), :dword)
+          append_hex "0F84" + Converter.int2bin(target - (code_len + 4), :word)
         end
       end
       def push_argument

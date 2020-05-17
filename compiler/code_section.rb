@@ -1,15 +1,19 @@
 module Elang
-  class CodeSection
-    attr_reader   :name, :type
-    attr_accessor :data
-    
-    def initialize(name, type, data = "")
-      @name = name
-      @type = type
+  class CodeBuffer
+    attr_accessor :context, :data
+    def initialize(context = nil, data = "")
+      @context = context
       @data = data
     end
-    def size
-      @data.length
+  end
+  
+  
+  class CodeSection < CodeBuffer
+    attr_reader   :name, :type
+    def initialize(name, type, data = "")
+      super(CodeContext.new(name), data)
+      @name = name
+      @type = type
     end
   end
 end

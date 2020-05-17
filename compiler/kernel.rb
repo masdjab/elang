@@ -11,7 +11,7 @@ module Elang
       buff = file.read
       file.close
       
-      lib_functions = {}
+      lib_functions = []
       eos_char = 0.chr
       architecture = Elang::Converter.bin2int(buff[0, 2])
       table_offset = Elang::Converter.bin2int(buff[2, 2])
@@ -25,20 +25,20 @@ module Elang
           func_address = Elang::Converter.bin2int(buff[read_offset, int_width]) - image_offset
           eos_position = buff.index(eos_char, read_offset + int_width)
           func_name = buff[(read_offset + int_width)...eos_position]
-          new_function = {name: func_name, offset: func_address}
-          lib_functions[func_name] = new_function
+          new_function = SystemFunction.new(func_name, func_address)
+          lib_functions << new_function
           yield(new_function) if block_given?
           read_offset = read_offset + int_width + func_name.length + 1
         rescue Exception => ex
-          last_proc = !lib_functions.empty? ? lib_functions.values.last : nil
+          last_proc = !lib_functions.empty? ? lib_functions.last : nil
           last_name = last_proc ? last_proc[:name] : "(None)"
-          puts "Last processed function names: #{lib_functions.values[-5..-1].map{|x|x[:name]}.join(", ")}"
+          puts "Last processed function names: #{lib_functions[-5..-1].map{|x|x[:name]}.join(", ")}"
           puts "Total processed: #{lib_functions.count}"
           raise ex
         end
       end
       
-      self.new lib_functions, Code.align(buff[image_offset...table_offset], 16)
+      self.new lib_functions, buff[image_offset...table_offset]
     end
   end
 end

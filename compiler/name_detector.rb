@@ -3,6 +3,10 @@ module Elang
     def initialize(symbols)
       @symbols = symbols
       @scope_stack = ScopeStack.new
+      @context = CodeContext.new("subs")
+    end
+    def get_context
+      @context
     end
     def current_scope
       @scope_stack.current_scope
@@ -14,19 +18,19 @@ module Elang
       @scope_stack.leave_scope
     end
     def register_variable(name)
-      @symbols.register_variable(current_scope, name)
+      @symbols.register_variable(get_context, current_scope, name)
     end
     def register_instance_variable(name)
-      @symbols.register_instance_variable(current_scope, name)
+      @symbols.register_instance_variable(get_context, current_scope, name)
     end
     def register_class(name, parent)
-      @symbols.register_class(name, parent)
+      @symbols.register_class(get_context, name, parent)
     end
     def register_class_variable(name)
-      @symbols.register_class_variable(current_scope, name)
+      @symbols.register_class_variable(get_context, current_scope, name)
     end
     def register_function(rcvr_name, func_name, func_args)
-      @symbols.register_function(current_scope, rcvr_name, func_name, func_args)
+      @symbols.register_function(get_context, current_scope, rcvr_name, func_name, func_args)
     end
     def detect_names_from_node(node)
       if node.is_a?(Array)

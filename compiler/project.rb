@@ -1,12 +1,12 @@
 module Elang
   class Project
-    attr_accessor :platform, :architecture, :output_format, :source_file, :options
+    attr_accessor :source_file, :platform, :architecture, :output_format, :options
     
     def initialize
+      @source_file = nil
       @platform = nil
       @architecture = nil
       @output_format = nil
-      @source_file = nil
       @options = {}
     end
   end
@@ -34,7 +34,9 @@ module Elang
     end
     def load_kernel_libraries(library_file)
       libfile = get_lib_file(library_file)
-      Kernel.load_library(libfile)
+      kernel = Kernel.load_library(libfile)
+      kernel.functions << SystemFunction.new("_send_to_object", 0)
+      kernel
     end
     def create_build_config
       nil

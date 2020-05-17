@@ -61,7 +61,7 @@ module Elang
       @symbols.count
     end
     def add(item)
-      if self.find_exact(item.scope, item.name)
+      if !item.name.nil? && self.find_exact(item.scope, item.name)
         raise "Symbol '#{item.name}' already defined"
       else
         @symbols << item
@@ -69,21 +69,24 @@ module Elang
       
       item
     end
-    def register_variable(scope, name)
-      self.add Elang::Variable.new(scope, name)
+    def register_constant(scope, name, value)
+      self.add(Constant.new(scope, name, value))
     end
-    def register_instance_variable(scope, name)
+    def register_variable(context, scope, name)
+      self.add Elang::Variable.new(context, scope, name)
+    end
+    def register_instance_variable(context, scope, name)
       scope = Scope.new(scope.cls)
       ivars = self.items.select{|x|(x.scope.cls == scope.cls) && x.is_a?(InstanceVariable)}
       
       if (variable = ivars.find{|x|x.name == name}).nil?
         index = ivars.inject(0){|a,b|b.index >= a ? b.index + 1 : a}
-        variable = self.add(InstanceVariable.new(scope, name, index))
+        variable = self.add(InstanceVariable.new(context, scope, name, index))
       end
       
       variable
     end
-    def register_class(name, parent)
+    def register_class(context, name, parent)
       scope = Scope.new
       clist = self.items.select{|x|x.is_a?(Class)}
       
@@ -94,20 +97,23 @@ module Elang
           clsid = Class::USER_CLASS_ID_BASE + clist.select{|x|!Class::ROOT_CLASS_IDS.key?(x.name)}.count * 2
         end
         
-        cls = self.add(Class.new(scope, name, parent, clsid))
+        cls = self.add(Class.new(context, scope, name, parent, clsid))
       end
       
       cls
     end
-    def register_class_variable(scope, name)
-      self.add ClassVariable.new(scope, name)
+    def register_class_variable(context, scope, name)
+      self.add ClassVariable.new(context, scope, name)
     end
-    def register_function(scope, rcvr_name, func_name, func_args)
+    def register_function(context, scope, rcvr_name, func_name, func_args)
       if (fun = self.items.find{|x|(x.name == func_name) && x.is_a?(Function) && (x.scope.to_s == scope.to_s)}).nil?
-        fun = self.add(Function.new(scope, rcvr_name, func_name, func_args, 0))
+        fun = self.add(Function.new(context, scope, rcvr_name, func_name, func_args, 0))
       end
       
       fun
+    end
+    def register_label(context, scope, name, offset)
+      self.add(Label.new(context, scope, name, offset))
     end
     def get_function_names
       predefined = Function::PREDEFINED_FUNCTION_NAMES

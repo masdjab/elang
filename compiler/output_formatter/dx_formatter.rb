@@ -71,7 +71,7 @@ module Elang
       build_config.codeset["head"] = CodeSection.new("head", :other, Code.align(hex2bin("B80000000050C3"), 16))
       build_config.codeset["libs"] = CodeSection.new("libs", :code, Code.align(build_config.kernel.code, 16))
       build_config.codeset["init"] = CodeSection.new("init", :code, build_code_initializer(build_config))
-      build_config.codeset["cons"] = CodeSection.new("data", :data, build_config.constant_image)
+      build_config.codeset["cons"] = CodeSection.new("cons", :data, build_config.constant_image)
       build_config.codeset["subs"].data = Code.align(build_config.codeset["subs"].data, 16)
       build_config.codeset["main"].data << hex2bin("E800000000")
       
@@ -99,6 +99,19 @@ module Elang
       build_config.codeset["head"].data[1, 4] = Elang::Converter.int2bin(main_offset, :dword)
       
       
+      ds_offset = ["head", "libs", "subs", "disp", "init", "main"].map{|x|build_config.codeset[x].data.length}.sum
+      
+      if (extra_size = (ds_offset % 16)) > 0
+        pad_count = 16 - extra_size
+        
+        if build_config.codeset["cons"].data.length > 0
+          build_config.codeset["main"].data << (0.chr * pad_count)
+        end
+        
+        ds_offset = ds_offset + pad_count
+      end
+      
+      
       resolver = build_config.reference_resolver
       symbol_refs = build_config.symbol_refs
       context_offsets = {}
@@ -119,6 +132,9 @@ module Elang
         context_offsets[v.context.to_s] = code_offset
         code_offset += v.data.length
       end
+      
+      data_offset = build_config.code_origin + context_offsets["cons"]
+      build_config.string_constants.each{|k, v|v[:offset] += data_offset}
       
       configure_resolver build_config, context_offsets
       

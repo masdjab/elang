@@ -20,8 +20,7 @@ module Elang
         active_scope = current_scope
         
         if (symbol = @symbols.find_string(text)).nil?
-          symbol = Elang::Constant.new(active_scope, Elang::Constant.generate_name, text)
-          @symbols.add symbol
+          symbol = register_constant(active_scope, Elang::Constant.generate_name, text)
         end
         
         hex_code = 
@@ -87,9 +86,39 @@ module Elang
         append_hex "A70000"
       end
       def get_method_id(func_name)
-        function_id = FunctionId.new(current_scope, func_name)
-        add_function_id_ref function_id, code_len + 1
+        add_function_id_ref func_name, code_len + 1
         append_hex "B80000"
+      end
+      def new_jump_source(condition = nil)
+        if condition.nil?
+          append_hex "E90000"
+          code_len
+        elsif condition == :nz
+          append_hex "0F850000"
+          code_len
+        elsif condition == :zr
+          append_hex "0F840000"
+          code_len
+        else
+          nil
+        end
+      end
+      def set_jump_target(offset)
+        if offset
+          @codeset[@current_section].data[offset - 2, 2] = Converter.int2bin(code_len - offset, :word)
+        end
+      end
+      def new_jump_target
+        code_len
+      end
+      def set_jump_source(target, condition = nil)
+        if condition.nil?
+          append_hex "E9" + Converter.int2bin(target - (code_len + 5), :dword)
+        elsif condition == :nz
+          append_hex "0F85" + Converter.int2bin(target - (code_len + 6), :dword)
+        elsif condition == :zr
+          append_hex "0F84" + Converter.int2bin(target - (code_len + 6), :dword)
+        end
       end
       def push_argument
         append_hex "50"
@@ -100,7 +129,7 @@ module Elang
       end
       def call_sys_function(func_name)
         # todo: merge this to call function
-        add_function_ref SystemFunction.new(func_name), code_len + 1
+        add_function_ref get_sys_function(func_name), code_len + 1
         append_hex "E80000"
       end
       def create_object(cls)

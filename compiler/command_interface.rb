@@ -112,10 +112,10 @@ module Elang
           options[:no_elang_lib] = no_elang_lib if no_elang_lib
           
           project = Elang::Project.new
+          project.source_file = source_file
           project.platform = platform
           project.architecture = architecture
           project.output_format = output_format
-          project.source_file = source_file
           project.options = options
           
           pb_factory = Elang::ProjectBuilderFactory.new

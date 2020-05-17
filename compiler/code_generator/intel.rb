@@ -16,6 +16,9 @@ module Elang
           raise ParsingError.new(msg)
         end
       end
+      def get_context
+        CodeContext.new("")
+      end
       def get_value(node)
         active_scope = @language.current_scope
         
@@ -126,7 +129,7 @@ module Elang
         
         if cmnd_node.type == :assign
           if @symbols.find_nearest(active_scope, rcvr_node.text).nil?
-            @language.register_variable active_scope, rcvr_node.text
+            @language.register_variable get_context, active_scope, rcvr_node.text
           end
           
           handle_any args_node
@@ -311,10 +314,10 @@ module Elang
             elsif ["break"].include?(node.text)
               handle_break node
             elsif node.text.index("@@")
-              register_class_variable node.text
+              register_class_variable get_context, node.text
               get_value node
             elsif node.text.index("@")
-              @language.register_instance_variable node.text
+              @language.register_instance_variable @language.current_scope, node.text
               get_value node
             elsif @language.get_sys_function(node.text)
               handle_function_call Lex::Send.new(nil, node, [])

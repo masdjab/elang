@@ -2,9 +2,10 @@ module Elang
   class ClassVariable
     @@index = 0
     
-    attr_reader :scope, :name, :index
-    def initialize(scope, name)
+    attr_reader :context, :scope, :name, :index
+    def initialize(context, scope, name)
       @index = @@index = @@index + 1
+      @context = context
       @scope = scope
       @name = name
     end

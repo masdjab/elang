@@ -1,9 +1,10 @@
 module Elang
   class InstanceVariable
-    attr_reader :scope, :name, :index
+    attr_reader :context, :scope, :name, :index
     
-    def initialize(scope, name, index)
+    def initialize(context, scope, name, index)
       @index = index
+      @context = context
       @scope = scope
       @name = name
     end

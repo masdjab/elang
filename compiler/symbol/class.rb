@@ -14,10 +14,11 @@ module Elang
     
     USER_CLASS_ID_BASE  = 0x100
     
-    attr_reader :scope, :name, :parent, :clsid
+    attr_reader :context, :scope, :name, :parent, :clsid
     
-    def initialize(scope, name, parent, clsid)
+    def initialize(context, scope, name, parent, clsid)
       @clsid = clsid
+      @context = context
       @scope = scope
       @name = name
       @parent = parent

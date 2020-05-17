@@ -1,12 +1,21 @@
 module Elang
+  class CodeContext
+    attr_accessor :name
+    def initialize(name)
+      @name = name
+    end
+    def to_s
+      @name.to_s
+    end
+  end
+  
   class SymbolRef
-    attr_reader :symbol, :context, :location, :section_name
+    attr_reader :symbol, :context, :location
     
-    def initialize(symbol, context, location, section_name)
+    def initialize(symbol, context, location)
       @symbol = symbol
       @context = context
       @location = location
-      @section_name = section_name
     end
   end
   
@@ -29,5 +38,8 @@ module Elang
   end
   
   class FarCodeRef < SymbolRef
+  end
+  
+  class AbsCodeRef < SymbolRef
   end
 end

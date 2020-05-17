@@ -6,19 +6,19 @@ module Elang
       private
       def initialize(build_config)
         @build_config = build_config
-        @sys_functions = 
-          @build_config.kernel.functions.map{|k,v|SystemFunction.new(v[:name])} \
-          + [SystemFunction.new("_send_to_object")]
+        @sys_functions = @build_config.kernel.functions
         @symbols = @build_config.symbols
         @symbol_refs = @build_config.symbol_refs
         @codeset = @build_config.codeset
+        @codepad = Elang::CodePad.new(@symbols, @symbol_refs)
+        @break_stack = []
         
         @codeset["main"] = CodeSection.new("main", :code, "")
         @codeset["subs"] = CodeSection.new("subs", :code, "")
-        @current_section = "main"
+        @codeset["cons"] = CodeSection.new("cons", :data, "")
         
-        @codepad = Elang::CodePad.new(@symbols, @symbol_refs, @codeset[@current_section])
-        @break_stack = []
+        @current_section = "main"
+        @codepad.set_code_page @codeset[@current_section]
       end
       def intobj(value)
         (value << 1) | 1
@@ -26,38 +26,17 @@ module Elang
       def make_int(value)
         (value << 1) | (value < 0 ? 0x80000000 : 0) | 1
       end
-      def section_name
-        !current_scope.to_s.empty? ? "subs" : "main"
-      end
+      #def section_name
+      #  !current_scope.to_s.empty? ? "subs" : "main"
+      #end
       def code_len
         @codepad.code_len
-      end
-      def get_sys_function(name)
-        @sys_functions.find{|x|x.name == name}
       end
       def append_bin(code)
         @codepad.append_bin code
       end
       def append_hex(code)
         @codepad.append_hex code
-      end
-      def register_variable(scope, name)
-        @codepad.register_variable scope, name
-      end
-      def register_instance_variable(scope, name)
-        @codepad.register_instance_variable scope, name
-      end
-      def add_constant_ref(symbol, location)
-        @codepad.add_constant_ref symbol, location, @current_section
-      end
-      def add_variable_ref(symbol, location)
-        @codepad.add_variable_ref symbol, location, @current_section
-      end
-      def add_function_ref(symbol, location)
-        @codepad.add_function_ref symbol, location, @current_section
-      end
-      def add_function_id_ref(symbol, location)
-        @codepad.add_function_id_ref symbol, location, @current_section
       end
       def append_break
         @break_stack.last << code_len
@@ -66,12 +45,14 @@ module Elang
         @break_stack.last
       end
       def enter_scope(scope)
-        @codepad.binary_code = @codeset[@current_section = "subs"]
+        @current_section = "subs"
+        @codepad.set_code_page @codeset[@current_section]
         @codepad.enter_scope scope
       end
       def leave_scope
         @codepad.leave_scope
-        @codepad.binary_code = @codeset[@current_section = "main"]
+        @current_section = "main"
+        @codepad.set_code_page @codeset[@current_section]
       end
       
       public
@@ -80,6 +61,27 @@ module Elang
       end
       def get_sys_function(name)
         @sys_functions.find{|x|x.name == name}
+      end
+      def register_constant(scope, name, value)
+        @codepad.register_constant scope, name, value
+      end
+      def register_variable(scope, name)
+        @codepad.register_variable scope, name
+      end
+      def register_instance_variable(scope, name)
+        @codepad.register_instance_variable scope, name
+      end
+      def add_constant_ref(symbol, location)
+        @codepad.add_constant_ref symbol, location
+      end
+      def add_variable_ref(symbol, location)
+        @codepad.add_variable_ref symbol, location
+      end
+      def add_function_ref(symbol, location)
+        @codepad.add_function_ref symbol, location
+      end
+      def add_function_id_ref(name, location)
+        @codepad.add_function_id_ref name, location
       end
       def load_immediate(value)
       end

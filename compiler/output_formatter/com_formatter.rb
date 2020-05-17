@@ -72,7 +72,7 @@ module Elang
       
       build_config.codeset["head"] = CodeSection.new("head", :other, Code.align(hex2bin("B8000050C3"), 16))
       build_config.codeset["libs"] = CodeSection.new("libs", :code, Code.align(build_config.kernel.code, 16))
-      build_config.codeset["cons"] = CodeSection.new("data", :data, build_config.constant_image)
+      build_config.codeset["cons"] = CodeSection.new("cons", :data, build_config.constant_image)
       build_config.codeset["subs"].data = Code.align(build_config.codeset["subs"].data, 16)
       build_config.codeset["main"].data << Elang::Converter.hex2bin("CD20")
       

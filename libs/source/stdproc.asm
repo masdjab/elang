@@ -1,11 +1,5 @@
 ; written by Heryudi Praja
 
-ARGUMENT1                 EQU 2 * REG_BYTE_SIZE
-ARGUMENT2                 EQU 3 * REG_BYTE_SIZE
-ARGUMENT3                 EQU 4 * REG_BYTE_SIZE
-ARGUMENT4                 EQU 5 * REG_BYTE_SIZE
-ARGUMENT5                 EQU 6 * REG_BYTE_SIZE
-
 NO_MORE                   EQU -1
 FAILED                    EQU -1
 GARBAGE                   EQU -1

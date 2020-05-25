@@ -73,13 +73,7 @@ module Elang
       build_config.codeset["init"] = CodeSection.new("init", :code, build_code_initializer(build_config))
       build_config.codeset["cons"] = CodeSection.new("cons", :data, build_config.constant_image)
       build_config.codeset["subs"].data = Code.align(build_config.codeset["subs"].data, 16)
-      build_config.codeset["main"].data << hex2bin("E800000000")
-      
-      
-      main_context = build_config.codeset["main"].context
-      sys_function = build_config.kernel.functions.find{|x|x.name == "exit_process"}
-      symbol_ref = FunctionRef.new(sys_function, main_context, build_config.codeset.length - 8)
-      build_config.symbol_refs << symbol_ref
+      build_config.codeset["main"].data << hex2bin("C3")
       
       
       configure_dispatcher build_config

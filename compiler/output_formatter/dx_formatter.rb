@@ -14,7 +14,7 @@ module Elang
       build_config.reference_resolver.context_offsets = context_offsets
     end
     def build_code_initializer(build_config)
-      rv_heap_size = Converter.int2hex(build_config.heap_size, :dword, :be)
+      #rv_heap_size = Converter.int2hex(build_config.heap_size, :dword, :be)
       cx = Converter.int2hex(build_config.root_var_count, :dword, :be)
       
       init_cmnd = 
@@ -27,15 +27,15 @@ module Elang
           "FC",                       # cld
           "F2",                       # repnz
           "AB",                       # stosw
-          "B8#{rv_heap_size}50",      # push heap_size
-          "B80000000050",             # push dynamic_area
-          "E800000000",               # call mem_block_init
-          "A300000000"                # mov [first_block], ax
+          #"B8#{rv_heap_size}50",      # push heap_size
+          #"B80000000050",             # push dynamic_area
+          #"E800000000",               # call mem_block_init
+          #"A300000000"                # mov [first_block], ax
         ]
       
-      ref_context = CodeContext.new("init")
-      sys_function = build_config.kernel.functions.find{|x|x.name == "_mem_block_init"}
-      build_config.symbol_refs << FunctionRef.new(sys_function, ref_context, 32)
+      #ref_context = CodeContext.new("init")
+      #sys_function = build_config.kernel.functions.find{|x|x.name == "_mem_block_init"}
+      #build_config.symbol_refs << FunctionRef.new(sys_function, ref_context, 32)
       hex2bin init_cmnd.join
     end
     def calc_sections_size(sections, section_names)
@@ -117,11 +117,11 @@ module Elang
       data_offset = build_config.code_origin + context_offsets["cons"]
       
       build_config.variable_offset += data_offset
-      build_config.dynamic_area += data_offset
-      build_config.first_block_offs += data_offset
+      #build_config.dynamic_area += data_offset
+      #build_config.first_block_offs += data_offset
       build_config.codeset["init"].data[12, 4] = Elang::Converter.int2bin(build_config.variable_offset, :dword)
-      build_config.codeset["init"].data[26, 4] = Elang::Converter.int2bin(build_config.dynamic_area, :dword)
-      build_config.codeset["init"].data[37, 4] = Elang::Converter.int2bin(build_config.first_block_offs, :dword)
+      #build_config.codeset["init"].data[26, 4] = Elang::Converter.int2bin(build_config.dynamic_area, :dword)
+      #build_config.codeset["init"].data[37, 4] = Elang::Converter.int2bin(build_config.first_block_offs, :dword)
       
       build_config.string_constants.each{|k, v|v[:offset] += data_offset}
       

@@ -131,7 +131,7 @@ module Elang
       end
       def call_sys_function(func_name)
         # todo: merge this to call function
-        add_function_ref SystemFunction.new(func_name), code_len + 1
+        add_function_ref get_sys_function(func_name), code_len + 1
         append_hex "E800000000"
       end
       def create_object(cls)

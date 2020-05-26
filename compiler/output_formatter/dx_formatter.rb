@@ -117,6 +117,7 @@ module Elang
       data_offset = build_config.code_origin + context_offsets["cons"]
       
       build_config.variable_offset += data_offset
+      build_config.dynamic_area += data_offset
       build_config.first_block_offs += data_offset
       build_config.codeset["init"].data[12, 4] = Elang::Converter.int2bin(build_config.variable_offset, :dword)
       build_config.codeset["init"].data[26, 4] = Elang::Converter.int2bin(build_config.dynamic_area, :dword)

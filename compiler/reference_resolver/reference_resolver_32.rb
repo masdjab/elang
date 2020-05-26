@@ -32,8 +32,8 @@ module Elang
       sx = ref.symbol
       rt = rx.class.to_s.gsub("Elang::", "")
       st = sx.class.to_s.gsub("Elang::", "")
-      rc = rx.respond_to?(:context) ? rx.context.name : "(none)"
-      sc = sx.respond_to?(:context) ? sx.context.name : "(none)"
+      rc = rx.respond_to?(:context) && !rx.context.nil? ? rx.context.name : "(none)"
+      sc = sx.respond_to?(:context) && !sx.context.nil? ? sx.context.name : "(none)"
       "#{rc}:#{rt} to #{sc}:#{st} @#{rx.location.to_s(16)} => #{(rv & 0xffff).to_s(16)}"
     end
     
@@ -74,7 +74,8 @@ module Elang
                   resolve_value = resolve_offset(ref, symbol.offset - (ref.location + 4)) & 0xffffffff
                   code[ref.location, 4] = Converter.int2bin(resolve_value, :dword)
                 elsif ref.is_a?(AbsCodeRef)
-                  code[ref.location, 4] = Converter.int2bin(symbol_offset(symbol, @code_origin), :dword)
+                  resolve_value = symbol_offset(symbol, @code_origin)
+                  code[ref.location, 4] = Converter.int2bin(resolve_value, :dword)
                 else
                   raise "Invalid reference type #{ref.class} to a #{symbol.class}"
                 end

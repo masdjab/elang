@@ -15,40 +15,27 @@ module Elang
     end
     def build_code_initializer(build_config)
       rv_heap_size = Converter.int2hex(build_config.heap_size, :dword, :be)
-      first_block_adr = Converter.int2hex(build_config.first_block_offs, :dword, :be)
-      dynamic_area_adr = Converter.int2hex(build_config.dynamic_area, :dword, :be)
-      
-      if build_config.root_var_count > 0
-        cx = Converter.int2hex(build_config.root_var_count, :dword, :be)
-        di = Converter.int2hex(build_config.variable_offset, :dword, :be)
-        
-        commands = 
-          [
-            "B9#{cx}",  # mov cx, xx
-            "31C0",     # xor ax, ax
-            "BF#{di}",  # mov di, variable_offset
-            "FC",       # cld
-            "F2",       # repnz
-            "AB",       # stosw
-          ]
-        
-        init_vars = commands.join
-      else
-        init_vars = ""
-      end
+      cx = Converter.int2hex(build_config.root_var_count, :dword, :be)
       
       init_cmnd = 
         [
-          init_vars, 
+          "B9#{cx}",                  # mov cx, xx
+          "85C9",                     # test ecx, ecx
+          "740A",                     # jz +5
+          "31C0",                     # xor ax, ax
+          "BF00000000",               # mov di, variable_offset
+          "FC",                       # cld
+          "F2",                       # repnz
+          "AB",                       # stosw
           "B8#{rv_heap_size}50",      # push heap_size
-          "B8#{dynamic_area_adr}50",  # push dynamic_area
+          "B80000000050",             # push dynamic_area
           "E800000000",               # call mem_block_init
-          "A3#{first_block_adr}"      # mov [first_block], ax
+          "A300000000"                # mov [first_block], ax
         ]
       
       ref_context = CodeContext.new("init")
       sys_function = build_config.kernel.functions.find{|x|x.name == "_mem_block_init"}
-      build_config.symbol_refs << FunctionRef.new(sys_function, ref_context, 14 + (init_vars.length / 2))
+      build_config.symbol_refs << FunctionRef.new(sys_function, ref_context, 32)
       hex2bin init_cmnd.join
     end
     def calc_sections_size(sections, section_names)
@@ -128,6 +115,13 @@ module Elang
       end
       
       data_offset = build_config.code_origin + context_offsets["cons"]
+      
+      build_config.variable_offset += data_offset
+      build_config.first_block_offs += data_offset
+      build_config.codeset["init"].data[12, 4] = Elang::Converter.int2bin(build_config.variable_offset, :dword)
+      build_config.codeset["init"].data[26, 4] = Elang::Converter.int2bin(build_config.dynamic_area, :dword)
+      build_config.codeset["init"].data[37, 4] = Elang::Converter.int2bin(build_config.first_block_offs, :dword)
+      
       build_config.string_constants.each{|k, v|v[:offset] += data_offset}
       
       configure_resolver build_config, context_offsets

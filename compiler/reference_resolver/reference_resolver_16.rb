@@ -74,7 +74,8 @@ module Elang
                   resolve_value = resolve_offset(ref, symbol.offset - (ref.location + 2)) & 0xffff
                   code[ref.location, 2] = Converter.int2bin(resolve_value, :word)
                 elsif ref.is_a?(AbsCodeRef)
-                  code[ref.location, 2] = Converter.int2bin(symbol_offset(symbol, @code_origin), :word)
+                  resolve_value = symbol_offset(symbol, @code_origin)
+                  code[ref.location, 2] = Converter.int2bin(resolve_value, :word)
                 else
                   raise "Invalid reference type #{ref.class} to a #{symbol.class}"
                 end

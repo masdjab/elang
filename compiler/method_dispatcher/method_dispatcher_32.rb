@@ -66,10 +66,10 @@ module Elang
       # add built-in classes other than integer
       built_in_class_names.each do |cn|
         if (cn != "Integer") && @classes.key?(cn)
-          class_id = Converter.int2hex(Class::ROOT_CLASS_IDS[cn], :word, :be)
-          codepad.add_near_code_ref label_method_selector[cn.downcase], codepad.code_len + 5
+          class_id = Converter.int2hex(Class::ROOT_CLASS_IDS[cn], :dword, :be)
+          codepad.add_near_code_ref label_method_selector[cn.downcase], codepad.code_len + 7
           codepad.append_hex "3D#{class_id}"      # test ax, 1
-          codepad.append_hex "0F840000"           # jnz method_selector_integer
+          codepad.append_hex "0F8400000000"       # jnz method_selector_integer
         end
       end
       

@@ -89,8 +89,6 @@ module Elang
         if build_config.codeset["cons"].data.length > 0
           build_config.codeset["main"].data << (0.chr * pad_count)
         end
-        
-        ds_offset = ds_offset + pad_count
       end
       
       
@@ -118,11 +116,7 @@ module Elang
       data_offset = build_config.code_origin + context_offsets["cons"]
       
       build_config.variable_offset += data_offset
-      #build_config.dynamic_area += data_offset
-      #build_config.first_block_offs += data_offset
       build_config.codeset["init"].data[12, 4] = Elang::Converter.int2bin(build_config.variable_offset, :dword)
-      #build_config.codeset["init"].data[26, 4] = Elang::Converter.int2bin(build_config.dynamic_area, :dword)
-      #build_config.codeset["init"].data[37, 4] = Elang::Converter.int2bin(build_config.first_block_offs, :dword)
       
       build_config.string_constants.each{|k, v|v[:offset] += data_offset}
       

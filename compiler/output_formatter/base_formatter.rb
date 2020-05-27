@@ -32,8 +32,9 @@ module Elang
           text = text.gsub("\\\"", "\"")
           
           lgth = text.length
-          cons[s.name] = {text: text, length: lgth, offset: offs}
-          offs = offs + lgth + build_config.var_byte_size
+          pads = (lgth % 2) > 0 ? 1 : 0
+          cons[s.name] = {text: text, length: lgth, offset: offs, pads: pads}
+          offs = offs + lgth + build_config.var_byte_size + pads
         end
       end
       
@@ -44,7 +45,7 @@ module Elang
       
       build_config.string_constants.each do |k,v|
         lgth = Converter.int2bin(v[:length], build_config.var_size_code)
-        cons << "#{lgth}#{v[:text]}"
+        cons << "#{lgth}#{v[:text]}#{0.chr * v[:pads]}"
       end
       
       if (cons.length > 0) && ((cons.length % build_config.var_byte_size) > 0)

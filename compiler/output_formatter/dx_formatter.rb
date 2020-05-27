@@ -49,6 +49,7 @@ module Elang
     def format_output(build_config)
       build_preformat_values build_config
       
+      build_config.kernel.functions.each{|s|s.offset -= build_config.code_origin}
       
       build_config.codeset = 
         ["head", "libs", "subs", "disp", "init", "main", "cons"]

@@ -8,6 +8,7 @@ puts d
 puts ""
 
 # test String.append
+# notes: currently there is a problem with string.append
 puts "* Test String.append"
 d = "Com" + b + c
 puts d
@@ -20,12 +21,12 @@ puts ""
 
 # test String.ucase
 puts "* Test ucase"
-puts d.ucase
+puts _str_ucase(d)
 puts ""
 
 # test String.substr
 puts "* Test substr"
-puts "COMPUTING".substr(3, 5)
+puts _str_substr("COMPUTING", _int_unpack(3), _int_unpack(5))
 
 _unassign_object a
 _unassign_object b

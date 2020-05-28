@@ -97,7 +97,7 @@ module Elang
                 elsif ref.is_a?(ShortCodeRef)
                   code[ref.location, 1] = Converter.int2bin(symbol.offset - (ref.location + 1), :byte)
                 elsif ref.is_a?(NearCodeRef)
-                  resolve_value = resolve_offset(ref, symbol.offset - (ref.location + 2)) & 0xffff
+                  resolve_value = resolve_offset(ref, symbol.offset - (ref.location + 4)) & 0xffffffff
                   code[ref.location, 4] = Converter.int2bin(resolve_value, :dword)
                 elsif ref.is_a?(FarCodeRef)
                   code[ref.location, 6] = Converter.int2bin(symbol.offset - (ref.location + 6), :dword)

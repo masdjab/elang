@@ -1,0 +1,99 @@
+# test String.concat
+#puts("* Test String.concat")
+#a = "Com"
+#b = "Put"
+#c = "Ing"
+#d = a + b + c
+#puts d
+#puts ""
+
+## test String.append
+## notes: currently there is a problem with string.append
+#puts "* Test String.append"
+#d = "Com" + b + c
+#puts d
+#puts ""
+
+## test String.lcase
+#puts "* Test lcase"
+#puts d.lcase
+#puts ""
+
+## test String.ucase
+##puts "* Test ucase"
+##puts _str_ucase(d)
+##puts ""
+
+## test String.substr
+##puts "* Test substr"
+##puts _str_substr("COMPUTING", _int_unpack(3), _int_unpack(5))
+
+#_unassign_object a
+#_unassign_object b
+#_unassign_object c
+#_unassign_object d
+#_collect_garbage
+
+#a = "Uuh mantab dan uwu sekali"
+#puts a
+#puts a
+#puts a
+
+
+
+############### these causes error
+#puts("* Test String.concat")
+#a = "Com"
+#b = "Put"
+#c = "Ing"
+#d = a + b + c
+#puts d
+#puts d
+#puts d
+#puts ""
+
+
+############### these runs as expected
+#puts "Hello " + "World..."
+
+
+puts "Hello " + "World..."
+puts ""
+
+
+#a = "Hello "
+#b = "World..."
+#puts a + b
+
+
+#a = "Hello "
+#b = "World..."
+#c = a + b
+#puts c
+
+
+#a = "Hello "
+#b = "programming "
+#c = "world..."
+#d = a + b + c
+#puts d
+
+
+#puts("* Test String.concat")
+#a = "Com"
+#b = "Put"
+#c = "Ing"
+#d = a + b + c
+#puts d
+#puts d
+#puts d
+
+
+#puts "aku bernyanyi di dalam kamar mandi seorang diri"
+#puts "di samping wastafel di samping kaca sambil menghisap kejenuhan"
+#puts "majalah mingguan tergeletak di keranjang cucian"
+#puts "gambar dua orang menteri sedang jabat tangan sambil tersenyum"
+#puts "di atas kakus aku terus menulis"
+#puts "menulis lagu-lagu seimbang"
+#puts "timbang-menimbang ditimbang-timbang"
+#puts "timbang-menimbang dibuang sayang"

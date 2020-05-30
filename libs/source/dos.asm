@@ -35,9 +35,9 @@ _putstr:
   mov r_cx, [r_bp + ARGUMENT2]
   test r_cx, r_cx
   jz _putstr_done
-  cmp r_cx, 200
+  cmp r_cx, 2000
   jc _putstr_char_limited
-  mov r_cx, 200
+  mov r_cx, 2000
 _putstr_char_limited:
   cld
   mov ah, 14

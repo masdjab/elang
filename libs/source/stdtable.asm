@@ -19,6 +19,8 @@ var get_free_block_size
   db "_get_free_block_size", 0
 var get_used_block_size
   db "_get_used_block_size", 0
+var get_garbage_count
+  db "_get_garbage_count", 0
 var mem_get_data_offset
   db "_mem_get_data_offset", 0
 var mem_get_container_block

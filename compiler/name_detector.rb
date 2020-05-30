@@ -34,7 +34,7 @@ module Elang
     end
     def detect_names_from_node(node)
       if node.is_a?(Array)
-        node.each{|x|detect_names(x)}
+        node.each{|x|detect_names_from_node(x)}
       elsif node.is_a?(Lex::Function)
         active_scope = current_scope
         rcvr_name = node.receiver ? node.receiver.text : nil
@@ -53,7 +53,7 @@ module Elang
             @symbols.add param
           end
           
-          detect_names func_body
+          detect_names_from_node func_body
           leave_scope
         end
       elsif node.is_a?(Lex::Class)
@@ -66,7 +66,7 @@ module Elang
         else
           cls_object = register_class(cls_name, cls_parent)
           enter_scope Scope.new(cls_name)
-          detect_names cls_body
+          detect_names_from_node cls_body
           leave_scope
         end
       elsif node.is_a?(Lex::Send)
@@ -92,13 +92,22 @@ module Elang
           end
         end
         
-        detect_names node.args
+        detect_names_from_node node.args
+      elsif node.is_a?(Lex::IfBlock)
+        detect_names_from_node node.body1
+        detect_names_from_node node.body2 if node.body2
+      elsif node.respond_to?(:body)
+        detect_names_from_node node.body
+      elsif node.is_a?(Lex::Node)
+        # ignored
+      else
+        # puts "Skipped from name detection: #{node.class}"
       end
     end
     
     public
     def detect_names(nodes)
-      detect_names_from_node(nodes)
+      detect_names_from_node nodes
     end
   end
 end

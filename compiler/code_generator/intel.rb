@@ -135,88 +135,75 @@ module Elang
           handle_any args_node
           set_value rcvr_node.text
         else
-          #if (cmnd_node.type == :identifier) && (cmnd_node.text == "new")
-          #  cls_name = rcvr_node.text
+          func_name = cmnd_node.text
+          func_args = args_node ? args_node : []
+          new_class = nil
+          
+          if rcvr_node.nil?
+            func_sym = @symbols.find_nearest(active_scope, func_name)
             
-          #  if (cls = @symbols.items.find{|x|x.is_a?(Class) && (x.name == cls_name)}).nil?
-          #    raize "Class '#{cls_name}' not defined", rcvr_node
-          #  else
-          #    @language.create_object cls
-          #  end
-          #else
-            func_name = cmnd_node.text
-            func_args = args_node ? args_node : []
-            new_class = nil
+            if func_sym.nil? 
+              func_sym = @language.get_sys_function(func_name)
+            end
             
+            if active_scope.cls.nil?
+              is_obj_method = false
+            elsif func_sym.nil?
+              raize "Undefined function '#{func_name}' in scope '#{active_scope.to_s}'", cmnd_node
+            elsif func_sym.is_a?(Function)
+              is_obj_method = func_sym.scope.cls == active_scope.cls
+            elsif func_sym.is_a?(SystemFunction)
+              is_obj_method = false
+            else
+              raize "Unknown error when handling handle_send for function '#{func_name}' in scope '#{active_scope.to_s}'.", cmnd_node
+            end
+          else
+            is_obj_method = true
+          end
+          
+          if !is_obj_method
+            handle_function_call node
+          else
+            if (cmnd_node.type == :identifier) && (cmnd_node.text == "new")
+              cls_name = rcvr_node.text
+              
+              if (new_class = @symbols.items.find{|x|x.is_a?(Class) && (x.name == cls_name)}).nil?
+                raize "Class '#{cls_name}' not defined", rcvr_node
+              else
+                func_name = "initialize"
+              end
+            end
+            
+            prepare_arguments func_args
+            
+            # push args count
+            args_count = func_args.count
+            @language.load_immediate args_count
+            @language.push_argument
+            
+            # push object method id
+            @language.get_method_id func_name
+            @language.push_argument
+            
+            # push receiver object
             if rcvr_node.nil?
-              func_sym = @symbols.find_nearest(active_scope, func_name)
-              
-              if func_sym.nil? 
-                func_sym = @language.get_sys_function(func_name)
-              end
-              
               if active_scope.cls.nil?
-                is_obj_method = false
-              elsif func_sym.nil?
-                raize "Undefined function '#{func_name}' in scope '#{active_scope.to_s}'", cmnd_node
-              elsif func_sym.is_a?(Function)
-                is_obj_method = func_sym.scope.cls == active_scope.cls
-              elsif func_sym.is_a?(SystemFunction)
-                is_obj_method = false
+                raize "Send without receiver", rcvr_node
               else
-                raize "Unknown error when handling handle_send for function '#{func_name}' in scope '#{active_scope.to_s}'.", cmnd_node
+                @language.get_parameter_by_index 0
+                @language.push_argument
               end
+            elsif !new_class.nil?
+              @language.create_object new_class
+              @language.push_argument
             else
-              is_obj_method = true
+              handle_any rcvr_node
+              @language.push_argument
             end
             
-            if !is_obj_method
-              handle_function_call node
-            else
-              if (cmnd_node.type == :identifier) && (cmnd_node.text == "new")
-                cls_name = rcvr_node.text
-                
-                if (new_class = @symbols.items.find{|x|x.is_a?(Class) && (x.name == cls_name)}).nil?
-                  raize "Class '#{cls_name}' not defined", rcvr_node
-                else
-                  func_name = "initialize"
-                end
-              end
-              
-              prepare_arguments func_args
-              
-              # push args count
-              args_count = func_args.count
-              @language.load_immediate args_count
-              @language.push_argument
-              
-              # push object method id
-              @language.get_method_id func_name
-              @language.push_argument
-              
-              # push receiver object
-              if rcvr_node.nil?
-                if active_scope.cls.nil?
-                  raize "Send without receiver", rcvr_node
-                else
-                  @language.get_parameter_by_index 0
-                  @language.push_argument
-                end
-              #else
-              #  handle_any rcvr_node
-              #  @language.push_argument
-              elsif !new_class.nil?
-                @language.create_object new_class
-                @language.push_argument
-              else
-                handle_any rcvr_node
-                @language.push_argument
-              end
-              
-              # call _send_to_object
-              @language.call_sys_function "_send_to_object"
-            end
-          #end
+            # call _send_to_object
+            @language.call_sys_function "_send_to_object"
+          end
         end
       end
       def handle_function_def(node)
@@ -342,7 +329,8 @@ module Elang
               if (smbl = @symbols.find_nearest(@language.current_scope, node.text)).nil?
                 raize "Call to undefined function '#{node.text}' from scope '#{@language.current_scope.to_s}'", node
               elsif smbl.is_a?(Function)
-                handle_function_call node
+                #handle_function_call node
+                handle_function_call Lex::Send.new(nil, node, [])
               else
                 get_value node
               end

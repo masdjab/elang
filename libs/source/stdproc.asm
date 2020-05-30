@@ -287,11 +287,22 @@ _mem_dealloc_done:
   
 get_free_block_size:
   mov r_ax, [FREE_BLOCK_SIZE]
+  push r_ax
+  call int_pack
   ret
   
   
 get_used_block_size:
   mov r_ax, [USED_BLOCK_SIZE]
+  push r_ax
+  call int_pack
+  ret
+  
+  
+get_garbage_count:
+  mov r_ax, [GARBAGE_COUNT]
+  push r_ax
+  call int_pack
   ret
   
   
@@ -1551,7 +1562,7 @@ int_compare:
   mov r_ax, _int_compare_done
   add r_ax, CODE_BASE_ADDRESS
   push r_ax
-  mov r_ax, [r_bp + ARGUMENT1]
+  mov r_ax, [r_bp + REG_BYTE_SIZE]
   push r_ax
   mov r_ax, CLS_ID_TRUE
   cmp r_si, r_di

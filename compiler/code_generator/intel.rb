@@ -129,7 +129,7 @@ module Elang
         
         if cmnd_node.type == :assign
           if @symbols.find_nearest(active_scope, rcvr_node.text).nil?
-            @language.register_variable get_context, active_scope, rcvr_node.text
+            @language.register_variable active_scope, rcvr_node.text
           end
           
           handle_any args_node

@@ -91,6 +91,9 @@ class String
   def substr(pos, len)
     _str_substr(self, _int_unpack(pos), _int_unpack(len))
   end
+  def length
+    _int_pack(_str_length(self))
+  end
 end
 
 class Enumerable

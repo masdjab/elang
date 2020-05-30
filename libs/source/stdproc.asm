@@ -1534,7 +1534,7 @@ _is_true_done:
   
   
 int_compare:
-  ; should be called from compare function
+  ; should be called from one of compare functions
   ; input: main caller, object1, object2; output: ax
   push r_bp
   mov r_bp, r_sp
@@ -1551,7 +1551,7 @@ int_compare:
   mov r_ax, _int_compare_done
   add r_ax, CODE_BASE_ADDRESS
   push r_ax
-  mov r_ax, [r_bp + REG_BYTE_SIZE]
+  mov r_ax, [r_bp + ARGUMENT1]
   push r_ax
   mov r_ax, CLS_ID_TRUE
   cmp r_si, r_di

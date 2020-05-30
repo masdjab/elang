@@ -4,7 +4,7 @@ class Album < Object
   end
 end
 
-class Person
+class Person < Object
   def initialize(name)
     @name = name
   end

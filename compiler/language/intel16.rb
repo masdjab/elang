@@ -167,6 +167,10 @@ module Elang
         
         yield
         
+        if (name == "initialize") && !new_scope.cls.nil?
+          get_parameter_by_index 0
+        end
+        
         if var_count > 0
           append_hex "50"
           variables.each do |v|

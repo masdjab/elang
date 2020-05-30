@@ -135,17 +135,18 @@ module Elang
           handle_any args_node
           set_value rcvr_node.text
         else
-          if (cmnd_node.type == :identifier) && (cmnd_node.text == "new")
-            cls_name = rcvr_node.text
+          #if (cmnd_node.type == :identifier) && (cmnd_node.text == "new")
+          #  cls_name = rcvr_node.text
             
-            if (cls = @symbols.items.find{|x|x.is_a?(Class) && (x.name == cls_name)}).nil?
-              raize "Class '#{cls_name}' not defined", rcvr_node
-            else
-              @language.create_object cls
-            end
-          else
+          #  if (cls = @symbols.items.find{|x|x.is_a?(Class) && (x.name == cls_name)}).nil?
+          #    raize "Class '#{cls_name}' not defined", rcvr_node
+          #  else
+          #    @language.create_object cls
+          #  end
+          #else
             func_name = cmnd_node.text
             func_args = args_node ? args_node : []
+            new_class = nil
             
             if rcvr_node.nil?
               func_sym = @symbols.find_nearest(active_scope, func_name)
@@ -172,6 +173,16 @@ module Elang
             if !is_obj_method
               handle_function_call node
             else
+              if (cmnd_node.type == :identifier) && (cmnd_node.text == "new")
+                cls_name = rcvr_node.text
+                
+                if (new_class = @symbols.items.find{|x|x.is_a?(Class) && (x.name == cls_name)}).nil?
+                  raize "Class '#{cls_name}' not defined", rcvr_node
+                else
+                  func_name = "initialize"
+                end
+              end
+              
               prepare_arguments func_args
               
               # push args count
@@ -191,6 +202,12 @@ module Elang
                   @language.get_parameter_by_index 0
                   @language.push_argument
                 end
+              #else
+              #  handle_any rcvr_node
+              #  @language.push_argument
+              elsif !new_class.nil?
+                @language.create_object new_class
+                @language.push_argument
               else
                 handle_any rcvr_node
                 @language.push_argument
@@ -199,7 +216,7 @@ module Elang
               # call _send_to_object
               @language.call_sys_function "_send_to_object"
             end
-          end
+          #end
         end
       end
       def handle_function_def(node)

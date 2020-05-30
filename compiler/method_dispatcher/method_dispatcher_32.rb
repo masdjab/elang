@@ -21,6 +21,7 @@ module Elang
       codepad = Elang::CodePad.new(symbols, symbol_refs, binary_code)
       built_in_class_names = ["Integer", "NilClass", "FalseClass", "TrueClass"]
       label_method_selector = {}
+      label_first_method = {}
       
       label_handle_invalid_class_id = codepad.register_label(get_scope, nil)
       codepad.append_hex "B800000000"             # mov ax, 0
@@ -34,7 +35,7 @@ module Elang
         label_method_selector[key.downcase] = codepad.register_label(get_scope, nil)
         codepad.append_hex "8B450C"               # mov ax, [bp + 6]
         
-        label_first_method = codepad.register_label(get_scope, nil)
+        label_first_method[key.downcase] = codepad.register_label(get_scope, nil)
         cls[:i_funs].each do |f|
           function = codepad.symbols.items.find{|x|(x.is_a?(Function)) && (x.scope.cls == key) && (x.name == f[:name]) && x.receiver.nil?}
           codepad.add_function_id_ref f[:name], codepad.code_len + 1
@@ -46,8 +47,8 @@ module Elang
         end
         
         if cls[:parent]
-          codepad.add_near_code_ref label_first_method, codepad.code_len + 1
-          codepad.append_hex "E900000000"         # jmp label_first_method
+          codepad.add_near_code_ref label_first_method[cls[:parent].downcase], codepad.code_len + 1
+          codepad.append_hex "E900000000"         # jmp label_first_method[superclass]
         else
           codepad.add_abs_code_ref label_handle_method_not_found, codepad.code_len + 1
           codepad.append_hex "B800000000C3"       # mov ax, label_handle_method_not_found; ret

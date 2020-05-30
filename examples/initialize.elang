@@ -1,0 +1,28 @@
+class Album < Object
+  def to_s
+    "an Album object"
+  end
+end
+
+class Person
+  def initialize(name)
+    @name = name
+  end
+  def to_s
+    "Person(" + @name + ")"
+  end
+end
+
+class Programmer < Person
+  def to_s
+    "Programmer(" + @name + ")"
+  end
+end
+
+a1 = Album.new
+p1 = Person.new("Bowo")
+p2 = Programmer.new("Joko")
+
+puts a1.to_s
+puts p1.to_s
+puts p2.to_s

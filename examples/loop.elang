@@ -4,6 +4,7 @@ loop
   if x <= 5
     puts "x = " + x.to_s
   else
+    puts "break at x = " + x.to_s
     break
   end
   

@@ -115,11 +115,11 @@ module Elang
       end
       def set_jump_source(target, condition = nil)
         if condition.nil?
-          append_hex "E9" + Converter.int2bin(target - (code_len + 3), :word)
+          append_hex "E9" + Converter.int2hex(target - (code_len + 5), :dword, :be)
         elsif condition == :nz
-          append_hex "0F85" + Converter.int2bin(target - (code_len + 4), :word)
+          append_hex "0F85" + Converter.int2hex(target - (code_len + 6), :dword, :be)
         elsif condition == :zr
-          append_hex "0F84" + Converter.int2bin(target - (code_len + 4), :word)
+          append_hex "0F84" + Converter.int2hex(target - (code_len + 6), :dword, :be)
         end
       end
       def push_argument

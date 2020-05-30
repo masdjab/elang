@@ -16,13 +16,13 @@ class TrueClass
   end
 end
 
-class Person
+class Person < Object
   def to_s
     "a Person object"
   end
 end
 
-class Programmer
+class Programmer < Object
   def to_s
     "a Programmer object"
   end

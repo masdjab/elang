@@ -68,6 +68,8 @@ class TrueClass
 end
 
 class Object
+  def initialize
+  end
   def to_s
     "Object"
   end

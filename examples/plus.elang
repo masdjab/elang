@@ -1,4 +1,4 @@
-class TestClass
+class TestClass < Object
   def value=(v)
     @value = v
   end

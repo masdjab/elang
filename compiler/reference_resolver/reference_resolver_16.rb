@@ -58,7 +58,8 @@ module Elang
                   resolve_value = @variable_offset + (symbol.index - 1) * 2
                   code[ref.location, 2] = Converter.int2bin(resolve_value, :word)
                 else
-                  resolve_value = -symbol.index * 2
+                  local_offset = symbol.scope.cls.nil? ? 0 : 1
+                  resolve_value = -(symbol.index + local_offset) * 2
                   code[ref.location, 1] = Converter.int2bin(resolve_value, :byte)
                 end
               elsif symbol.is_a?(InstanceVariable)

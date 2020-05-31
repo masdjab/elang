@@ -1,0 +1,24 @@
+class Incrementor
+  def initialize(min, max, init)
+    @min = min
+    @max = max
+    @crt = init
+  end
+  def next
+    if @crt < @max
+      @crt = @crt + 1
+      true
+    else
+      false
+    end
+  end
+  def val
+    @crt
+  end
+end
+
+
+inc = Incrementor.new(0, 5, 0)
+while inc.next
+  puts inc.val.to_s
+end

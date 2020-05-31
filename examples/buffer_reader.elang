@@ -1,0 +1,55 @@
+class BufferReader < Object
+  def initialize(text)
+    @text = text
+    @result = ""
+    @read_pos = 0
+  end
+  def read_pos
+    @read_pos
+  end
+  def text
+    @text
+  end
+  def fetch
+    max_pos = @text.length - 1
+    
+    if @read_pos < max_pos
+      read_len = @text.length - @read_pos
+      if read_len > 20
+        read_len = 20
+      end
+      @result = @text.substr(@read_pos, read_len)
+      @read_pos = @read_pos + read_len
+      true
+    else
+      false
+    end
+  end
+  def result
+    @result
+  end
+  def next
+    s = @read_pos
+    @read_pos = @read_pos + 1
+    s < 8
+  end
+  def to_s
+    "BufferReader"
+  end
+end
+
+
+rt = ""
+rt = rt + "aku bernyanyi di dalam kamar mandi seorang diri. "
+rt = rt + "di samping wastafel, di samping kaca, sambil menghisap kejenuhan. "
+rt = rt + "majalah mingguan tergeletak di keranjang cucian. "
+rt = rt + "gambar dua orang menteri sedang jabat tangan sambil tersenyum. "
+rt = rt + "di atas kakus aku terus menulis. "
+rt = rt + "menulis lagu-lagu seimbang. "
+rt = rt + "timbang-menimbang ditimbang-timbang. "
+rt = rt + "timbang-menimbang dibuang sayang. "
+
+br = BufferReader.new(rt)
+while br.fetch
+  puts "'" + br.result + "'"
+end

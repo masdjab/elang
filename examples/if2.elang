@@ -1,0 +1,23 @@
+class Person < Object
+end
+
+def check(info, value)
+  if value
+    puts "Value '" + info + "' evaluates to true"
+  else
+    puts "Value '" + info + "' evaluates to false"
+  end
+end
+
+p1 = Person.new
+
+check "nil", nil
+check "true", true
+check "false", false
+check "-1", -1
+check "-2", -2
+check "0", 0
+check "1", 1
+check "2", 2
+check "a", "a"
+check "Person", p1

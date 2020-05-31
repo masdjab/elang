@@ -84,7 +84,8 @@ module Elang
     end
     def generate_nodes(sources, symbols)
       parser = Elang::Parser.new
-      lexer = Elang::Lexer.new
+      name_detector = Elang::NameDetector.new(symbols)
+      lexer = Elang::Lexer.new(name_detector)
       success = true
       
       nodes = []
@@ -101,9 +102,6 @@ module Elang
       end
       
       success ? nodes : nil
-    end
-    def collect_names(symbols, nodes)
-      NameDetector.new(symbols).detect_names nodes
     end
     def generate_output_file(nodes)
       codegen = Elang::CodeGenerator::Intel.new(@build_config.symbols, @build_config.language)
@@ -133,7 +131,6 @@ module Elang
       sources << FileSourceCode.new(@source_file.full)
       
       if nodes = generate_nodes(sources, symbols)
-        collect_names symbols, nodes
         success = generate_output_file(nodes)
       end
       

@@ -19,7 +19,8 @@ module Elang
     attr_accessor :error_formatter
     
     private
-    def initialize(shunting_yard = nil)
+    def initialize(name_detector, shunting_yard = nil)
+      @name_detector = name_detector
       @shunting_yard = shunting_yard ? shunting_yard : ShuntingYard.new
       @error_formatter = ParsingExceptionFormatter.new
     end
@@ -107,6 +108,7 @@ module Elang
       elsif node.type != :identifier
         raize "Expected variable, found #{node.inspect}", node
       else
+        @name_detector.register_variable node.text
         node
       end
     end
@@ -192,16 +194,18 @@ module Elang
           node = fetcher.fetch
           
           if (nx = fetcher.check(2, false, false, false)) && (nx[0].text == "@") && (nx[1].type == :identifier)
-            # @identifier
+            # @@identifier
             nx = fetcher.fetch(2, false, false, false)
             node.type = :identifier
             node.text = node.text + nx.map{|x|x.text}.join
             identifier = node
+            @name_detector.register_class_variable node.text
           elsif (nx = fetcher.check(1, false, false, false)) && (nx.type == :identifier)
-            # @@identifier
+            # @identifier
             node.type = :identifier
             node.text = node.text + fetcher.fetch.text
             identifier = node
+            @name_detector.register_instance_variable node.text
           else
             raize "Invalid syntax", node
           end
@@ -256,7 +260,13 @@ module Elang
             # ex: .a
             val = create_send_node(receiver, node, Lex::Values.new(nil, nil, nil))
           else
-            # ex: a
+            # ex: a, @a, Person, self
+            
+            vn = node.text
+            if !RESERVED_WORDS.include?(vn) && !["self"].include?(vn) && (vn[0] != "@")
+              @name_detector.register_identifier vn
+            end
+            
             val = node
           end
         elsif (node = fetcher.check) && node.is_a?(Lex::Node) && [:string, :number].include?(node.type)
@@ -342,8 +352,11 @@ module Elang
         end
       end
       
+      @name_detector.enter_scope :class, class_name
+      @name_detector.register_class class_name, (super_node ? super_node.text : nil)
       body_node = fetch_sexp(fetcher)
       fetch_word fetcher, "end", true
+      @name_detector.leave_scope
       
       Lex::Class.new(name_node, super_node, body_node)
     end
@@ -426,8 +439,11 @@ module Elang
         args_node = fetch_function_params(fetcher)
       end
       
+      @name_detector.enter_scope :function, name_node.text
+      @name_detector.register_function (rcvr_node ? rcvr_node.text : nil), name_node.text, args_node
       body_node = fetch_sexp(fetcher)
       fetch_word fetcher, "end", true
+      @name_detector.leave_scope
       
       Lex::Function.new(rcvr_node, name_node, args_node, body_node)
     end

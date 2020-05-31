@@ -10,6 +10,7 @@ mem_alloc:
 mem_dealloc:
 get_free_block_size:
 get_used_block_size:
+get_garbage_count:
 mem_get_data_offset:
 mem_get_container_block:
 mem_copy:

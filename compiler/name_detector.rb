@@ -11,8 +11,11 @@ module Elang
     def current_scope
       @scope_stack.current_scope
     end
-    def enter_scope(scope)
-      @scope_stack.enter_scope(scope)
+    def enter_scope(type, name)
+      cs = current_scope
+      sc = type == :class ? name : cs.cls
+      sf = type == :function ? name : nil
+      @scope_stack.enter_scope(Scope.new(sc, sf))
     end
     def leave_scope
       @scope_stack.leave_scope
@@ -29,9 +32,22 @@ module Elang
     def register_class_variable(name)
       @symbols.register_class_variable(get_context, current_scope, name)
     end
-    def register_function(rcvr_name, func_name, func_args)
-      @symbols.register_function(get_context, current_scope, rcvr_name, func_name, func_args)
+    def register_function(rcvr, name, args)
+      active_scope = current_scope
+      parent_scope = Scope.new(active_scope.cls, nil)
+      
+      @symbols.register_function get_context, parent_scope, rcvr, name, args
+      
+      (0...args.count).each do |i|
+        @symbols.add FunctionParameter.new(active_scope, args[i].text, i)
+      end
     end
+    def register_identifier(name)
+      if @symbols.items.find{|x|(x.scope.to_s == current_scope.to_s) && (x.name == name)}.nil?
+        register_variable name
+      end
+    end
+=begin
     def detect_names_from_node(node)
       if node.is_a?(Array)
         node.each{|x|detect_names_from_node(x)}
@@ -109,5 +125,6 @@ module Elang
     def detect_names(nodes)
       detect_names_from_node nodes
     end
+=end
   end
 end

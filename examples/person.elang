@@ -1,4 +1,4 @@
-class Person
+class Person < Object
   def age
     @age
   end

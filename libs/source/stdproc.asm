@@ -524,6 +524,7 @@ alloc_object:
   ; input: class id, instance variable count
   push r_bp
   mov r_bp, r_sp
+  push r_cx
   push r_bx
   mov r_ax, [r_bp + ARGUMENT2]
   add r_ax, 1
@@ -538,9 +539,20 @@ alloc_object:
   mov r_bx, r_ax
   mov r_ax, [r_bp + ARGUMENT1]
   mov [r_bx + ATTR_OBJ_CLASS_ID], r_ax
+  add r_bx, REG_BYTE_SIZE
+  mov r_cx, [r_bp + ARGUMENT2]
+  test r_cx, r_cx
+  jz _alloc_object_init_ivar_done
+  mov r_ax, CLS_ID_NULL
+_alloc_object_init_ivar_loop:
+  mov [r_bx], r_ax
+  add r_bx, REG_BYTE_SIZE
+  loop _alloc_object_init_ivar_loop
+_alloc_object_init_ivar_done:
   pop r_ax
 _alloc_object_done:
   pop r_bx
+  pop r_cx
   pop r_bp
   ret 2 * REG_BYTE_SIZE
   
@@ -1530,11 +1542,11 @@ is_true:
   mov r_bp, r_sp
   push r_ax
   mov r_ax, [r_bp + ARGUMENT1]
-  cmp r_ax, CLS_ID_TRUE
-  jz _is_true_done
+  cmp r_ax, CLS_ID_NULL
+  jz _is_true_false
   cmp r_ax, CLS_ID_FALSE
   jz _is_true_false
-  test r_ax, r_ax
+  xor r_ax, r_ax
   jmp _is_true_done
 _is_true_false:
   or r_ax, 1

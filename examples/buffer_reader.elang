@@ -1,14 +1,7 @@
 class BufferReader < Object
   def initialize(text)
     @text = text
-    @result = ""
     @read_pos = 0
-  end
-  def read_pos
-    @read_pos
-  end
-  def text
-    @text
   end
   def fetch
     max_pos = @text.length - 1
@@ -18,23 +11,12 @@ class BufferReader < Object
       if read_len > 20
         read_len = 20
       end
-      @result = @text.substr(@read_pos, read_len)
+      result = @text.substr(@read_pos, read_len)
       @read_pos = @read_pos + read_len
-      true
+      result
     else
-      false
+      nil
     end
-  end
-  def result
-    @result
-  end
-  def next
-    s = @read_pos
-    @read_pos = @read_pos + 1
-    s < 8
-  end
-  def to_s
-    "BufferReader"
   end
 end
 
@@ -50,6 +32,7 @@ rt = rt + "timbang-menimbang ditimbang-timbang. "
 rt = rt + "timbang-menimbang dibuang sayang. "
 
 br = BufferReader.new(rt)
-while br.fetch
-  puts "'" + br.result + "'"
+
+while (text = br.fetch)
+  puts "'" + text + "'"
 end

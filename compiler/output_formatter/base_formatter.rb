@@ -57,7 +57,7 @@ module Elang
       build_config.constant_image = cons
     end
     def calc_variable_offset(build_config)
-      build_config.variable_offset = (build_config.reserved_image + build_config.constant_image).length
+      build_config.variable_offset = build_config.constant_image.length
     end
     def calc_dynamic_area(build_config)
       build_config.dynamic_area = build_config.variable_offset + (build_config.root_var_count * build_config.var_byte_size)

@@ -51,7 +51,7 @@ module Elang
   end
   
   
-  class MsdosProjectBuilder < ExecutableProjectBuilder
+  class MsdosComProjectBuilder < ExecutableProjectBuilder
     def create_build_config
       config = BuildConfig.new
       config.elang_lib = "libs.elang"
@@ -69,6 +69,29 @@ module Elang
       config.reference_resolver = ReferenceResolver16.new(config.kernel, config.language)
       config.method_dispatcher = MethodDispatcher16.new
       config.output_formatter = ComFormatter.new
+      config
+    end
+  end
+  
+  
+  class MsdosExe16ProjectBuilder < ExecutableProjectBuilder
+    def create_build_config
+      config = BuildConfig.new
+      config.elang_lib = "libs.elang"
+      config.kernel = load_kernel_libraries("libmsdos.bin")
+      config.symbols = Symbols.new
+      config.symbol_refs = []
+      config.codeset = {}
+      config.language = Language::Intel16.new(config)
+      config.code_origin = 0
+      config.heap_size = 0x8000
+      config.first_block_offs = 0
+      config.reserved_var_count = Variable::RESERVED_VARIABLE_COUNT
+      config.var_byte_size = 2
+      config.var_size_code = :word
+      config.reference_resolver = ReferenceResolver16.new(config.kernel, config.language)
+      config.method_dispatcher = MethodDispatcher16.new
+      config.output_formatter = Exe16Formatter.new
       config
     end
   end
@@ -150,10 +173,17 @@ module Elang
       elsif (project.platform == "msdos") || project.platform.nil?
         if !project.architecture.nil? && (project.architecture != "16")
           raise RuntimeError.new("MSDOS platform only support 16-bit architecture.")
-        elsif !project.output_format.nil? && ("#{project.output_format}".downcase != "mz")
-          raise RuntimeError.new("MSDOS platform only support MZ file format.")
+        elsif !project.output_format.nil?
+          dcformat = "#{project.output_format}".downcase
+          if dcformat == "com"
+            MsdosComProjectBuilder.new(project)
+          elsif (dcformat == "exe") || (dcformat == "exe16")
+            MsdosExe16ProjectBuilder.new(project)
+          else
+            raise RuntimeError.new("MSDOS platform only support MZ file format.")
+          end
         else
-          MsdosProjectBuilder.new(project)
+          MsdosExe16ProjectBuilder.new(project)
         end
       elsif project.platform == "mswin"
         if !project.architecture.nil? && (project.architecture != "32")

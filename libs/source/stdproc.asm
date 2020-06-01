@@ -4,7 +4,6 @@ NO_MORE                   EQU -1
 FAILED                    EQU -1
 GARBAGE                   EQU -1
 MAX_REF_COUNT             EQU -2
-CODE_BASE_ADDRESS         EQU 100h
 
 CLS_ID_NULL               EQU 0
 CLS_ID_FALSE              EQU 2
@@ -1570,17 +1569,17 @@ int_compare:
   jz _int_compare_false
   push r_di
   call is_object
-  jz _int_compare_false
-  mov r_ax, _int_compare_done
-  add r_ax, CODE_BASE_ADDRESS
-  push r_ax
-  mov r_ax, [r_bp + REG_BYTE_SIZE]
-  push r_ax
-  mov r_ax, CLS_ID_TRUE
-  cmp r_si, r_di
-  ret
+  jnz _int_compare_eval
 _int_compare_false:
   mov r_ax, CLS_ID_FALSE
+  jmp _int_compare_done
+_int_compare_redir:
+  push r_ax
+  ret
+_int_compare_eval:
+  mov r_ax, [r_bp + REG_BYTE_SIZE]
+  cmp r_si, r_di
+  call _int_compare_redir
 _int_compare_done:
   pop r_di
   pop r_si
@@ -1592,54 +1591,45 @@ _int_compare_done:
 is_equal:
   ; input: object1, object2; output: ax
   call int_compare
-  jz _is_equal_done
-  mov r_ax, CLS_ID_FALSE
-_is_equal_done:
-  ret
-  
+  jz set_bool_true
+  jmp set_bool_false
   
 is_not_equal:
   ; input: object1, object2; output: ax
   call int_compare
-  jnz _is_not_equal_done
-  mov r_ax, CLS_ID_FALSE
-_is_not_equal_done:
-  ret
-  
+  jz set_bool_false
+  jmp set_bool_true
   
 is_less_than:
   ; input: object1, object2; output: ax
   call int_compare
-  jl _is_less_than_done
-  mov r_ax, CLS_ID_FALSE
-_is_less_than_done:
-  ret
-  
+  jl set_bool_true
+  jmp set_bool_false
   
 is_less_than_or_equal:
   ; input: object1, object2; output: ax
   call int_compare
-  jle _is_less_than_or_equal_done
-  mov r_ax, CLS_ID_FALSE
-_is_less_than_or_equal_done:
-  ret
-  
+  jle set_bool_true
+  jmp set_bool_false
   
 is_greater_than:
   ; input: object1, object2; output: ax
   call int_compare
-  jg _is_greater_done
-  mov r_ax, CLS_ID_FALSE
-_is_greater_done:
-  ret
-  
+  jg set_bool_true
+  jmp set_bool_false
   
 is_greater_than_or_equal:
   ; input: object1, object2; output: ax
   call int_compare
-  jge _is_greater_than_or_equal_done
+  jge set_bool_true
+  jmp set_bool_false
+  
+set_bool_true:
+  mov r_ax, CLS_ID_TRUE
+  ret
+  
+set_bool_false:
   mov r_ax, CLS_ID_FALSE
-_is_greater_than_or_equal_done:
   ret
   
   

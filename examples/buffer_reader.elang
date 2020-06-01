@@ -33,6 +33,6 @@ rt = rt + "timbang-menimbang dibuang sayang. "
 
 br = BufferReader.new(rt)
 
-while (text = br.fetch)
+while text = br.fetch
   puts "'" + text + "'"
 end

@@ -32,8 +32,8 @@ module Elang
       sx = ref.symbol
       rt = rx.class.to_s.gsub("Elang::", "")
       st = sx.class.to_s.gsub("Elang::", "")
-      rc = rx.respond_to?(:context) ? rx.context.name : "(none)"
-      sc = sx.respond_to?(:context) ? sx.context.name : "(none)"
+      rc = rx.respond_to?(:context) && !rx.context.nil? ? rx.context.name : "(none)"
+      sc = sx.respond_to?(:context) && !sx.context.nil? ? sx.context.name : "(none)"
       "#{rc}:#{rt} to #{sc}:#{st} @#{rx.location.to_s(16)} => #{(rv & 0xffff).to_s(16)}"
     end
     
@@ -96,12 +96,12 @@ module Elang
                   resolve_value = symbol_offset(symbol, @code_origin)
                   code[ref.location, 2] = Converter.int2bin(resolve_value, :word)
                 elsif ref.is_a?(ShortCodeRef)
-                  code[ref.location, 1] = Converter.int2bin(symbol.offset - (origin + ref.location + 1), :byte)
+                  code[ref.location, 1] = Converter.int2bin(symbol.offset - (ref.location + 1), :byte)
                 elsif ref.is_a?(NearCodeRef)
                   resolve_value = resolve_offset(ref, symbol.offset - (ref.location + 2)) & 0xffff
                   code[ref.location, 2] = Converter.int2bin(resolve_value, :word)
                 elsif ref.is_a?(FarCodeRef)
-                  code[ref.location, 4] = Converter.int2bin(symbol.offset - (origin + ref.location + 4), :dword)
+                  code[ref.location, 4] = Converter.int2bin(symbol.offset - (ref.location + 4), :dword)
                 else
                   raise "Cannot resolve reference of type '#{ref.class}' to label '#{symbol.name}'."
                 end

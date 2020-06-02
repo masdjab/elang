@@ -20,8 +20,8 @@ module Elang
       puts "Available options:"
       puts "-d                Enable dev mode"
       puts "-n=mode           Nodes output to show: none, libs, user, all"
-      puts "-p=platform       Target platform: mswin, msdos, dados"
-      puts "-a=arch           Target architecture: 16, 32"
+      #puts "-p=platform       Target platform: mswin, msdos, dados"
+      #puts "-a=arch           Target architecture: 16, 32"
       puts "-f=output format  com, mz, mzpe"
       #puts "-stdlib=file     Specify stdlib file"
       #puts "-no-elang-lib    Do not include lib.elang"
@@ -74,8 +74,8 @@ module Elang
         [
           "d", 
           "n", 
-          "p", 
-          "a", 
+          #"p", 
+          #"a", 
           "f", 
           #"stdlib", 
           #"no-elang-lib", 
@@ -93,8 +93,8 @@ module Elang
         self.display_usage
       else
         source_file = args.shift
-        platform = opts["p"]
-        architecture = opts["a"]
+        #platform = opts["p"]
+        #architecture = opts["a"]
         output_format = opts["f"]
         show_nodes = opts["n"]
         stdlib = opts["stdlib"]
@@ -113,8 +113,8 @@ module Elang
           
           project = Elang::Project.new
           project.source_file = source_file
-          project.platform = platform
-          project.architecture = architecture
+          #project.platform = platform
+          #project.architecture = architecture
           project.output_format = output_format
           project.options = options
           

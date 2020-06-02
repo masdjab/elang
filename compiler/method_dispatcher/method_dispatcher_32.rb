@@ -1,12 +1,11 @@
 module Elang
   class MethodDispatcher32
-    attr_accessor :classes, :code_origin
+    attr_accessor :classes
     attr_reader   :dispatcher_offset
     
     private
     def initialize
       @classes = nil
-      @code_origin = 0
       @dispatcher_offset = 0
     end
     def get_scope

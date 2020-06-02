@@ -3,7 +3,6 @@ module Elang
     private
     def configure_dispatcher(build_config)
       build_config.method_dispatcher.classes = build_config.classes
-      build_config.method_dispatcher.code_origin = build_config.code_origin
     end
     def configure_resolver(build_config, context_offsets)
       build_config.reference_resolver.function_names = build_config.function_names

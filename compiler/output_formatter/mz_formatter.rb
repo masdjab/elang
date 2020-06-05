@@ -4,7 +4,7 @@
 # https://board.flatassembler.net/topic.php?t=15181
 
 module Elang
-  class Exe16Formatter < BaseOutputFormatter
+  class MzFormatter < BaseOutputFormatter
     HEADER_SIZE_IN_BYTES = 0x20
     
     private
@@ -61,43 +61,6 @@ module Elang
       build_config.symbol_refs << FunctionRef.new(sys_function, ref_context, 18 + (init_vars.length / 2))
       hex2bin init_cmnd.join
     end
-    def build_file_header(build_config)
-      extra_bytes = 0
-      num_of_pages = 0
-      relocation_items = 0
-      header_size = HEADER_SIZE_IN_BYTES >> 4
-      min_alloc_paragraphs = 0x100
-      max_alloc_paragraphs = 0xffff
-      initial_ss = 0
-      initial_sp = 0xfffe
-      checksum = 0
-      initial_ip = 0
-      initial_cs = 0
-      relocation_table = 0x1c
-      overlay = 0
-      overlay_info = ""
-      
-      init_cmd = 
-        [
-          "4D5A", 
-          Converter.int2hex(extra_bytes, :word, :be), 
-          Converter.int2hex(num_of_pages, :word, :be), 
-          Converter.int2hex(relocation_items, :word, :be), 
-          Converter.int2hex(header_size, :word, :be), 
-          Converter.int2hex(min_alloc_paragraphs, :word, :be), 
-          Converter.int2hex(max_alloc_paragraphs, :word, :be), 
-          Converter.int2hex(initial_ss, :word, :be), 
-          Converter.int2hex(initial_sp, :word, :be), 
-          Converter.int2hex(checksum, :word, :be), 
-          Converter.int2hex(initial_ip, :word, :be), 
-          Converter.int2hex(initial_cs, :word, :be), 
-          Converter.int2hex(relocation_table, :word, :be), 
-          Converter.int2hex(overlay, :word, :be), 
-          overlay_info
-        ]
-      
-      hex2bin init_cmd.join
-    end
     
     public
     def extension
@@ -107,12 +70,28 @@ module Elang
       build_preformat_values build_config
       
       
+      header = MzHeader.new
+      header.extra_bytes = 0
+      header.num_of_pages = 0
+      header.relocation_items = 0
+      header.header_size = HEADER_SIZE_IN_BYTES >> 4
+      header.min_alloc_paragraphs = 0x100
+      header.max_alloc_paragraphs = 0xffff
+      header.initial_ss = 0
+      header.initial_sp = 0xfffe
+      header.checksum = 0
+      header.initial_ip = 0
+      header.initial_cs = 0
+      header.relocation_table = 0x1c
+      header.overlay = 0
+      header.overlay_info = ""
+      
+      
       build_config.codeset = 
         ["head", "libs", "subs", "disp", "init", "main", "cons"]
         .inject({}){|a,b|a[b]=build_config.codeset[b];a}
       
-      
-      build_config.codeset["head"] = CodeSection.new("head", :other, Code.align(build_file_header(build_config), 16))
+      build_config.codeset["head"] = CodeSection.new("head", :other, Code.align(header.to_bin, 16))
       build_config.codeset["libs"] = CodeSection.new("libs", :code, Code.align(build_config.kernel.code, 16))
       build_config.codeset["cons"] = CodeSection.new("cons", :data, build_config.constant_image)
       build_config.codeset["subs"].data = Code.align(build_config.codeset["subs"].data, 16)
@@ -174,14 +153,11 @@ module Elang
       main_offset = build_config.code_origin + ["head", "libs", "subs", "disp"].map{|x|build_config.codeset[x].data.length}.sum
       image_size = ["libs", "subs", "disp", "init", "main", "cons"].map{|x|build_config.codeset[x].data.length}.sum
       file_size = image_size + build_config.codeset["head"].data.length
-      extra_bytes = file_size % 512
-      num_of_pages = (file_size >> 9) + (extra_bytes > 0 ? 1 : 0)
-      initial_ip = main_offset - HEADER_SIZE_IN_BYTES
-      stack_segment = (image_size >> 4) + ((image_size % 16) > 0 ? 1 : 0)
-      build_config.codeset["head"].data[2, 2] = Elang::Converter.int2bin(extra_bytes, :word)
-      build_config.codeset["head"].data[4, 2] = Elang::Converter.int2bin(num_of_pages, :word)
-      build_config.codeset["head"].data[20, 2] = Elang::Converter.int2bin(initial_ip, :word)
-      build_config.codeset["head"].data[14, 2] = Elang::Converter.int2bin(stack_segment, :word)
+      header.extra_bytes = extra_bytes = file_size % 512
+      header.num_of_pages = (file_size >> 9) + (extra_bytes > 0 ? 1 : 0)
+      header.initial_ip = main_offset - HEADER_SIZE_IN_BYTES
+      header.initial_ss = (image_size >> 4) + ((image_size % 16) > 0 ? 1 : 0)
+      build_config.codeset["head"].data = Code.align(header.to_bin, 16)
       
       configure_resolver build_config, context_offsets
       

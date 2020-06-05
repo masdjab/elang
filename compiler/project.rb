@@ -51,11 +51,11 @@ module Elang
   end
   
   
-  class MsdosComProjectBuilder < ExecutableProjectBuilder
+  class MswinComProjectBuilder < ExecutableProjectBuilder
     def create_build_config
       config = BuildConfig.new
       config.elang_lib = "libs.elang"
-      config.kernel = load_kernel_libraries("libmsdos.bin")
+      config.kernel = load_kernel_libraries("lib-msdos-com-16.bin")
       config.symbols = Symbols.new
       config.symbol_refs = []
       config.codeset = {}
@@ -74,11 +74,11 @@ module Elang
   end
   
   
-  class MsdosExe16ProjectBuilder < ExecutableProjectBuilder
+  class MsdosMz16ProjectBuilder < ExecutableProjectBuilder
     def create_build_config
       config = BuildConfig.new
       config.elang_lib = "libs.elang"
-      config.kernel = load_kernel_libraries("libmsdos.bin")
+      config.kernel = load_kernel_libraries("lib-msdos-mz-16.bin")
       config.symbols = Symbols.new
       config.symbol_refs = []
       config.codeset = {}
@@ -97,11 +97,57 @@ module Elang
   end
   
   
+  class MsdosMz32ProjectBuilder < ExecutableProjectBuilder
+    def create_build_config
+      config = BuildConfig.new
+      config.elang_lib = "libs.elang"
+      config.kernel = load_kernel_libraries("lib-msdos-mz-32.bin")
+      config.symbols = Symbols.new
+      config.symbol_refs = []
+      config.codeset = {}
+      config.language = Language::Intel32.new(config)
+      config.code_origin = 0
+      config.heap_size = 0x8000
+      config.first_block_offs = 0
+      config.reserved_var_count = Variable::RESERVED_VARIABLE_COUNT
+      config.var_byte_size = 4
+      config.var_size_code = :dword
+      config.reference_resolver = ReferenceResolver32.new(config.kernel, config.language)
+      config.method_dispatcher = MethodDispatcher32.new
+      config.output_formatter = MzFormatter.new
+      config
+    end
+  end
+  
+  
+  class MswinPe32ProjectBuilder < ExecutableProjectBuilder
+    def create_build_config
+      config = BuildConfig.new
+      config.elang_lib = "libs.elang"
+      config.kernel = load_kernel_libraries("lib-mswin-pe-32.bin")
+      config.symbols = Symbols.new
+      config.symbol_refs = []
+      config.codeset = {}
+      config.language = Language::Intel32.new(config)
+      config.code_origin = 0
+      config.heap_size = 0x8000
+      config.first_block_offs = 0
+      config.reserved_var_count = Variable::RESERVED_VARIABLE_COUNT
+      config.var_byte_size = 4
+      config.var_size_code = :dword
+      config.reference_resolver = ReferenceResolver32.new(config.kernel, config.language)
+      config.method_dispatcher = MethodDispatcher32.new
+      config.output_formatter = MzFormatter.new
+      config
+    end
+  end
+  
+  
   class DummyMsdosProjectBuilder < ExecutableProjectBuilder
     def create_build_config
       config = BuildConfig.new
       config.elang_lib = nil
-      config.kernel = load_kernel_libraries("libnull.bin")
+      config.kernel = load_kernel_libraries("lib-null.bin")
       config.symbols = Symbols.new
       config.symbol_refs = []
       config.codeset = {}
@@ -143,40 +189,23 @@ module Elang
   end
   
   
-  class MswinProjectBuilder < ExecutableProjectBuilder
-    def create_build_config
-      config = BuildConfig.new
-      config.elang_lib = "libs.elang"
-      config.kernel = load_kernel_libraries("libmswin.bin")
-      config.symbols = Symbols.new
-      config.symbol_refs = []
-      config.codeset = {}
-      config.language = Language::Intel32.new(config)
-      config.code_origin = 0
-      config.heap_size = 0x8000
-      config.first_block_offs = 0
-      config.reserved_var_count = Variable::RESERVED_VARIABLE_COUNT
-      config.var_byte_size = 4
-      config.var_size_code = :dword
-      config.reference_resolver = ReferenceResolver32.new(config.kernel, config.language)
-      config.method_dispatcher = MethodDispatcher32.new
-      config.output_formatter = MzFormatter.new
-      config
-    end
-  end
-  
-  
   class ProjectBuilderFactory
     def create_project_builder(project)
       format = "#{project.output_format}".downcase
       
-      if format == "com" || format == ""
+      if ["com", "com16"].include?(format)
         project.platform = "msdos"
-        MsdosComProjectBuilder.new(project)
-      elsif format == "exe16" || format == "exe"
+        MswinComProjectBuilder.new(project)
+      elsif ["mz", "mz16", ""].include?(format)
+        project.platform = "mswin"
+        MsdosMz16ProjectBuilder.new(project)
+      elsif ["mz32"].include?(format)
         project.platform = "msdos"
-        MsdosExe16ProjectBuilder.new(project)
-      elsif format == "dx"
+        MsdosMz32ProjectBuilder.new(project)
+      elsif ["pe", "pe32"].include?(format)
+        project.platform = "mswin"
+        MswinPe32ProjectBuilder.new(project)
+      elsif ["dx", "dx32"].include?(format)
         project.platform = "dados"
         DadosProjectBuilder.new(project)
       else

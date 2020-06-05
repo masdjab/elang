@@ -91,7 +91,7 @@ module Elang
       config.var_size_code = :word
       config.reference_resolver = ReferenceResolver16.new(config.kernel, config.language)
       config.method_dispatcher = MethodDispatcher16.new
-      config.output_formatter = Exe16Formatter.new
+      config.output_formatter = MzFormatter.new
       config
     end
   end

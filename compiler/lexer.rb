@@ -64,6 +64,20 @@ module Elang
       
       Lex::Hash.new(list)
     end
+    def process_non_method_call(receiver, name_node, args_node)
+      args = args_node.is_a?(Array) ? args_node : args_node.items
+      
+      if name_node.text == "import"
+        if ![2, 3].include?(args.count)
+          raize "Import require 2 or 3 parameters, #{args.count} given.", name_node
+        else
+          @name_detector.import_function args[0], args[1], args.count > 2 ? args[2] : nil
+          nil
+        end
+      else
+        create_send_node receiver, name_node, args_node
+      end
+    end
     def convert_expressions_to_nodes(expr)
       if expr.is_a?(Array)
         expr.map{|x|convert_expressions_to_nodes(x)}
@@ -252,10 +266,10 @@ module Elang
         if node = fetch_identifier(fetcher)
           if (nx = fetcher.check(1, false, false, false)) && [:lbrk, :lsbrk].include?(nx.type)
             # ex: identifier(...) or identifier[...]
-            val = create_send_node(receiver, node, fetch_values(fetcher))
+            val = process_non_method_call(receiver, node, fetch_values(fetcher))
           elsif (nx = fetcher.check(1, false, false, false)) && (nx.type == :whitespace) && !(args = fetch_values(fetcher)).items.empty?
             # ex: identifier ...
-            val = create_send_node(receiver, node, args)
+            val = process_non_method_call(receiver, node, args)
           elsif is_dot_method
             # ex: .a
             val = create_send_node(receiver, node, Lex::Values.new(nil, nil, nil))

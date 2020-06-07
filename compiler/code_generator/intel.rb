@@ -115,6 +115,9 @@ module Elang
         elsif function = @symbols.find_function(func_name)
           prepare_arguments func_args
           @language.call_function function
+        elsif function = @symbols.items.find{|x|x.is_a?(ImportFunction) && (x.name == func_name)}
+          prepare_arguments func_args
+          @language.call_function function
         else
           raize "Call to undefined function '#{func_name}'", name_node
         end

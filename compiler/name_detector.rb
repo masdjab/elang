@@ -42,6 +42,9 @@ module Elang
         @symbols.add FunctionParameter.new(active_scope, args[i].text, i)
       end
     end
+    def import_function(library, original_name, name)
+      @symbols.add ImportFunction.new(current_scope, library.text, original_name.text, name ? name.text : nil)
+    end
     def register_identifier(name)
       if @symbols.items.find{|x|(x.scope.to_s == current_scope.to_s) && (x.name == name)}.nil?
         register_variable name

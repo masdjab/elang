@@ -26,23 +26,24 @@ module Elang
     def to_bin
       init_cmd = 
         [
-          Converter.int2hex(@extra_bytes, :word, :be), 
-          Converter.int2hex(@num_of_pages, :word, :be), 
-          Converter.int2hex(@relocation_items, :word, :be), 
-          Converter.int2hex(@header_size, :word, :be), 
-          Converter.int2hex(@min_alloc_paragraphs, :word, :be), 
-          Converter.int2hex(@max_alloc_paragraphs, :word, :be), 
-          Converter.int2hex(@initial_ss, :word, :be), 
-          Converter.int2hex(@initial_sp, :word, :be), 
-          Converter.int2hex(@checksum, :word, :be), 
-          Converter.int2hex(@initial_ip, :word, :be), 
-          Converter.int2hex(@initial_cs, :word, :be), 
-          Converter.int2hex(@relocation_table, :word, :be), 
-          Converter.int2hex(@overlay, :word, :be), 
-          @overlay_info
+          @signature, 
+          Converter.int2bin(@extra_bytes, :word), 
+          Converter.int2bin(@num_of_pages, :word), 
+          Converter.int2bin(@relocation_items, :word), 
+          Converter.int2bin(@header_size, :word), 
+          Converter.int2bin(@min_alloc_paragraphs, :word), 
+          Converter.int2bin(@max_alloc_paragraphs, :word), 
+          Converter.int2bin(@initial_ss, :word), 
+          Converter.int2bin(@initial_sp, :word), 
+          Converter.int2bin(@checksum, :word), 
+          Converter.int2bin(@initial_ip, :word), 
+          Converter.int2bin(@initial_cs, :word), 
+          Converter.int2bin(@relocation_table, :word), 
+          Converter.int2bin(@overlay, :word), 
+          @overlay_info ? @overlay_info : ""
         ]
       
-      @signature + Converter.hex2bin(init_cmd.join)
+      init_cmd.join
     end
   end
 end

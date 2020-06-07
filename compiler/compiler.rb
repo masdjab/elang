@@ -110,7 +110,6 @@ module Elang
       delete_output_file @output_file.full
       
       if codegen.generate_code(nodes)
-puts "formatting output using #{@build_config.output_formatter.class}"
         if !(binary = @build_config.output_formatter.format_output(@build_config)).empty?
           write_output_file @output_file.full, binary
           success = true

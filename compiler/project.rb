@@ -55,7 +55,7 @@ module Elang
     def create_build_config
       config = BuildConfig.new
       config.elang_lib = "libs.elang"
-      config.kernel = load_kernel_libraries("lib-msdos-com-16.bin")
+      config.kernel = load_kernel_libraries("libmsdos16.elb")
       config.symbols = Symbols.new
       config.symbol_refs = []
       config.codeset = {}
@@ -78,7 +78,7 @@ module Elang
     def create_build_config
       config = BuildConfig.new
       config.elang_lib = "libs.elang"
-      config.kernel = load_kernel_libraries("lib-msdos-mz-16.bin")
+      config.kernel = load_kernel_libraries("libmsdos16.elb")
       config.symbols = Symbols.new
       config.symbol_refs = []
       config.codeset = {}
@@ -101,7 +101,7 @@ module Elang
     def create_build_config
       config = BuildConfig.new
       config.elang_lib = "libs.elang"
-      config.kernel = load_kernel_libraries("lib-msdos-mz-32.bin")
+      config.kernel = load_kernel_libraries("libmsdos32.elb")
       config.symbols = Symbols.new
       config.symbol_refs = []
       config.codeset = {}
@@ -124,7 +124,7 @@ module Elang
     def create_build_config
       config = BuildConfig.new
       config.elang_lib = "libs.elang"
-      config.kernel = load_kernel_libraries("lib-mswin-pe-32.bin")
+      config.kernel = load_kernel_libraries("libmswin32.elb")
       config.symbols = Symbols.new
       config.symbol_refs = []
       config.codeset = {}
@@ -137,7 +137,7 @@ module Elang
       config.var_size_code = :dword
       config.reference_resolver = ReferenceResolver32.new(config.kernel, config.language)
       config.method_dispatcher = MethodDispatcher32.new
-      config.output_formatter = MzFormatter.new
+      config.output_formatter = PeFormatter.new
       config
     end
   end
@@ -147,7 +147,7 @@ module Elang
     def create_build_config
       config = BuildConfig.new
       config.elang_lib = nil
-      config.kernel = load_kernel_libraries("lib-null.bin")
+      config.kernel = load_kernel_libraries("libnull.elb")
       config.symbols = Symbols.new
       config.symbol_refs = []
       config.codeset = {}
@@ -170,7 +170,7 @@ module Elang
     def create_build_config
       config = BuildConfig.new
       config.elang_lib = "libs.elang"
-      config.kernel = load_kernel_libraries("libdados.bin")
+      config.kernel = load_kernel_libraries("libdados.elb")
       config.symbols = Symbols.new
       config.symbol_refs = []
       config.codeset = {}
@@ -209,7 +209,7 @@ module Elang
         project.platform = "dados"
         DadosProjectBuilder.new(project)
       else
-        raise "Unsupported output format: '#{project.output_format}'."
+        raise "Unsupported output format: '#{project.output_format}'. Try one of following: com16, mz16, mz32, pe32, dx32."
       end
     end
   end

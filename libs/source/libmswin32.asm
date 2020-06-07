@@ -10,5 +10,5 @@ dw table
 dw 7 dup 0
 
 include 'stdproc.asm'
-include 'dos.asm'
+include 'win.asm'
 include 'stdtable.asm'

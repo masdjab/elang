@@ -1,3 +1,8 @@
+# resources:
+# https://wiki.osdev.org/MZ
+# https://board.flatassembler.net/topic.php?t=1736
+# https://board.flatassembler.net/topic.php?t=15181
+
 module Elang
   class MzHeader
     attr_reader   :signature

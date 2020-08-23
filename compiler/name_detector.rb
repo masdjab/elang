@@ -1,9 +1,12 @@
+require_relative 'scope'
+
 module Elang
   class NameDetector
     def initialize(symbols)
       @symbols = symbols
       @scope_stack = ScopeStack.new
-      @context = CodeContext.new("subs")
+      #@context = CodeContext.new("subs")
+      @context = nil
     end
     def get_context
       @context

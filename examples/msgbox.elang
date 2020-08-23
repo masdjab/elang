@@ -1,0 +1,40 @@
+import "user32.dll", "MessageBoxA", "msgbox"
+import "kernel32.dll", "ExitProcess", "exit_process"
+import "kernel32.dll", "GetCommandLineA", "get_command_line"
+
+# MessageBox type flags
+MB_OK			              = 0x000000
+MB_OKCANCEL		          = 0x000001
+MB_ABORTRETRYIGNORE	    = 0x000002
+MB_YESNOCANCEL		      = 0x000003
+MB_YESNO		            = 0x000004
+MB_RETRYCANCEL		      = 0x000005
+MB_ICONHAND		          = 0x000010
+MB_ICONQUESTION 	      = 0x000020
+MB_ICONEXCLAMATION	    = 0x000030
+MB_ICONASTERISK 	      = 0x000040
+MB_USERICON		          = 0x000080
+MB_ICONWARNING		      = MB_ICONEXCLAMATION
+MB_ICONERROR		        = MB_ICONHAND
+MB_ICONINFORMATION	    = MB_ICONASTERISK
+MB_ICONSTOP		          = MB_ICONHAND
+MB_DEFBUTTON1		        = 0x000000
+MB_DEFBUTTON2		        = 0x000100
+MB_DEFBUTTON3		        = 0x000200
+MB_DEFBUTTON4		        = 0x000300
+MB_APPLMODAL		        = 0x000000
+MB_SYSTEMMODAL		      = 0x001000
+MB_TASKMODAL		        = 0x002000
+MB_HELP 		            = 0x004000
+MB_NOFOCUS		          = 0x008000
+MB_SETFOREGROUND	      = 0x010000
+MB_DEFAULT_DESKTOP_ONLY = 0x020000
+MB_TOPMOST		          = 0x040000
+MB_RIGHT		            = 0x080000
+MB_RTLREADING		        = 0x100000
+MB_SERVICE_NOTIFICATION = 0x200000
+
+msgbox _int_unpack(0), "Hello world...", _int_unpack(0), _int_unpack(MB_OK)
+
+puts "MB_ICONHAND: " + MB_ICONHAND.to_s
+puts "MB_ICONSTOP: " + MB_ICONSTOP.to_s

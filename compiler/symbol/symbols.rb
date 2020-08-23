@@ -1,13 +1,19 @@
+require_relative 'class'
+require_relative 'class_function'
+require_relative 'class_variable'
+require_relative 'constant'
+require_relative 'function'
+require_relative 'function_id'
+require_relative 'function_parameter'
+require_relative 'import_function'
+require_relative 'instance_variable'
+require_relative 'label'
+require_relative 'system_function'
+require_relative 'variable'
+
 module Elang
   class Symbols
-    # path format:
-    # - main var: module::module.name
-    # - global var: module::module$name
-    # - local var: module::module#function.name
-    # - instance var: module::module::class#function@name
-    # - class var: module::module::class@@name
-    # - singleton var: module::module::class@name
-    
+    private
     def initialize
       Constant.reset_index
       Function.reset_index
@@ -38,24 +44,13 @@ module Elang
       
       [alt1, alt2, alt3]
     end
-    def find_exact(context, name)
-      find_matching(context, name)[0]
-    end
-    def find_nearest(context, name)
-      m = find_matching(context, name)
-      m[0] ? m[0] : m[1] ? m[1] : m[2]
-    end
-    def find_string(str)
-      @symbols.find{|x|x.is_a?(Constant) && (x.value == str)}
-    end
-    def find_function(name)
-      @symbols.find{|x|x.is_a?(Function) && (x.name == name)}
-    end
-    def item(index)
-      @symbols[index]
-    end
+    
+    public
     def items
       @symbols
+    end
+    def [](index)
+      @symbols[index]
     end
     def count
       @symbols.count
@@ -68,6 +63,19 @@ module Elang
       end
       
       item
+    end
+    def find_exact(context, name)
+      find_matching(context, name)[0]
+    end
+    def find_nearest(context, name)
+      m = find_matching(context, name)
+      m[0] ? m[0] : m[1] ? m[1] : m[2]
+    end
+    def find_string(str)
+      @symbols.find{|x|x.is_a?(Constant) && (x.value == str)}
+    end
+    def find_function(name)
+      @symbols.find{|x|x.is_a?(Function) && (x.name == name)}
     end
     def register_constant(scope, name, value)
       self.add(Constant.new(scope, name, value))

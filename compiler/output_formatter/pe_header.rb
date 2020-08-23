@@ -189,43 +189,67 @@ module Elang
     
     private
     def initialize
-      @mz_header = nil
-      @msdos_stub = nil
-      @signature = nil
-      @machine = nil
-      @number_of_sections = nil
-      @timestamp = nil
-      @pointer_to_symbol_table = nil
-      @number_of_symbols = nil
-      @size_of_optional_header = nil
-      @characteristics = nil
-      @magic_number = nil
-      @linker_version = nil
-      @size_of_code = nil
-      @size_of_initialized_data = nil
-      @size_of_uninitialized_data = nil
-      @entry_point = nil
-      @base_of_code = nil
-      @base_of_data = nil
-      @image_base = nil
-      @section_alignment = nil
-      @file_alignment = nil
-      @os_version = nil
-      @image_version = nil
-      @subsystem_version = nil
-      @win32_version_value = nil
-      @size_of_image = nil
-      @size_of_headers = nil
-      @checksum = nil
-      @subsystem = nil
-      @dll_characteristics = nil
-      @size_of_stack_reserve = nil
-      @size_of_stack_commit = nil
-      @size_of_heap_reserve = nil
-      @size_of_heap_commit = nil
-      @loader_flags = nil
-      @list_of_rvas = []
-      @sections = []
+      code_section = PeSection.new
+      code_section.name = ".text"
+      code_section.virtual_size = 0
+      code_section.virtual_address = 0
+      code_section.size_of_raw_data = 0
+      code_section.pointer_to_raw_data = 0
+      code_section.pointer_to_relocations = 0
+      code_section.pointer_to_line_numbers = 0
+      code_section.number_of_relocations = 0
+      code_section.number_of_line_numbers = 0
+      code_section.section_flag = PeSection::SECTION_CODE | PeSection::SECTION_MEMORY_EXECUTE | PeSection::SECTION_MEMORY_READABLE
+      
+      itbl_section = PeSection.new
+      itbl_section.name = ".idata"
+      itbl_section.virtual_size = 0
+      itbl_section.virtual_address = 0
+      itbl_section.size_of_raw_data = 0
+      itbl_section.pointer_to_raw_data = 0
+      itbl_section.pointer_to_relocations = 0
+      itbl_section.pointer_to_line_numbers = 0
+      itbl_section.number_of_relocations = 0
+      itbl_section.number_of_line_numbers = 0
+      itbl_section.section_flag = PeSection::SECTION_INITIALIZED_DATA | PeSection::SECTION_MEMORY_READABLE | PeSection::SECTION_MEMORY_WRITABLE
+      
+      @mz_header = MzHeader.new
+      @msdos_stub = MsdosStub.new(0x1c)
+      @signature = "PE" + 0.chr + 0.chr
+      @machine = MACHINE_TYPE_I386
+      @number_of_sections = 0
+      @timestamp = Time.new
+      @pointer_to_symbol_table = 0
+      @number_of_symbols = 0
+      @size_of_optional_header = 0
+      @characteristics = CHARACTERISTICS_DEFAULT
+      @magic_number = MAGIC_NUMBER_PE32
+      @linker_version = PeVersion.new(1, 0)
+      @size_of_code = 0
+      @size_of_initialized_data = 0
+      @size_of_uninitialized_data = 0
+      @entry_point = 0
+      @base_of_code = 0
+      @base_of_data = 0
+      @image_base = 0x400000
+      @section_alignment = 0x1000
+      @file_alignment = 0x200
+      @os_version = PeVersion.new(1, 0)
+      @image_version = PeVersion.new(0, 0)
+      @subsystem_version = PeVersion.new(4, 0)
+      @win32_version_value = 0
+      @size_of_image = 0
+      @size_of_headers = 0
+      @checksum = 0
+      @subsystem = SUBSYSTEM_GUI
+      @dll_characteristics = 0
+      @size_of_stack_reserve = 0x1000
+      @size_of_stack_commit = 0x1000
+      @size_of_heap_reserve = 0x10000
+      @size_of_heap_commit = 0
+      @loader_flags = 0
+      @list_of_rvas = self.class.create_rvas_template
+      @sections = [code_section, itbl_section]
     end
     def timestamp_to_int(value)
       if value
@@ -259,10 +283,12 @@ module Elang
     def to_bin
       @mz_header.extra_bytes = 0x80
       @mz_header.num_of_pages = 1
+      @mz_header.header_size = 4
+      @mz_header.initial_ip = 0
       
       temp = 
         [
-          Code.align(@mz_header.to_bin + (@msdos_stub ? @msdos_stub.to_bin : ""), 0x80), 
+          Code.align(@mz_header.to_bin + (@msdos_stub ? @msdos_stub.to_bin : ""), 0x10), 
           @signature, 
           Converter.int2bin(@machine, :word), 
           Converter.int2bin(@number_of_sections, :word), 
@@ -301,7 +327,7 @@ module Elang
           @sections.map{|x|x.to_bin}.join, 
         ]
       
-      temp.join
+      Code.align(temp.join, 0x80)
     end
   end
 end

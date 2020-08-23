@@ -12,7 +12,10 @@ require './compiler/scope_stack'
 require './compiler/language/_load'
 require './compiler/name_detector'
 require './compiler/language/_load'
-require './compiler/code_generator/_load'
+require './compiler/cpu/intel16'
+require './compiler/cpu/intel32'
+#require './compiler/code_generator/_load'
+require './compiler/code_generator'
 require './compiler/converter'
 require './compiler/build_config'
 
@@ -77,7 +80,7 @@ class TestCodeGenerator < Test::Unit::TestCase
   end
   def generate_code(nodes, source = nil)
     @build_config = Elang::BuildConfig.new
-    @build_config.kernel = Elang::Kernel.load_library("./libs/libmsdos.bin")
+    @build_config.kernel = Elang::Kernel.load_library("libs/libmsdos16.elb")
     @build_config.symbols = Elang::Symbols.new
     @build_config.symbol_refs = []
     @build_config.codeset = {}
@@ -86,18 +89,26 @@ class TestCodeGenerator < Test::Unit::TestCase
     @build_config.first_block_offs = 0
     @build_config.reserved_var_count = Elang::Variable::RESERVED_VARIABLE_COUNT
     
-    @language = Elang::Language::Intel16.new(@build_config)
-    @code_generator = Elang::CodeGenerator::Intel.new(@build_config.symbols, @language)
-    Elang::NameDetector.new(@build_config.symbols).detect_names nodes
+    #@language = Elang::Language::Intel16.new(@build_config)
+    @language = Elang::CpuModel::Intel16.new
+    @code_generator = Elang::CodeGenerator.new(@build_config.symbols, @language)
+    #Elang::NameDetector.new(@build_config.symbols).detect_names nodes
     @code_generator.generate_code(nodes)
-    @build_config.codeset
+    #@build_config.codeset
   end
-  def check_code_result(nodes, exp_main, exp_subs, source = nil)
-    codeset = generate_code(nodes, source)
-    assert_equal exp_main, codeset["main"].data
-    assert_equal exp_subs, codeset["subs"].data
-    codeset
+  def check_code_result(nodes, expected, source = nil)
+    assert_equal expected, generate_code(nodes, source)
   end
+  def test_simple_assignment
+    codeset = 
+      check_code_result(
+        [send(idt("a"),asn,num("2"))], \
+        # mov ax, 02h; mov a, ax"
+        bin("B8050050A1000050E8000058A30000")
+      )
+    assert_equal 1, @build_config.symbols.count
+  end
+=begin
   def test_simple_assignment
     codeset = 
       check_code_result(
@@ -385,4 +396,5 @@ class TestCodeGenerator < Test::Unit::TestCase
   def test_class_variabel
     #(todo)#test_class_variable
   end
+=end
 end

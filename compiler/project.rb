@@ -82,7 +82,8 @@ module Elang
       config.symbols = Symbols.new
       config.symbol_refs = []
       config.codeset = {}
-      config.language = Language::Intel16.new(config)
+      #config.language = Language::Intel16.new(config)
+      config.language = CpuModel::Intel16.new
       config.code_origin = 0
       config.heap_size = 0x8000
       config.first_block_offs = 0

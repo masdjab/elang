@@ -65,12 +65,16 @@ module Elang
       build_preformat_values build_config
       
       
+      import_section_builder = ImportSectionBuilder.new(build_config.symbols)
+      import_section_builder.image_base = 0x2000
+      import_section_builder.build
+      
       mz_header = MzHeader.new
       mz_header.extra_bytes = 0
       mz_header.num_of_pages = 0
       mz_header.relocation_items = 0
       mz_header.header_size = HEADER_SIZE_IN_BYTES >> 4
-      mz_header.min_alloc_paragraphs = 0x100
+      mz_header.min_alloc_paragraphs = 0x10
       mz_header.max_alloc_paragraphs = 0xffff
       mz_header.initial_ss = 0
       mz_header.initial_sp = 0xfffe
@@ -82,28 +86,7 @@ module Elang
       mz_header.overlay_info = ""
       
       code_section = PeSection.new
-      code_section.name = ".text"
-      code_section.virtual_size = 0
-      code_section.virtual_address = 0
-      code_section.size_of_raw_data = 0
-      code_section.pointer_to_raw_data = 0
-      code_section.pointer_to_relocations = 0
-      code_section.pointer_to_line_numbers = 0
-      code_section.number_of_relocations = 0
-      code_section.number_of_line_numbers = 0
-      code_section.section_flag = PeSection::SECTION_CODE | PeSection::SECTION_MEMORY_EXECUTE | PeSection::SECTION_MEMORY_READABLE
-      
       itbl_section = PeSection.new
-      itbl_section.name = ".idata"
-      itbl_section.virtual_size = 0
-      itbl_section.virtual_address = 0
-      itbl_section.size_of_raw_data = 0
-      itbl_section.pointer_to_raw_data = 0
-      itbl_section.pointer_to_relocations = 0
-      itbl_section.pointer_to_line_numbers = 0
-      itbl_section.number_of_relocations = 0
-      itbl_section.number_of_line_numbers = 0
-      itbl_section.section_flag = PeSection::SECTION_INITIALIZED_DATA | PeSection::SECTION_MEMORY_READABLE | PeSection::SECTION_MEMORY_WRITABLE
       
       pe_header = PeHeader.new
       pe_header.mz_header = mz_header
@@ -126,7 +109,7 @@ module Elang
       pe_header.base_of_data = 0x2000
       pe_header.image_base = 0x400000
       pe_header.section_alignment = 0x1000
-      pe_header.file_alignment = 0x200
+      pe_header.file_alignment = 0x100
       pe_header.os_version = PeVersion.new(1, 0)
       pe_header.image_version = PeVersion.new(0, 0)
       pe_header.subsystem_version = PeVersion.new(4, 0)
@@ -140,25 +123,21 @@ module Elang
       pe_header.size_of_stack_commit = 0x1000
       pe_header.size_of_heap_reserve = 0x10000
       pe_header.size_of_heap_commit = 0
-      pe_header.loader_flags = 0x2278
+      pe_header.loader_flags = 0
       pe_header.list_of_rvas = PeHeader.create_rvas_template
       pe_header.sections = [code_section, itbl_section]
-      
-      
-      import_section = ImportSectionBuilder.new(build_config.symbols)
-      import_section.build
       
       
       build_config.codeset["head"] = CodeSection.new("head", :other, Code.align(pe_header.to_bin, 0x200))
       build_config.codeset["libs"] = CodeSection.new("libs", :code, Code.align(build_config.kernel.code, 16))
       build_config.codeset["cons"] = CodeSection.new("cons", :data, build_config.constant_image)
       build_config.codeset["subs"].data = Code.align(build_config.codeset["subs"].data, 16)
-      build_config.codeset["main"].data << Elang::Converter.hex2bin("B8004CCD21")
-      build_config.codeset["itbl"] = CodeSection.new("itbl", :data, Code.align(import_section.image, 16))
+      build_config.codeset["main"].data << Elang::Converter.hex2bin("FF1580200000")
+      build_config.codeset["itbl"] = CodeSection.new("itbl", :data, Code.align(import_section_builder.image, pe_header.file_alignment))
       
       
       build_config.codeset = 
-        ["head", "libs", "subs", "disp", "init", "main", "itbl", "cons"]
+        ["head", "libs", "subs", "disp", "init", "main", "cons", "itbl"]
         .inject({}){|a,b|a[b]=build_config.codeset[b];a}
       
       
@@ -176,19 +155,21 @@ module Elang
       
       
       build_config.codeset["init"] = CodeSection.new("init", :code, build_code_initializer(build_config))
-      ds_offset = ["libs", "subs", "disp", "init", "main"].map{|x|build_config.codeset[x].data.length}.sum
+      code_size = ["libs", "subs", "disp", "init", "main"].map{|x|build_config.codeset[x].data.length}.sum
       
-      if (extra_size = (ds_offset % 16)) > 0
-        pad_count = 16 - extra_size
-        
+      if (pad_count = Code.pad_size(code_size, 16)) > 0
         if build_config.codeset["cons"].data.length > 0
           build_config.codeset["main"].data << (0.chr * pad_count)
         end
         
-        ds_offset = ds_offset + pad_count
+        code_size += pad_count
       end
       
-      build_config.codeset["init"].data[3, 2] = Converter.int2bin((ds_offset) >> 4, :word)
+      cons_size = build_config.codeset["cons"].data.length
+      pad_count = Code.pad_size(code_size + cons_size, pe_header.file_alignment)
+      build_config.codeset["cons"].data << 0.chr * pad_count
+      
+      build_config.codeset["init"].data[3, 2] = Converter.int2bin((code_size) >> 4, :word)
       
       
       resolver = build_config.reference_resolver
@@ -221,7 +202,34 @@ module Elang
       mz_header.num_of_pages = (file_size >> 9) + (extra_bytes > 0 ? 1 : 0)
       mz_header.initial_ip = main_offset - HEADER_SIZE_IN_BYTES
       mz_header.initial_ss = (image_size >> 4) + ((image_size % 16) > 0 ? 1 : 0)
+      
+      raw_pe_header_size = 0x80 + 0x18 + pe_header.size_of_optional_header + pe_header.sections.count * 0x28
+      actual_pe_header_size = Code.size_align(raw_pe_header_size, pe_header.file_alignment)
+      
+      code_section.name = ".text"
+      code_section.virtual_size = image_size
+      code_section.virtual_address = 0x1000
+      code_section.size_of_raw_data = Code.size_align(image_size, pe_header.file_alignment)
+      code_section.pointer_to_raw_data = actual_pe_header_size
+      code_section.pointer_to_relocations = 0
+      code_section.pointer_to_line_numbers = 0
+      code_section.number_of_relocations = 0
+      code_section.number_of_line_numbers = 0
+      code_section.section_flag = PeSection::SECTION_CODE | PeSection::SECTION_MEMORY_EXECUTE | PeSection::SECTION_MEMORY_READABLE
+      
+      itbl_section.name = ".idata"
+      itbl_section.virtual_size = import_section_builder.image.length
+      itbl_section.virtual_address = 0x2000
+      itbl_section.size_of_raw_data = build_config.codeset["itbl"].data.length
+      itbl_section.pointer_to_raw_data = code_section.pointer_to_raw_data + code_section.size_of_raw_data
+      itbl_section.pointer_to_relocations = 0
+      itbl_section.pointer_to_line_numbers = 0
+      itbl_section.number_of_relocations = 0
+      itbl_section.number_of_line_numbers = 0
+      itbl_section.section_flag = PeSection::SECTION_INITIALIZED_DATA | PeSection::SECTION_MEMORY_READABLE | PeSection::SECTION_MEMORY_WRITABLE
+      
       build_config.codeset["head"].data = Code.align(pe_header.to_bin, 16)
+      
       
       configure_resolver build_config, context_offsets
       

@@ -105,6 +105,8 @@ module Elang
                 else
                   raise "Cannot resolve reference of type '#{ref.class}' to label '#{symbol.name}'."
                 end
+              elsif symbol.is_a?(ImportFunction)
+puts "resolving import function"
               else
                 raise "Cannot resolve reference to symbol of type '#{symbol.class}' => #{ref.inspect}"
               end

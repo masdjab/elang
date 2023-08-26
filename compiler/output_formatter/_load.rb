@@ -1,6 +1,5 @@
 require_relative 'base_formatter'
 require_relative 'mz_header'
-require_relative 'pe_header'
 require_relative 'com_formatter'
 require_relative 'mz_formatter'
 require_relative 'dx_formatter'
